@@ -1,0 +1,17 @@
+name: dkmads_ssp_example
+description: Example app for DKMads SSP Flutter plugin.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dkmads_ssp:
+    path: ..
+
+flutter:
+  uses-material-design: true

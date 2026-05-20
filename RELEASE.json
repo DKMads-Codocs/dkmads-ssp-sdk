@@ -1,0 +1,20 @@
+{
+  "release": "sdk-0.4.1",
+  "version": "0.4.1",
+  "released_at": "2026-05-20T14:07:23Z",
+  "source_repo": "ssp-platform",
+  "platform_versions": {
+    "ios": "0.4.0",
+    "android": "0.4.1",
+    "flutter": "0.2.0",
+    "unity": "0.2.0"
+  },
+  "install": {
+    "ios_pod": "DKMadsSSPSDK",
+    "android_maven": "com.dkmads.ssp:ssp-android:0.4.1",
+    "flutter_package": "dkmads_ssp",
+    "unity_upm": "com.dkmads.ssp"
+  },
+  "docs": "docs/integration/",
+  "publisher_repo": "https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git"
+}

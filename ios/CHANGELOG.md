@@ -1,0 +1,25 @@
+# Changelog
+
+## 0.4.0
+
+- `DKMadsInterstitialAd`: fullscreen video, image, HTML5, and `adm`; IAB bid sizes (explicit → `registerAdUnit` → 320×480).
+- `Ad`: `video_url`, `hasFill`, `isVideo`, `isHTML5`, `preferredPlaybackURL` for house/video creatives.
+- `SSPSDK.registeredSizes(for:)` for interstitial size tokens.
+
+## 0.3.1
+
+- Added `TargetingSignals` model and `SSPSDK.setTargetingSignals(_:)` for structured bid/FPD targeting.
+- Added `SSPSDK.syncFirstPartyProfile()` to push interests/keywords to `/api/public/v1/fpd/mobile`.
+- Telemetry events now attach `user_pid` / `device_pid` from the identity provider when set.
+- Unity bridge: `dkmads_set_targeting_signals` C entry point for structured targeting JSON.
+- Public API paths centralized in `PublicAPIPaths` (`bid`, `events`, `fpd/mobile`).
+
+## 0.3.0
+
+- Restructured SDK into `Sources/DKMadsSSPSDK` modules (Core, Models, Network, UI, Telemetry).
+- Added `DKMadsMobileAds` entry point (`start` for one-time SDK bootstrap).
+- Added `DKMadsBannerAdView` with WebView/image rendering and click handling.
+- Added `DKMadsResponseInfo` for fill diagnostics (`reason`, `request_id`, `dsp`, `price`).
+- Added Swift Package Manager (`Package.swift`) and fixed CocoaPods source paths.
+- Added sample app scaffold under `Sample/`.
+- Fixed consent initialization and main-thread ad callbacks.

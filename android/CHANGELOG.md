@@ -1,0 +1,27 @@
+# Changelog
+
+## 0.4.1
+
+- Added `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader` (+ `DKMadsContentPlayback` for ExoPlayer hooks).
+- Added `DKMadsResponseInfo` on banner, interstitial, video, native, and audio views/listeners.
+- Added `DKMadsNativeAdView`, `DKMadsAudioAdView`; `Ad.audioUrl` / `isAudio`.
+- Fixed `TelemetryManager` to use shared `SDK_VERSION` (0.4.0) instead of hardcoded `1.0.0`.
+
+## 0.4.0
+
+- Added `DKMadsInterstitialAd` + `DKMadsInterstitialActivity` — fullscreen video, image, HTML5, and `adm` (parity with iOS).
+- Interstitial bid sizes: explicit dimensions → `registerAdUnit` sizes → default **320×480** (not display pixels).
+- `SSPSDK.registerAdUnit` now stores sizes; added `registeredSizes()`.
+- `Ad.isVideo` and `hasFill` aligned with iOS (`video_url`, HTML5, image, tag).
+
+## 0.3.1
+
+- Added `TargetingSignals` data class and `SSPSDK.setTargetingSignals()` for structured bid/FPD targeting.
+- Added `SSPSDK.syncFirstPartyProfile()` for mobile FPD profile sync.
+- Telemetry attaches `user_pid` / `device_pid` via `TelemetryManager.setIdentityProvider`.
+- Unity bridge: `DKMadsUnityBridge.setTargetingSignals()` maps JSON to `TargetingSignals`.
+
+## 0.3.0
+
+- Initial public SDK module with `loadAd`, consent, telemetry, and structured response info (`reason`, `request_id`, `dsp`, `price`).
+- Default production base URL: `https://ssp.dkmads.com`.
