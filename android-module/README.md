@@ -24,7 +24,7 @@ Published artifacts are written to:
 
 - Group: `com.dkmads.ssp`
 - Artifact: `ssp-android`
-- Version: `0.4.0`
+- Version: `0.4.1`
 
 Adjust in `gradle.properties` before release.
 

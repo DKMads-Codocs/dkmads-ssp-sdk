@@ -3,7 +3,7 @@ ddfbacdc83a4ca6a7f5a12ae74f9eddc437947c30b997a6ec4b132787f39ebb4  ./android-modu
 58106a3b2f08618805b436f94dfd0fc1b1cabb10cd24ffac86ac58eb9d27df72  ./android-module/library/build.gradle.kts
 be8e029a7451a6eef45c5caa7d9fd8f4caf8ae3859961086d05b6de8d1ee5364  ./android-module/library/consumer-rules.pro
 f46ca10e275bd3e73e2c7eb955b2a8bc28d1807f07aadf916580b2e346fd1f83  ./android-module/library/src/main/AndroidManifest.xml
-f6015de5015e8612caa9f98d3946e650afab9e5e1d220f7bea7d5eef69f89a88  ./android-module/README.md
+dbf10a5a14a28353fc4cec0899fe89328b18ff35c1375fd73d2102a736f57dd8  ./android-module/README.md
 147b900fef688e203fce005ccdff82d3d818aa977fab959cb369d60f4cfe3d76  ./android-module/settings.gradle.kts
 a7d337fb0d639029bd33eb64af1e74e470052c5c0b9c23bb9258e850d0197f63  ./android/AdvertisingIds.kt
 b99751b70a57f126900d35a67731c7da8e44241f86eda877a5eb1cc1959a8109  ./android/CHANGELOG.md
@@ -25,8 +25,8 @@ b8b4ba5e736f3806b5f595ef034e2da2152b3004322b8475ca248bdc1be49489  ./android/Tele
 a61a7d0ece3eada2e69e715c0a9e055d053cd5956ca9297376bd1e4ac357fb76  ./docs/AD_FORMATS_MATRIX.md
 f7577318949751a8493b61677499edcc057362eda1fda097bcbbdb8f7836aaca  ./docs/integration/android.md
 67e0219e662010563bd10a2ce689682d1cee9c7b991ce99219fc08ce4a435503  ./docs/integration/flutter.md
-fca7b8d92b4a59060dddd578858ba8008b6dc50ad878b92cfefc974911243315  ./docs/integration/ios.md
-2449c533bf393bec258aa1413a984b4461e8b66a4b1916928e9b950fb1b0d5c1  ./docs/integration/QUICKSTART.md
+fa012f34b2293253ded363ccfc70aadd6b9e4252ac1b0adb96605dfc156c218a  ./docs/integration/ios.md
+3a0ad104424f7e5f33dca1dcd2fdeae8a95d42168b4203be129e411fe55391ab  ./docs/integration/QUICKSTART.md
 31930173975a5133760bbba9de5fa1681691d4f8d3fd096a1aa2efbaffe59b29  ./docs/integration/unity.md
 db1ae31124d87eb931f460ef9bbca2da83c1b652b1f478beda189d2124049208  ./docs/integration/web.md
 4505aaede33b6419a3a547835a7ab01e6da82b0808863bd796396342f1b34fa0  ./docs/README.md
@@ -37,7 +37,7 @@ fd1b7442136051e3e9e91baf1c84eebd24cd80f287fd55f05c00de1be0ddc9f3  ./docs/SDK_IMP
 b786eeeec5459c41e9d1977a754bd8c66219718b5587ef8af21c6de6e52ecdfc  ./docs/SDK_METRICS_REFERENCE.md
 3a89aad8e566780d9bf09b4c80fa3f726342408e937707524a407938c18e935e  ./docs/TARGETING_SIGNALS.md
 ecba7cd96b140dd9e2b51aa24dcd611568b314f8d6749a4058c99acc74735333  ./flutter/android/src/main/kotlin/com/dkmads/ssp/flutter/DkmadsSspPlugin.kt
-bd8f4baf2efb4f4f912babe32667e238536eb567b41dd8ae6c6031e20b9762ad  ./flutter/CHANGELOG.md
+8191a86500d6378c2e4c8f83b8c0b6671699080710233b703db869e465e6766c  ./flutter/CHANGELOG.md
 14e3628b8939348bf95e068c3c5d4c2068c89bbcac79a78dd95d09ce12d01118  ./flutter/example/lib/main.dart
 dd3043a18861e2d91b189b83da538fa1b90851afc3aec90bbd4fe22a572c0afb  ./flutter/example/pubspec.yaml
 ba901abe710e72183950b50d45761a1d0b3f968fd8216f5e26e80a9f001acf0c  ./flutter/example/README.md
@@ -45,10 +45,10 @@ dfd6675b74083045918a86260199ed63aaf35b30bb77d659477edc1e04ce2a04  ./flutter/ios/
 5a99e567079b6d5be9bab602b34353e85b348996b2b9cd7b634e5b557f2fa260  ./flutter/lib/dkmads_ssp.dart
 54013c20107c8c46ac691a0af18dd1e8299ae08921f606a61987b246fff28359  ./flutter/pubspec.yaml
 cb29a77d5012ac5ba6b9015ab140f75211ce2718cd39131935d776796ff01618  ./flutter/test/video_lifecycle_test.dart
-2f9a50b48639476aafd84ecc91dbb637551f7278b4e88a2a89fd1cae261d9921  ./ios/CHANGELOG.md
-7b965fb29b0f0dee267ce191ff6a6e50599dd0d517431aa939a2f9d740048c99  ./ios/DKMadsSSPSDK.podspec
+903684b7e8b97b2b0629ec61570cc257979d96b17cf8699f2fe8178f0946b79e  ./ios/CHANGELOG.md
+d5709c29b02fd326bfbf02adbbc1263982ace42060f62d7fd4e8db4a01e98995  ./ios/DKMadsSSPSDK.podspec
 efa4fbe90276f78713d2f14ff873c03418ad0c6cb7ffb0e4ac93375c6d975cbc  ./ios/Package.swift
-2559477a016c474ce0c8ec03ba420573b8c6482e2b48906d1df64512ee6e6e1b  ./ios/README.md
+2410718839c2ddf850f139525d6d1479af0777766637f1569db8e8bacbc10730  ./ios/README.md
 4d69d238cc3e61059b2f77e946e88ddebb4e713ff2283f8be16916120a3c44a7  ./ios/Sample/DKMadsSSPExample/AppDelegate.swift
 9b5eba755fd16a4b572ea2c6bac03632bb1d505f0ce020b1ed1740aeb0eeb3b3  ./ios/Sample/DKMadsSSPExample/Info.plist
 a6b728e09d82676c919cd6df0233f729ac0d94d6ca6deaaad4495c608edac8c0  ./ios/Sample/DKMadsSSPExample/ViewController.swift
@@ -58,7 +58,7 @@ ecc2fca0757e1833cdedb3f5105287d1e3eeb1ebda3c99d59537a4b7d519a8f8  ./ios/Sample/R
 39cb71ac3d9cb4fafa5236d9552723d163b3813b2b9d81a643e71a41c2ab124b  ./ios/Sources/DKMadsSSPSDK/Core/DeviceIdentity.swift
 3a0eeb9a37ff6a6041eda95833ffa03cd3c7bb00eb1805e803a562c39063b256  ./ios/Sources/DKMadsSSPSDK/Core/DKMadsMobileAds.swift
 0f6c3f745d0c8f278bdfdfb92567f07aa4c482ed89b9198dcd1792019db0c5ab  ./ios/Sources/DKMadsSSPSDK/Core/PlatformIdentity.swift
-b291376780e34da810e3ab6cd228cb31b4d12f7a5058be4ca97b07173ef30750  ./ios/Sources/DKMadsSSPSDK/Core/SDKVersion.swift
+d84fd0f330c50f8003b39349dd5e6c45afec93adb5e589390f39dff8211d89ea  ./ios/Sources/DKMadsSSPSDK/Core/SDKVersion.swift
 ff565f57eae0aec4a614c554764fa7b9a31040930ee038ad161876e9e2d7ebb7  ./ios/Sources/DKMadsSSPSDK/Core/SSPSDK.swift
 5cce7108ad2decb2a3632dbf1010600d1942c0d7a52fed778eace321a8f38b34  ./ios/Sources/DKMadsSSPSDK/Core/SSPSDKConfig.swift
 9cb60db96e61a24a823e75f486cec8c8ccd4a589805e36654625e3644160429d  ./ios/Sources/DKMadsSSPSDK/Models/Ad.swift
@@ -80,9 +80,9 @@ c7541e4f506bf6f30514b26bd9e956e2726fa6572301497184267f63a43d6795  ./ios/Sources/
 42c717d2cedb534df1278f14bff2ab35b43a54ec35e5f6a10d340417ce8822a2  ./ios/Sources/DKMadsSSPSDK/UI/DKMadsVideoAdController.swift
 e2a786f7698634105d4434c30d15882fb63c8d63432c406cbe72f554fd869418  ./ios/Sources/DKMadsSSPSDK/UI/DKMadsVideoAdView.swift
 d4cff13642821d11edd515173f74e896064c9c911b6fb371783624afdf3add21  ./README.md
-8b37fadff755679b952fb0241f92ba2fd8a0c5eea27da7d55e8a13eb19b96c21  ./RELEASE.json
+f5e95e9af7acc52a22aa487b2d2ba74f48f506a3dda852d9e2e3ef48d335ebee  ./RELEASE.json
 66adc4938072a634aaa976c881112d5f35c0436c76869a34fd265fdafee6d7e3  ./unity/Android/src/main/java/com/dkmads/ssp/unity/DKMadsUnityBridge.kt
-279c6dd060df5a0c61977dca72a9e668c2e6b922fc8ded5564a2750514cdc233  ./unity/CHANGELOG.md
+9433cf08d5a69a09cb03ba590bb33a830ee240ef19b43a00294677dcba99d4da  ./unity/CHANGELOG.md
 80fa96dce3744a0dafa3d242512cdc526c52d185e3dc9f21010145e0075c1fd0  ./unity/iOS/DKMadsUnityBridge.swift
 bbce45001563e2c07f8153ffeb54ac182eec43d375afcf596de7348878f2c485  ./unity/package.json
 44c6bd3bb3d169b8e101787a67f7d9dca3632f5ac9099bc098f55928cd4efaeb  ./unity/Runtime/DKMadsSdk.cs

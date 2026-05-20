@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Version aligned with Android `0.4.1` for unified publisher releases (`sdk-0.4.1`).
+
 ## 0.4.0
 
 - `DKMadsInterstitialAd`: fullscreen video, image, HTML5, and `adm`; IAB bid sizes (explicit → `registerAdUnit` → 320×480).
