@@ -194,7 +194,7 @@ class DKMadsInterstitialActivity : Activity() {
                 campaignId = ad.campaignId,
                 creativeId = ad.creativeId ?: ad.id,
                 containerView = videoView,
-                durationMsProvider = { mp.duration.coerceAtLeast(0L) },
+                durationMsProvider = { mp.duration.coerceAtLeast(0).toLong() },
                 currentPositionMsProvider = { videoView.currentPosition.toLong() },
                 isPlayingProvider = { videoView.isPlaying },
                 skippable = true,

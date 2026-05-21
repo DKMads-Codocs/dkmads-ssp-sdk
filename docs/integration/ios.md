@@ -139,15 +139,15 @@ SSPSDK.shared.loadAd(
   format: .banner,
   sizes: [CGSize(width: 300, height: 250)]
 ) { result in
-  switch result {
+    switch result {
   case .success(let response):
     print(response.responseInfo.summary)
     if response.success, let ad = response.ad {
       // ad.isVideo, ad.isHTML5, ad.creativeUrl, ad.adm, ad.videoUrl
-    }
-  case .failure(let error):
+        }
+    case .failure(let error):
     print(error.localizedDescription)
-  }
+    }
 }
 ```
 

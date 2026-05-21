@@ -106,12 +106,12 @@ object SSPSDK {
 
         telemetryManager.trackEvent(
             type = "ad_request",
-            data = mapOf(
+            data = mapOf<String, Any?>(
                 "adUnitCode" to adUnitCode,
                 "format" to format.name.lowercase(),
                 "placement_code" to placementCode,
-                "placement_context" to placementContext
-            )
+                "placement_context" to placementContext,
+            ),
         )
 
         try {
@@ -173,7 +173,7 @@ object SSPSDK {
         } catch (e: Exception) {
             telemetryManager.trackEvent(
                 type = "ad_error",
-                data = mapOf("error" to e.message ?: "Unknown error")
+                data = mapOf<String, Any?>("error" to (e.message ?: "Unknown error")),
             )
             Result.failure(e)
         }
@@ -249,8 +249,8 @@ object SSPSDK {
                 else Result.failure(Exception("FPD sync failed HTTP $code"))
             } catch (e: Exception) {
                 Result.failure(e)
-            }
         }
+    }
 
     /**
      * Set consent flags

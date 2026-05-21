@@ -145,7 +145,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     campaignId = ad.campaignId,
                     creativeId = ad.creativeId ?: ad.id,
                     containerView = this,
-                    durationMsProvider = { mp.duration.coerceAtLeast(0L) },
+                    durationMsProvider = { mp.duration.coerceAtLeast(0).toLong() },
                     currentPositionMsProvider = { videoView.currentPosition.toLong() },
                     isPlayingProvider = { videoView.isPlaying },
                     skippable = isSkippable,

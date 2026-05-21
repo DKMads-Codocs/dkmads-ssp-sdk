@@ -77,7 +77,7 @@ Include Kotlin coroutines (`kotlinx-coroutines-android` or `core`) in your app.
 
 ```kotlin
 val cfg = Config(
-  integrationKey = "YOUR_INTEGRATION_KEY",
+            integrationKey = "YOUR_INTEGRATION_KEY",
   baseUrl = "https://ssp.dkmads.com",
   debug = true
 )
