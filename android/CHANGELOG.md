@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+- Fixed Kotlin compile errors: `MediaPlayer.duration` (Int) uses `coerceAtLeast(0).toLong()` in `DKMadsInterstitialActivity` and `DKMadsVideoAdView` (not `coerceAtLeast(0L)`).
+- `SSPSDK` telemetry payloads use explicit `mapOf<String, Any?>` / `mapOf<String, String?>` for identity maps.
+
 ## 0.4.1
 
 - Added `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader` (+ `DKMadsContentPlayback` for ExoPlayer hooks).

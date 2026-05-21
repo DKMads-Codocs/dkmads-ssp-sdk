@@ -1,4 +1,4 @@
-# Android SDK Quickstart (v0.4.1)
+# Android SDK Quickstart (v0.4.2)
 
 Integrate DKMads SSP in a native Android app. Drop-in views cover banner, interstitial, video/instream, native, and audio; all expose **`DKMadsResponseInfo`** for bid diagnostics.
 
@@ -15,7 +15,7 @@ Add the Android library **`com.dkmads.ssp:ssp-android`** to your Gradle project.
 
 | | |
 |---|---|
-| **Coordinates** | `com.dkmads.ssp:ssp-android:0.4.1` |
+| **Coordinates** | `com.dkmads.ssp:ssp-android:0.4.2` |
 | **Repository** | [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) |
 
 ### Build from source (Maven local repository)
@@ -46,7 +46,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.4.1")
+  implementation("com.dkmads.ssp:ssp-android:0.4.2")
 }
 ```
 
@@ -63,11 +63,11 @@ Point the `maven { url = … }` repository at `vendor/dkmads-ssp-sdk/android-mod
 
 ### Prebuilt AAR (enterprise distribution)
 
-When DKMads provides `ssp-android-0.4.1.aar`, add it under `app/libs/`:
+When DKMads provides `ssp-android-0.4.2.aar`, add it under `app/libs/`:
 
 ```kotlin
 dependencies {
-  implementation(files("libs/ssp-android-0.4.1.aar"))
+  implementation(files("libs/ssp-android-0.4.2.aar"))
 }
 ```
 

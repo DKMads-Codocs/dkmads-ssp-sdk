@@ -1,6 +1,6 @@
 # Flutter SDK Integration (Bridge)
 
-The **dkmads_ssp** plugin (v0.2.0) bridges to native **iOS/Android SDK v0.4.1** (`DKMadsInterstitialAd`, `DKMadsResponseInfo` on `DkmadsAdResult`, IAB interstitial sizes).
+The **dkmads_ssp** plugin (v0.2.0) bridges to native **iOS/Android SDK v0.4.2** (`DKMadsInterstitialAd`, `DKMadsResponseInfo` on `DkmadsAdResult`, IAB interstitial sizes).
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ dependencies:
     git:
       url: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
       path: flutter
-      ref: sdk-0.4.1   # release tag (sdk-<semver>)
+      ref: sdk-0.4.2   # release tag (sdk-<semver>)
 ```
 
 ```bash
@@ -51,7 +51,7 @@ In `ios/Podfile` (see [iOS install](./ios.md)):
 ```ruby
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.4.1',
+    :tag => 'sdk-0.4.2',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -59,7 +59,7 @@ Then `cd ios && pod install`.
 
 ### 3. Android native SDK
 
-Add `com.dkmads.ssp:ssp-android:0.4.1` per [Android Installation](./android.md).
+Add `com.dkmads.ssp:ssp-android:0.4.2` per [Android Installation](./android.md).
 
 ### Example app
 

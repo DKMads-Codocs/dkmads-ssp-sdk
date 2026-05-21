@@ -73,18 +73,18 @@ Publish to GitHub Releases on a **minimal public repo** that contains no server 
    chmod +x scripts/publish-sdk-release.sh
 
    # Preview
-   ./scripts/publish-sdk-release.sh 0.4.1 --dry-run
+   ./scripts/publish-sdk-release.sh 0.4.2 --dry-run
 
-   # Build dist/sdk-release/sdk-0.4.1/ + tarball + SHA256
-   ./scripts/publish-sdk-release.sh 0.4.1 --archive-only
+   # Build dist/sdk-release/sdk-0.4.2/ + tarball + SHA256
+   ./scripts/publish-sdk-release.sh 0.4.2 --archive-only
 
    # Tag this monorepo
-   ./scripts/publish-sdk-release.sh 0.4.1 --archive-only --tag-monorepo
-   git push origin sdk-0.4.1
+   ./scripts/publish-sdk-release.sh 0.4.2 --archive-only --tag-monorepo
+   git push origin sdk-0.4.2
 
    # Push to publisher repository
    export SDK_PUBLISH_TOKEN=ghp_...   # PAT with repo scope on dkmads-ssp-sdk
-   ./scripts/publish-sdk-release.sh 0.4.1 --skip-android-build
+   ./scripts/publish-sdk-release.sh 0.4.2 --skip-android-build
    # default push: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
    ```
 
@@ -115,7 +115,7 @@ Artifacts uploaded: `sdk-release-<version>/` (folder, `.tar.gz`, `.sha256`).
 ### Release bundle contents
 
 ```text
-sdk-0.4.1/
+sdk-0.4.2/
   ios/ android/ android-module/ flutter/ unity/
   docs/integration/ …
   artifacts/android-maven/   # when Gradle build ran

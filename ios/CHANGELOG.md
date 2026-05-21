@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Version aligned with Android `0.4.2` for unified publisher releases (`sdk-0.4.2`).
+
 ## 0.4.1
 
 - Version aligned with Android `0.4.1` for unified publisher releases (`sdk-0.4.1`).

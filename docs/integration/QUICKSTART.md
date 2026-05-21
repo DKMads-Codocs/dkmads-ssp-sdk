@@ -30,8 +30,8 @@ curl -sS -X POST 'https://ssp.dkmads.com/api/public/v1/bid' \
 
 **iOS / Android / Flutter / Unity:** complete **Installation** in the platform guide, then initialize the SDK:
 
-- [iOS](./ios.md#installation) — `DKMadsSSPSDK` v0.4.1
-- [Android](./android.md#installation) — `com.dkmads.ssp:ssp-android:0.4.1`
+- [iOS](./ios.md#installation) — `DKMadsSSPSDK` v0.4.2
+- [Android](./android.md#installation) — `com.dkmads.ssp:ssp-android:0.4.2`
 - [Flutter](./flutter.md#installation) — `dkmads_ssp` + native libraries
 - [Unity](./unity.md#installation) — `com.dkmads.ssp` UPM package
 

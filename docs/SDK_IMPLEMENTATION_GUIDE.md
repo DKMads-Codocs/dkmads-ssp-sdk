@@ -40,7 +40,7 @@ Mobile SDKs call `POST {baseURL}/api/public/v1/bid` with header `X-Integration-K
 Each mobile guide includes an **Installation** section (CocoaPods, Gradle, path, or Git dependency). Web uses a single script tag—no app package install.
 
 **Publisher SDK repository (Git):** [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk)  
-Releases are tagged `sdk-<semver>` (for example `sdk-0.4.1`). The platform monorepo exports SDK sources to this repo on each SDK release.
+Releases are tagged `sdk-<semver>` (for example `sdk-0.4.2`). The platform monorepo exports SDK sources to this repo on each SDK release.
 
 ```text
 ios/              → DKMadsSSPSDK (SPM / CocoaPods)

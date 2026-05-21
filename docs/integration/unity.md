@@ -1,6 +1,6 @@
 # Unity SDK Integration (Bridge)
 
-The **com.dkmads.ssp** Unity package (v0.2.0) bridges to native **iOS/Android SDK v0.4.1**.
+The **com.dkmads.ssp** Unity package (v0.2.0) bridges to native **iOS/Android SDK v0.4.2**.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ The **com.dkmads.ssp** Unity package (v0.2.0) bridges to native **iOS/Android SD
 | Component | Package / coordinates |
 |-----------|------------------------|
 | Unity bridge | `com.dkmads.ssp` (`sdk/unity`) |
-| Android | `com.dkmads.ssp:ssp-android:0.4.1` |
+| Android | `com.dkmads.ssp:ssp-android:0.4.2` |
 | iOS | `DKMadsSSPSDK` |
 
 For web, use the [Web SDK](./web.md).

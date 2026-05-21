@@ -65,7 +65,7 @@ object SSPSDK {
         telemetryManager.setIdentityProvider {
             val platformUid = userData["platform_uid"]?.toString()
                 ?: PlatformIdentity.get(appContext)
-            mapOf(
+            mapOf<String, String?>(
                 "user_pid" to (userData["user_pid"]?.toString() ?: targetingSignals.userPid),
                 "device_pid" to (
                     userData["device_pid"]?.toString()
@@ -78,11 +78,11 @@ object SSPSDK {
         }
         telemetryManager.trackEvent(
             type = "sdk_init",
-            data = mapOf(
+            data = mapOf<String, Any?>(
                 "platform" to "android",
                 "sdkVersion" to SDK_VERSION,
-                "deviceType" to getDeviceType(context)
-            )
+                "deviceType" to getDeviceType(context),
+            ),
         )
 
         if (config.debug) {
@@ -276,14 +276,14 @@ object SSPSDK {
     fun trackUserEvent(name: String, attributes: Map<String, Any> = emptyMap()) {
         telemetryManager.trackEvent(
             type = "first_party_signal",
-            data = mapOf(
+            data = mapOf<String, Any?>(
                 "event_name" to name,
                 "source" to "app",
                 "os" to "android",
                 "attributes" to attributes,
                 "device_pid" to userData["device_pid"],
-                "user_pid" to userData["user_pid"]
-            )
+                "user_pid" to userData["user_pid"],
+            ),
         )
     }
 
@@ -601,4 +601,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.4.1"
+const val SDK_VERSION = "0.4.2"

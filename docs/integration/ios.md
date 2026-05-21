@@ -1,6 +1,6 @@
 # iOS SDK Quickstart
 
-Integrate DKMads SSP in a native iOS app using **DKMadsSSPSDK** (v0.4.1).
+Integrate DKMads SSP in a native iOS app using **DKMadsSSPSDK** (v0.4.2).
 
 ## Prerequisites
 
@@ -16,8 +16,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| **Version** | `0.4.1` |
-| **Release tag** | `sdk-0.4.1` |
+| **Version** | `0.4.2` |
+| **Release tag** | `sdk-0.4.2` |
 
 ### CocoaPods (Git — recommended)
 
@@ -27,7 +27,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.4.1',
+    :tag => 'sdk-0.4.2',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
