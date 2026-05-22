@@ -81,6 +81,16 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         loadedAd = ad
         this.responseInfo = responseInfo
         render(ad)
+        if (!ad.impressionRecorded) {
+            SSPSDK.recordAdImpression(
+                adUnitId = adUnitId,
+                adId = ad.id,
+                campaignId = ad.campaignId,
+                creativeId = ad.creativeId,
+                dspSource = ad.dsp,
+                reason = ad.reason,
+            )
+        }
         listener?.onAdLoaded(this, ad, responseInfo ?: DKMadsResponseInfo.from(ad))
         listener?.onAdImpression(this)
     }
@@ -121,6 +131,14 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     }
                     loadedAd = ad
                     render(ad)
+                    SSPSDK.recordAdImpression(
+                        adUnitId = adUnitId,
+                        adId = ad.id,
+                        campaignId = ad.campaignId,
+                        creativeId = ad.creativeId,
+                        dspSource = ad.dsp,
+                        reason = ad.reason,
+                    )
                     listener?.onAdLoaded(this@DKMadsVideoAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsVideoAdView)
                 },

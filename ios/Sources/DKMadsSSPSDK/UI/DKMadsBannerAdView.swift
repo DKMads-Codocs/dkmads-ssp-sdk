@@ -79,6 +79,14 @@ import SafariServices
                 }
                 self.loadedAd = ad
                 self.render(ad: ad)
+                SSPSDK.shared.recordAdImpression(
+                    adUnitId: self.adUnitID,
+                    adId: ad.id,
+                    campaignId: ad.campaignId,
+                    creativeId: ad.creativeId,
+                    dspSource: ad.dsp
+                )
+                ad.impressionRecorded = true
                 DispatchQueue.main.async {
                     self.delegate?.bannerAdViewDidReceiveAd?(self)
                     self.delegate?.bannerAdViewDidRecordImpression?(self)

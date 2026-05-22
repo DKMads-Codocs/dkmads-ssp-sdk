@@ -106,6 +106,14 @@ class DKMadsNativeAdView @JvmOverloads constructor(
                     }
                     loadedAd = ad
                     render(ad)
+                    SSPSDK.recordAdImpression(
+                        adUnitId = adUnitId,
+                        adId = ad.id,
+                        campaignId = ad.campaignId,
+                        creativeId = ad.creativeId,
+                        dspSource = ad.dsp,
+                        reason = ad.reason,
+                    )
                     listener?.onAdLoaded(this@DKMadsNativeAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsNativeAdView)
                     post { startViewability() }

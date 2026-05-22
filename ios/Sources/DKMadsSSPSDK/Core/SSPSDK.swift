@@ -130,16 +130,7 @@ import AVFoundation
                         dsp: dsp,
                         price: price
                     )
-                    if parsedAd.hasFill {
-                        let impressionId = parsedAd.id.isEmpty ? code : parsedAd.id
-                        self?.trackImpression(
-                            adUnitId: code,
-                            adId: impressionId,
-                            campaignId: adData["cid"] as? String,
-                            creativeId: (adData["crid"] as? String) ?? (adData["id"] as? String),
-                            dspSource: adData["dsp"] as? String
-                        )
-                    }
+                    // Served impressions are recorded when the creative is shown (banner/video views), not on bid response.
                     deliver(.success(response))
                 } else {
                     deliver(.success(AdResponse(success: false, reason: reason, requestId: requestId)))
@@ -282,12 +273,12 @@ import AVFoundation
         TelemetryManager.shared.trackEvent(type: name, data: data)
     }
 
-    private func trackImpression(
+    @objc public func recordAdImpression(
         adUnitId: String,
         adId: String,
-        campaignId: String?,
-        creativeId: String?,
-        dspSource: String?
+        campaignId: String? = nil,
+        creativeId: String? = nil,
+        dspSource: String? = nil
     ) {
         var data: [String: Any] = ["ad_unit_id": adUnitId, "adId": adId]
         if let campaignId, !campaignId.isEmpty { data["campaign_id"] = campaignId }

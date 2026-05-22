@@ -278,6 +278,16 @@ private final class DKMadsInterstitialPresenter: UIViewController {
     private func startViewabilityIfNeeded() {
         guard !viewabilityActive, view.window != nil, view.bounds.width > 0, view.bounds.height > 0 else { return }
         viewabilityActive = true
+        if !ad.impressionRecorded {
+            SSPSDK.shared.recordAdImpression(
+                adUnitId: adUnitID,
+                adId: ad.id,
+                campaignId: ad.campaignId,
+                creativeId: ad.creativeId,
+                dspSource: ad.dsp
+            )
+            ad.impressionRecorded = true
+        }
         SSPSDK.shared.attachBannerViewability(
             adUnitId: adUnitID,
             containerView: view,

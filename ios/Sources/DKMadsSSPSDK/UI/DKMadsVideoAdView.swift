@@ -73,6 +73,16 @@ import WebKit
         }
         loadedAd = ad
         render(ad: ad)
+        if !ad.impressionRecorded {
+            SSPSDK.shared.recordAdImpression(
+                adUnitId: adUnitID,
+                adId: ad.id,
+                campaignId: ad.campaignId,
+                creativeId: ad.creativeId,
+                dspSource: ad.dsp
+            )
+            ad.impressionRecorded = true
+        }
         delegate?.videoAdViewDidReceiveAd?(self)
         delegate?.videoAdViewDidRecordImpression?(self)
     }
@@ -113,6 +123,14 @@ import WebKit
                 }
                 self.loadedAd = ad
                 self.render(ad: ad)
+                SSPSDK.shared.recordAdImpression(
+                    adUnitId: self.adUnitID,
+                    adId: ad.id,
+                    campaignId: ad.campaignId,
+                    creativeId: ad.creativeId,
+                    dspSource: ad.dsp
+                )
+                ad.impressionRecorded = true
                 self.delegate?.videoAdViewDidReceiveAd?(self)
                 self.delegate?.videoAdViewDidRecordImpression?(self)
             case .failure(let error):

@@ -103,10 +103,7 @@ class TelemetryManager {
         // Fraud detection first (emits an event if anomalies present).
         detectFraudSignals(adUnitId, container, extra)
 
-        trackEvent(
-            "impression",
-            extra + mapOf("ad_unit_id" to adUnitId)
-        )
+        // Served impression (`ad_impression`) is emitted once when the ad is displayed — not here.
         trackEvent(
             "measurable_impression",
             extra + mapOf("ad_unit_id" to adUnitId)

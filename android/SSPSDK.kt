@@ -154,18 +154,7 @@ object SSPSDK {
                     creativeId = adData.optString("crid").takeIf { it.isNotBlank() },
                 )
 
-                if (ad.hasFill) {
-                    val impressionExtra = mutableMapOf<String, Any?>(
-                        "ad_unit_id" to adUnitCode,
-                        "adId" to ad.id,
-                        "reason" to ad.reason,
-                    )
-                    adData.optString("cid").takeIf { it.isNotBlank() }?.let { impressionExtra["campaign_id"] = it }
-                    adData.optString("crid").takeIf { it.isNotBlank() }?.let { impressionExtra["creative_id"] = it }
-                    adData.optString("dsp").takeIf { it.isNotBlank() }?.let { impressionExtra["dsp_source"] = it }
-                    telemetryManager.trackEvent(type = "ad_impression", data = impressionExtra)
-                }
-
+                // Served impressions are recorded when the creative is shown (banner/video views), not on bid response.
                 Result.success(ad)
             } else {
                 Result.success(Ad.empty(reason = reason, requestId = requestId))
@@ -369,6 +358,26 @@ object SSPSDK {
 
     fun detachBannerViewability(adUnitId: String) {
         telemetryManager.stopViewabilityTracking(adUnitId)
+    }
+
+    /** Served impression (maps to `impression_served` on the server). */
+    fun recordAdImpression(
+        adUnitId: String,
+        adId: String,
+        campaignId: String? = null,
+        creativeId: String? = null,
+        dspSource: String? = null,
+        reason: String? = null,
+    ) {
+        val extra = mutableMapOf<String, Any?>(
+            "ad_unit_id" to adUnitId,
+            "adId" to adId,
+        )
+        campaignId?.takeIf { it.isNotBlank() }?.let { extra["campaign_id"] = it }
+        creativeId?.takeIf { it.isNotBlank() }?.let { extra["creative_id"] = it }
+        dspSource?.takeIf { it.isNotBlank() }?.let { extra["dsp_source"] = it }
+        reason?.takeIf { it.isNotBlank() }?.let { extra["reason"] = it }
+        telemetryManager.trackEvent(type = "ad_impression", data = extra)
     }
 
     fun recordAdClick(
@@ -582,6 +591,8 @@ data class Ad(
     val price: Double? = null,
     val campaignId: String? = null,
     val creativeId: String? = null,
+    /** Set after [recordAdImpression] (avoids duplicate on [DKMadsVideoAdView.display] / interstitial). */
+    val impressionRecorded: Boolean = false,
 ) {
     val isHtml5: Boolean
         get() = deliveryType.equals("html5", ignoreCase = true)

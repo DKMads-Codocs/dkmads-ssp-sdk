@@ -108,6 +108,14 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                     }
                     loadedAd = ad
                     render(ad)
+                    SSPSDK.recordAdImpression(
+                        adUnitId = adUnitId,
+                        adId = ad.id,
+                        campaignId = ad.campaignId,
+                        creativeId = ad.creativeId,
+                        dspSource = ad.dsp,
+                        reason = ad.reason,
+                    )
                     listener?.onAdLoaded(this@DKMadsBannerAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsBannerAdView)
                     post { startViewability() }

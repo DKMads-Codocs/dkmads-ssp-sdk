@@ -115,10 +115,9 @@ import AVFoundation
         viewabilityObservers[adUnitId] = observer
         observer.start()
 
-        // Emit measurable + impression immediately.
+        // Served impression (`ad_impression`) is emitted once when the ad is displayed — not here.
         var baseExtra = extra
         baseExtra["ad_unit_id"] = adUnitId
-        trackEvent(type: "impression", data: baseExtra)
         trackEvent(type: "measurable_impression", data: baseExtra)
     }
 

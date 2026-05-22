@@ -79,6 +79,14 @@ class DKMadsAudioAdView @JvmOverloads constructor(
                         return@fold
                     }
                     loadedAd = ad
+                    SSPSDK.recordAdImpression(
+                        adUnitId = adUnitId,
+                        adId = ad.id,
+                        campaignId = ad.campaignId,
+                        creativeId = ad.creativeId,
+                        dspSource = ad.dsp,
+                        reason = ad.reason,
+                    )
                     listener?.onAdLoaded(this@DKMadsAudioAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsAudioAdView)
                     startPlayback(url)

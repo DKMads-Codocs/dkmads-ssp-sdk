@@ -10,6 +10,8 @@ import Foundation
     @objc public let campaignId: String?
     @objc public let creativeId: String?
     @objc public let dsp: String?
+    /// Set after `recordAdImpression` (avoids duplicate on `display(_:)` / interstitial).
+    @objc public var impressionRecorded = false
     @objc public let html5EntryUrl: String?
     @objc public let videoUrl: String?
     @objc public let deliveryType: String?

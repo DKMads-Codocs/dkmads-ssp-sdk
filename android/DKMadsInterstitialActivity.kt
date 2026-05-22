@@ -228,6 +228,16 @@ class DKMadsInterstitialActivity : Activity() {
     private fun startViewability() {
         if (viewabilityStarted || root.width <= 0 || root.height <= 0) return
         viewabilityStarted = true
+        if (!ad.impressionRecorded) {
+            SSPSDK.recordAdImpression(
+                adUnitId = adUnitId,
+                adId = ad.id,
+                campaignId = ad.campaignId,
+                creativeId = ad.creativeId,
+                dspSource = ad.dsp,
+                reason = ad.reason,
+            )
+        }
         SSPSDK.attachBannerViewability(
             adUnitId = adUnitId,
             container = root,

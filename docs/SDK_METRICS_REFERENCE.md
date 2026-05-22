@@ -2,12 +2,25 @@
 
 Events are sent to `POST /api/public/v1/events` and rolled up in the dashboard.
 
+## Bid win vs served impression
+
+| Metric | When counted | SDK / server event |
+|--------|----------------|-------------------|
+| **Bid won** | Auction selects a creative (server-side, once per winning bid) | `bid_won` |
+| **Served impression** | Creative is **shown** to the user (once per win) | `ad_impression` (native) or `impression` (web `SSP.bind`) |
+
+Do **not** count served impressions on bid response alone. Native drop-in views call `recordAdImpression` when the ad is rendered; custom integrations must call `SSPSDK.recordAdImpression` when they display a creative returned from `loadAd`.
+
+`measurable_impression` and `viewable_impression` are separate funnel metrics and do **not** add to served impressions.
+
+**Fill rate (reporting)** = served impressions ÷ bid wins (capped at 100% in the dashboard when wins are known).
+
 ## Banner / display
 
 | Metric | SDK event | Auto on `DKMadsBannerAdView`? | Auto on web `SSP.bind`? |
 |--------|-----------|-------------------------------|------------------------|
-| Served | `ad_impression` (from bid) + `impression` | Yes | Yes |
-| Measurable | `measurable_impression` | Yes | Yes |
+| Served | `ad_impression` on render | Yes | `impression` on bind |
+| Measurable | `measurable_impression` | Yes (viewability attach) | Yes |
 | Viewable (IAB 50%/1s) | `viewable_impression` | Yes | Yes |
 | Click | `ad_click` | On tap | On click |
 
