@@ -85,7 +85,7 @@ c7541e4f506bf6f30514b26bd9e956e2726fa6572301497184267f63a43d6795  ./ios/Sources/
 6ad99893d6bd8a0e45912e7e4443bcfb7dd091acbd3588d306b736091e018949  ./ios/Sources/DKMadsSSPSDK/UI/DKMadsVideoAdController.swift
 d03de17a3f596b7b78f5cebd67d5ecff8e7d624adbf305beffa00ce00b91e38c  ./ios/Sources/DKMadsSSPSDK/UI/DKMadsVideoAdView.swift
 d4cff13642821d11edd515173f74e896064c9c911b6fb371783624afdf3add21  ./README.md
-82afedfcaebf3a665b0ef7e24d3eafdec9e51aa658ed1f243881f409e55ec644  ./RELEASE.json
+da49723ca4ff790a37ec7d8b72f6ed280fe034d643fc33b49cf89e72fb4b7c67  ./RELEASE.json
 96adf719edeff4881c9cafd1526e072e4873c974d56ac620444631399bf194da  ./unity/Android/src/main/java/com/dkmads/ssp/unity/DKMadsUnityBridge.kt
 71c1befe9b0932a28a395470d67eef533478e457d06b48caf2ad290f23f55dd6  ./unity/CHANGELOG.md
 bcac48240149a4d6359ae4efb07fbfc7ce69ce7ab3b560bb39aa5f6396efa06b  ./unity/iOS/DKMadsUnityBridge.swift
