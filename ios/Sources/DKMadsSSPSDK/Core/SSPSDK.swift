@@ -179,12 +179,14 @@ import AVFoundation
         TelemetryManager.shared.stopVideoTracking(adUnitId: adUnitId)
     }
 
-    /// IAB display viewability (50% visible for ≥1s). Fires impression, measurable, and viewable events.
+    /// IAB viewability helper (default 50% visible for >=1s).
     @objc public func attachBannerViewability(
         adUnitId: String,
         containerView: UIView,
         campaignId: String? = nil,
         creativeId: String? = nil,
+        threshold: CGFloat = 0.5,
+        minExposureTime: TimeInterval = 1.0,
         onViewable: (() -> Void)? = nil
     ) {
         var extra: [String: Any] = ["ad_unit_id": adUnitId]
@@ -193,6 +195,8 @@ import AVFoundation
         TelemetryManager.shared.trackViewability(
             adUnitId: adUnitId,
             container: containerView,
+            threshold: threshold,
+            minExposureTime: minExposureTime,
             extra: extra,
             onViewable: onViewable
         )

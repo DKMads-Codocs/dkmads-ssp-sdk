@@ -337,12 +337,14 @@ object SSPSDK {
         telemetryManager.stopAudioTracking(adUnitId)
     }
 
-    /** IAB display viewability (50% visible for ≥1s). */
+    /** IAB viewability (default: 50% visible for >=1s). */
     fun attachBannerViewability(
         adUnitId: String,
         container: View,
         campaignId: String? = null,
         creativeId: String? = null,
+        threshold: Float = 0.5f,
+        minExposureTimeMs: Long = 1000,
         onViewable: (() -> Unit)? = null,
     ) {
         val extra = mutableMapOf<String, Any?>("ad_unit_id" to adUnitId)
@@ -351,6 +353,8 @@ object SSPSDK {
         telemetryManager.trackViewability(
             adUnitId = adUnitId,
             container = container,
+            threshold = threshold,
+            minExposureTimeMs = minExposureTimeMs,
             extra = extra,
             onViewable = onViewable,
         )

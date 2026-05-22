@@ -322,12 +322,16 @@ import WebKit
 
     private func startViewabilityIfNeeded() {
         guard loadedAd != nil, window != nil, !viewabilityActive, bounds.width > 0 else { return }
+        // Native video lifecycle already emits `video_viewable` at 50% / 2s.
+        // Avoid sending an additional display viewability event for the same video impression.
+        if videoEventsAttached { return }
         viewabilityActive = true
         SSPSDK.shared.attachBannerViewability(
             adUnitId: adUnitID,
             containerView: self,
             campaignId: loadedAd?.campaignId,
-            creativeId: loadedAd?.creativeId ?? loadedAd?.id
+            creativeId: loadedAd?.creativeId ?? loadedAd?.id,
+            minExposureTime: 2.0
         ) { [weak self] in
             guard let self else { return }
             self.delegate?.videoAdViewDidRecordViewableImpression?(self)

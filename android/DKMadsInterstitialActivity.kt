@@ -227,6 +227,9 @@ class DKMadsInterstitialActivity : Activity() {
 
     private fun startViewability() {
         if (viewabilityStarted || root.width <= 0 || root.height <= 0) return
+        // Native video tracker emits `video_viewable` using 50%/2s.
+        // Do not double-count with display viewability for the same video impression.
+        if (videoTracker != null) return
         viewabilityStarted = true
         if (!ad.impressionRecorded) {
             SSPSDK.recordAdImpression(
@@ -243,6 +246,7 @@ class DKMadsInterstitialActivity : Activity() {
             container = root,
             campaignId = ad.campaignId,
             creativeId = ad.creativeId ?: ad.id,
+            minExposureTimeMs = if (ad.isVideo) 2_000 else 1_000,
         )
     }
 

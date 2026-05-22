@@ -40,6 +40,7 @@ Per IAB/VAST practice, **only intentional navigation to the advertiser landing p
 | In-ad overlay tap (non-landing) | **No** | `video_click` → `ad_interactions` (alias) |
 
 Native MP4/HTML players expose a **Learn more** button when `click_url` is set. House video `adm` uses a separate `.dkmads-cta` link (video + controls are not wrapped in `<a>`).
+Web SDK video rendering also uses an explicit **overlay CTA** inside the video slot so click-through remains accessible even when the slot has fixed dimensions.
 
 ### Playback metrics
 

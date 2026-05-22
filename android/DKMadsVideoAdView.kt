@@ -195,6 +195,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val uri = request?.url ?: return false
+                    if (!ClickThroughNavigation.matches(ad.clickUrl, uri.toString())) return false
                     recordClick()
                     context.startActivity(Intent(Intent.ACTION_VIEW, uri))
                     return true
@@ -262,12 +263,16 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
     private fun startViewability() {
         if (viewabilityStarted || !isAttachedToWindow || width <= 0 || height <= 0) return
+        // Native video lifecycle already emits `video_viewable` at 50% / 2s.
+        // Skip display viewability here to avoid double-counting one video impression twice.
+        if (videoTracker != null) return
         viewabilityStarted = true
         SSPSDK.attachBannerViewability(
             adUnitId = adUnitId,
             container = this,
             campaignId = loadedAd?.campaignId,
             creativeId = loadedAd?.creativeId ?: loadedAd?.id,
+            minExposureTimeMs = 2_000,
             onViewable = { listener?.onAdViewableImpression(this) },
         )
     }
