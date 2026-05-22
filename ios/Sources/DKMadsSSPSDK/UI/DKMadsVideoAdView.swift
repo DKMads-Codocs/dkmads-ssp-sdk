@@ -294,7 +294,8 @@ import WebKit
         SSPSDK.shared.attachBannerViewability(
             adUnitId: adUnitID,
             containerView: self,
-            creativeId: loadedAd?.id
+            campaignId: loadedAd?.campaignId,
+            creativeId: loadedAd?.creativeId ?? loadedAd?.id
         ) { [weak self] in
             guard let self else { return }
             self.delegate?.videoAdViewDidRecordViewableImpression?(self)

@@ -56,6 +56,19 @@ Campaign builder → **Audience targeting** writes JSON used by house ads `match
 - `audience_ids`, `geos`, `device_types`, `os`
 - `demographics.genders`, `demographics.ageRange`
 - `behavioral.interests`, `behavioral.keywords`
+- `technical.device_types`, `technical.os`, `technical.connection_types`, `technical.geos`
+- `contextual.content_categories`, `contextual.page_types` (supported server-side; optional in builder UI)
+
+## DMP-style storage (server)
+
+| Table | Role |
+|-------|------|
+| `web_user_profiles` | Web FPD: `interests`, `behaviors`, `consent`, `metadata` keyed by `workspace_id` + `device_pid` + `domain` |
+| `mobile_user_profiles` | App FPD: same + `events_rollup`, `att_status`, keyed by `workspace_id` + `device_pid` + `app_bundle` |
+| `audience_members` | Links profiles → `audiences` with `matched_by_rules` |
+| `campaigns.targeting` | Campaign rules JSON (not a user profile; evaluated at bid time) |
+
+Bid flow: `normalizePublisherSignals` → `loadMergedProfileSignals` → resolve `audience_ids` from profile membership → `matchesTargeting(campaign.targeting, signals, request)`.
 
 ## Consent
 

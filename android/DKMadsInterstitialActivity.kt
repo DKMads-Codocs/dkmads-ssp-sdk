@@ -228,7 +228,8 @@ class DKMadsInterstitialActivity : Activity() {
         SSPSDK.attachBannerViewability(
             adUnitId = adUnitId,
             container = root,
-            creativeId = ad.id,
+            campaignId = ad.campaignId,
+            creativeId = ad.creativeId ?: ad.id,
         )
     }
 

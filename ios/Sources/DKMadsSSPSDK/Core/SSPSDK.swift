@@ -192,10 +192,12 @@ import AVFoundation
     @objc public func attachBannerViewability(
         adUnitId: String,
         containerView: UIView,
+        campaignId: String? = nil,
         creativeId: String? = nil,
         onViewable: (() -> Void)? = nil
     ) {
         var extra: [String: Any] = ["ad_unit_id": adUnitId]
+        if let campaignId, !campaignId.isEmpty { extra["campaign_id"] = campaignId }
         if let creativeId, !creativeId.isEmpty { extra["creative_id"] = creativeId }
         TelemetryManager.shared.trackViewability(
             adUnitId: adUnitId,

@@ -281,7 +281,8 @@ private final class DKMadsInterstitialPresenter: UIViewController {
         SSPSDK.shared.attachBannerViewability(
             adUnitId: adUnitID,
             containerView: view,
-            creativeId: ad.id
+            campaignId: ad.campaignId,
+            creativeId: ad.creativeId ?? ad.id
         ) { }
     }
 

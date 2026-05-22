@@ -327,10 +327,12 @@ object SSPSDK {
     fun attachBannerViewability(
         adUnitId: String,
         container: View,
+        campaignId: String? = null,
         creativeId: String? = null,
         onViewable: (() -> Unit)? = null,
     ) {
         val extra = mutableMapOf<String, Any?>("ad_unit_id" to adUnitId)
+        campaignId?.takeIf { it.isNotBlank() }?.let { extra["campaign_id"] = it }
         if (!creativeId.isNullOrBlank()) extra["creative_id"] = creativeId
         telemetryManager.trackViewability(
             adUnitId = adUnitId,

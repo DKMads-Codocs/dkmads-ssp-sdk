@@ -174,7 +174,8 @@ class DKMadsNativeAdView @JvmOverloads constructor(
         SSPSDK.attachBannerViewability(
             adUnitId = adUnitId,
             container = this,
-            creativeId = loadedAd?.id,
+            campaignId = loadedAd?.campaignId,
+            creativeId = loadedAd?.creativeId ?: loadedAd?.id,
             onViewable = { listener?.onAdViewableImpression(this) },
         )
     }
