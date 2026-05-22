@@ -159,7 +159,7 @@ SSPSDK.shared.setTargetingSignals(TargetingSignals(
   devicePid: "device_123",
   userPid: "user_abc",
   gender: "M",
-  age: 28,
+  dateOfBirth: "1998-06-15",
   geoCountry: "MM",
   interests: ["sports", "news"],
   keywords: ["football"]

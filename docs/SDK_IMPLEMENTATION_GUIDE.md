@@ -62,7 +62,7 @@ Web script remains hosted at `https://ssp.dkmads.com/api/public/sp.js` (built fr
 ```text
 1. Initialize SDK (once per app / page load)
 2. setConsent (if GDPR / US privacy applies)
-3. setTargetingSignals (optional — demographics, geo, interests)
+3. setTargetingSignals (optional — demographics, geo, segments, interests, content/page context)
 4. Load ad OR use banner/video view component
 5. Render winner.adm or winner.image_url
 6. Metrics fire automatically (banner/video) or via trackUserEvent

@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Loads and plays audio creatives (`audio_url` or audio `adm`). Use with dashboard format `audio`.
+ * Emits IAB-style audio quartile events via [SSPSDK.trackAudioLifecycle].
  */
 class DKMadsAudioAdView @JvmOverloads constructor(
     context: Context,
@@ -42,6 +43,7 @@ class DKMadsAudioAdView @JvmOverloads constructor(
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var mediaPlayer: MediaPlayer? = null
+    private var audioTracker: AudioTracker? = null
 
     fun load(
         placementCode: String? = null,
@@ -113,6 +115,7 @@ class DKMadsAudioAdView @JvmOverloads constructor(
     private fun startPlayback(url: String) {
         stopPlayback()
         try {
+            val ad = loadedAd
             val player = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -121,9 +124,17 @@ class DKMadsAudioAdView @JvmOverloads constructor(
                         .build(),
                 )
                 setDataSource(url)
-                setOnPreparedListener {
+                setOnPreparedListener { mp ->
+                    audioTracker = SSPSDK.trackAudioLifecycle(
+                        adUnitId = adUnitId,
+                        campaignId = ad?.campaignId,
+                        creativeId = ad?.creativeId ?: ad?.id,
+                        durationMsProvider = { mp.duration.coerceAtLeast(0) },
+                        positionMsProvider = { mp.currentPosition },
+                        isPlayingProvider = { mp.isPlaying },
+                    )
                     if (autoplay) {
-                        start()
+                        mp.start()
                         listener?.onPlaybackStarted(this@DKMadsAudioAdView)
                     }
                 }
@@ -143,6 +154,8 @@ class DKMadsAudioAdView @JvmOverloads constructor(
     }
 
     fun stopPlayback() {
+        SSPSDK.stopAudioLifecycleTracking(adUnitId)
+        audioTracker = null
         mediaPlayer?.runCatching {
             stop()
             release()

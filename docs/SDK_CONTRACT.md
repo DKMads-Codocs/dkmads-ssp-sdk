@@ -70,7 +70,7 @@ Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
     "user_pid": "optional",
     "device_pid": "optional",
     "gender": "M",
-    "age": 28,
+    "date_of_birth": "1998-06-15",
     "yob": 1998,
     "geo_country": "US",
     "geo_region": "optional",
@@ -155,7 +155,7 @@ SSPSDK.shared.setTargetingSignals(TargetingSignals(
   devicePid: "device_123",
   userPid: "user_abc",
   gender: "M",
-  age: 28,
+  dateOfBirth: "1998-06-15",
   geoCountry: "US",
   interests: ["sports"]
 ))

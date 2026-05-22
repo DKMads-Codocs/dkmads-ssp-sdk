@@ -64,11 +64,10 @@ import AVFoundation
     ) {
         detach()
         isAttached = true
-        let creativeId = loadedAd?.id
         SSPSDK.shared.trackVideoLifecycle(
             adUnitId: adUnitID,
-            campaignId: nil,
-            creativeId: creativeId,
+            campaignId: loadedAd?.campaignId,
+            creativeId: loadedAd?.creativeId ?? loadedAd?.id,
             player: player,
             containerView: containerView,
             skippable: skippable

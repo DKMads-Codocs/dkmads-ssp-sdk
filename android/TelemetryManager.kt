@@ -183,6 +183,40 @@ class TelemetryManager {
         videoTrackers.remove(adUnitId)?.stop()
     }
 
+    // --- Audio (IAB-style quartiles) -------------------------------------
+
+    private val audioTrackers = mutableMapOf<String, AudioTracker>()
+
+    fun trackAudioAd(
+        adUnitId: String,
+        campaignId: String?,
+        creativeId: String?,
+        durationMsProvider: () -> Int,
+        positionMsProvider: () -> Int,
+        isPlayingProvider: () -> Boolean = { true },
+    ): AudioTracker {
+        stopAudioTracking(adUnitId)
+        val tracker = AudioTracker(
+            adUnitId = adUnitId,
+            campaignId = campaignId,
+            creativeId = creativeId,
+            durationMsProvider = durationMsProvider,
+            positionMsProvider = positionMsProvider,
+            isPlayingProvider = isPlayingProvider,
+        )
+        tracker.onAudioStart = { meta -> trackEvent("audio_start", meta) }
+        tracker.onQuartileReached = { q, meta -> trackEvent("audio_$q", meta) }
+        tracker.onAudioComplete = { meta -> trackEvent("audio_100", meta) }
+        tracker.onAudioPaused = { meta -> trackEvent("audio_pause", meta) }
+        audioTrackers[adUnitId] = tracker
+        tracker.start()
+        return tracker
+    }
+
+    fun stopAudioTracking(adUnitId: String) {
+        audioTrackers.remove(adUnitId)?.stop()
+    }
+
     // --- Fraud detection -------------------------------------------------
 
     fun detectFraudSignals(adUnitId: String, view: View, extra: Map<String, Any?> = emptyMap()): List<Map<String, Any>> {
@@ -519,6 +553,79 @@ class VideoTracker(
         wasPlaying = playing
         wasMuted = muted
         lastPositionMs = pos
+    }
+}
+
+/** Audio quartile tracker (aligned with web `bindAudio` / IAB audio completion). */
+class AudioTracker(
+    private val adUnitId: String,
+    private val campaignId: String?,
+    private val creativeId: String?,
+    private val durationMsProvider: () -> Int,
+    private val positionMsProvider: () -> Int,
+    private val isPlayingProvider: () -> Boolean,
+) {
+    private val handler = Handler(Looper.getMainLooper())
+    private val reached = mutableSetOf<Int>()
+    private var started = false
+    private var completed = false
+    private var wasPlaying = false
+
+    var onAudioStart: ((Map<String, Any?>) -> Unit)? = null
+    var onQuartileReached: ((Int, Map<String, Any?>) -> Unit)? = null
+    var onAudioComplete: ((Map<String, Any?>) -> Unit)? = null
+    var onAudioPaused: ((Map<String, Any?>) -> Unit)? = null
+
+    private val tickRunnable = object : Runnable {
+        override fun run() {
+            tick()
+            handler.postDelayed(this, 500)
+        }
+    }
+
+    fun start() {
+        stop()
+        handler.post(tickRunnable)
+    }
+
+    fun stop() {
+        handler.removeCallbacksAndMessages(null)
+    }
+
+    private fun baseMeta(): Map<String, Any?> = mapOf(
+        "ad_unit_id" to adUnitId,
+        "campaign_id" to campaignId,
+        "creative_id" to creativeId,
+        "metadata" to mapOf(
+            "audio_duration_ms" to durationMsProvider(),
+            "audio_current_time_ms" to positionMsProvider(),
+        ),
+    )
+
+    private fun tick() {
+        val dur = durationMsProvider()
+        if (dur <= 0) return
+        val pos = positionMsProvider().coerceAtLeast(0)
+        val pct = pos.toDouble() / dur.toDouble()
+        val playing = isPlayingProvider()
+        if (!started && playing) {
+            started = true
+            onAudioStart?.invoke(baseMeta())
+        }
+        if (wasPlaying && !playing && !completed) {
+            onAudioPaused?.invoke(baseMeta())
+        }
+        for (q in listOf(25, 50, 75)) {
+            if (!reached.contains(q) && pct >= q / 100.0) {
+                reached.add(q)
+                onQuartileReached?.invoke(q, baseMeta())
+            }
+        }
+        if (!completed && pct >= 0.99) {
+            completed = true
+            onAudioComplete?.invoke(baseMeta())
+        }
+        wasPlaying = playing
     }
 }
 

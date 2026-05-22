@@ -323,6 +323,31 @@ object SSPSDK {
         telemetryManager.stopVideoTracking(adUnitId)
     }
 
+    /**
+     * Audio quartile telemetry: audio_start, audio_25/50/75/100, audio_pause.
+     */
+    fun trackAudioLifecycle(
+        adUnitId: String,
+        campaignId: String? = null,
+        creativeId: String? = null,
+        durationMsProvider: () -> Int,
+        positionMsProvider: () -> Int,
+        isPlayingProvider: () -> Boolean = { true },
+    ): AudioTracker {
+        return telemetryManager.trackAudioAd(
+            adUnitId = adUnitId,
+            campaignId = campaignId,
+            creativeId = creativeId,
+            durationMsProvider = durationMsProvider,
+            positionMsProvider = positionMsProvider,
+            isPlayingProvider = isPlayingProvider,
+        )
+    }
+
+    fun stopAudioLifecycleTracking(adUnitId: String) {
+        telemetryManager.stopAudioTracking(adUnitId)
+    }
+
     /** IAB display viewability (50% visible for ≥1s). */
     fun attachBannerViewability(
         adUnitId: String,

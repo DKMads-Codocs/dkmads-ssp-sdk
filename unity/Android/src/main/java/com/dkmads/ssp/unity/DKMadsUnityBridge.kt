@@ -76,6 +76,7 @@ object DKMadsUnityBridge {
         devicePid = raw["device_pid"]?.toString() ?: raw["devicePid"]?.toString(),
         gender = raw["gender"]?.toString(),
         age = (raw["age"] as? Number)?.toInt() ?: raw["age"]?.toString()?.toIntOrNull(),
+        dateOfBirth = raw["date_of_birth"]?.toString() ?: raw["dateOfBirth"]?.toString() ?: raw["dob"]?.toString(),
         yob = (raw["yob"] as? Number)?.toInt() ?: raw["yob"]?.toString()?.toIntOrNull(),
         geoCountry = raw["geo_country"]?.toString() ?: raw["geoCountry"]?.toString(),
         geoRegion = raw["geo_region"]?.toString() ?: raw["geoRegion"]?.toString(),

@@ -45,6 +45,7 @@ public func dkmads_set_targeting_signals(_ jsonPayloadPtr: UnsafePointer<CChar>?
     devicePid: str("device_pid") ?? str("devicePid"),
     gender: str("gender"),
     age: int("age"),
+    dateOfBirth: str("date_of_birth") ?? str("dateOfBirth") ?? str("dob"),
     yob: int("yob"),
     geoCountry: str("geo_country") ?? str("geoCountry"),
     geoRegion: str("geo_region") ?? str("geoRegion"),

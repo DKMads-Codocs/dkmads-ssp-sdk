@@ -87,8 +87,8 @@ class DKMadsVideoAdController(
         detach()
         tracker = SSPSDK.trackVideoLifecycle(
             adUnitId = adUnitId,
-            campaignId = null,
-            creativeId = loadedAd?.id,
+            campaignId = loadedAd?.campaignId,
+            creativeId = loadedAd?.creativeId ?: loadedAd?.id,
             containerView = containerView,
             durationMsProvider = durationMsProvider,
             currentPositionMsProvider = currentPositionMsProvider,

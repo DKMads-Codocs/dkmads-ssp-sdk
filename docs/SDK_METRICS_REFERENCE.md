@@ -13,6 +13,23 @@ Events are sent to `POST /api/public/v1/events` and rolled up in the dashboard.
 
 ## Video
 
+### Click-through (CTR) vs player engagement
+
+Per IAB/VAST practice, **only intentional navigation to the advertiser landing page** counts as a click (`click` / `ad_click` → `daily_reports.clicks`).
+
+| User action | Counted as click? | SDK event |
+|-------------|-------------------|-----------|
+| **Learn more** CTA / `click_url` | **Yes** | `click` / `ad_click` |
+| Play / pause / resume | **No** | `video_pause`, `video_resume` |
+| Mute / unmute | **No** | `video_mute`, `video_unmute` |
+| Skip / seek | **No** | `video_skip` |
+| Quartiles / complete | **No** | `video_start`, `video_25` … `video_100` |
+| In-ad overlay tap (non-landing) | **No** | `video_click` → `ad_interactions` (alias) |
+
+Native MP4/HTML players expose a **Learn more** button when `click_url` is set. House video `adm` uses a separate `.dkmads-cta` link (video + controls are not wrapped in `<a>`).
+
+### Playback metrics
+
 | Metric | SDK event | Requires |
 |--------|-----------|----------|
 | Start | `video_start` | `DKMadsVideoAdController.attach` / `trackVideoLifecycle` / `SSP.bindVideo` |

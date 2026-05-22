@@ -16,6 +16,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.VideoView
@@ -49,6 +50,7 @@ class DKMadsInterstitialActivity : Activity() {
     private lateinit var videoView: VideoView
     private var videoTracker: VideoTracker? = null
     private var viewabilityStarted = false
+    private var ctaButton: Button? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,6 +149,7 @@ class DKMadsInterstitialActivity : Activity() {
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return false
+                if (!ClickThroughNavigation.matches(ad.clickUrl, uri.toString())) return false
                 recordClick()
                 startActivity(Intent(Intent.ACTION_VIEW, uri))
                 return true

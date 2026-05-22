@@ -6,6 +6,8 @@ public struct TargetingSignals {
     public var devicePid: String?
     public var gender: String?
     public var age: Int?
+    /// ISO `YYYY-MM-DD` (optional; server stores YOB only).
+    public var dateOfBirth: String?
     public var yob: Int?
     public var geoCountry: String?
     public var geoRegion: String?
@@ -21,6 +23,7 @@ public struct TargetingSignals {
         devicePid: String? = nil,
         gender: String? = nil,
         age: Int? = nil,
+        dateOfBirth: String? = nil,
         yob: Int? = nil,
         geoCountry: String? = nil,
         geoRegion: String? = nil,
@@ -35,6 +38,7 @@ public struct TargetingSignals {
         self.devicePid = devicePid
         self.gender = gender
         self.age = age
+        self.dateOfBirth = dateOfBirth
         self.yob = yob
         self.geoCountry = geoCountry
         self.geoRegion = geoRegion
@@ -52,7 +56,11 @@ public struct TargetingSignals {
         if let devicePid, !devicePid.isEmpty { data["device_pid"] = devicePid }
         if let gender, !gender.isEmpty { data["gender"] = gender }
         if let age { data["age"] = age }
-        if let yob { data["yob"] = yob }
+        if let resolved = DemographicsYob.resolveYob(yob: yob, dateOfBirth: dateOfBirth) {
+            data["yob"] = resolved
+        } else if let dateOfBirth, !dateOfBirth.isEmpty {
+            data["date_of_birth"] = dateOfBirth
+        }
         if let geoCountry, !geoCountry.isEmpty { data["geo_country"] = geoCountry }
         if let geoRegion, !geoRegion.isEmpty { data["geo_region"] = geoRegion }
         if let connectionType, !connectionType.isEmpty { data["connection_type"] = connectionType }
@@ -85,9 +93,15 @@ public struct TargetingSignals {
                 "keywords": keywords,
             ]
         }
-        if let geoCountry, !geoCountry.isEmpty {
-            payload["metadata"] = ["geo_country": geoCountry]
+        var meta: [String: Any] = [:]
+        if let geoCountry, !geoCountry.isEmpty { meta["geo_country"] = geoCountry }
+        var demo: [String: Any] = [:]
+        if let resolved = DemographicsYob.resolveYob(yob: yob, dateOfBirth: dateOfBirth) {
+            demo["yob"] = resolved
         }
+        if let gender, !gender.isEmpty { demo["gender"] = gender }
+        if !demo.isEmpty { meta["demographics"] = demo }
+        if !meta.isEmpty { payload["metadata"] = meta }
         return payload
     }
 }

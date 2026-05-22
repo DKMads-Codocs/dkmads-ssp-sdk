@@ -93,6 +93,8 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
             devicePid = m["devicePid"]?.toString() ?: m["device_pid"]?.toString(),
             gender = m["gender"]?.toString(),
             age = (m["age"] as? Number)?.toInt(),
+            dateOfBirth = m["dateOfBirth"]?.toString() ?: m["date_of_birth"]?.toString()
+              ?: m["dob"]?.toString(),
             yob = (m["yob"] as? Number)?.toInt(),
             geoCountry = m["geoCountry"]?.toString() ?: m["geo_country"]?.toString(),
             geoRegion = m["geoRegion"]?.toString() ?: m["geo_region"]?.toString(),

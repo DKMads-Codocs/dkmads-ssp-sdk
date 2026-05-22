@@ -345,7 +345,8 @@ extension DKMadsInterstitialPresenter: WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if navigationAction.navigationType == .linkActivated,
-           let url = navigationAction.request.url {
+           let url = navigationAction.request.url,
+           ClickThroughNavigation.matches(clickUrl: ad.clickUrl, navigationUrl: url.absoluteString) {
             recordClick()
             present(SFSafariViewController(url: url), animated: true)
             decisionHandler(.cancel)

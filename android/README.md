@@ -28,7 +28,7 @@ SSPSDK.setTargetingSignals(
     devicePid = stableDeviceId,
     userPid = userId,
     gender = "M",
-    age = 28,
+    dateOfBirth = "1998-06-15",
     geoCountry = "US",
     interests = listOf("sports"),
     keywords = listOf("football"),

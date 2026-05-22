@@ -34,6 +34,7 @@ import WebKit
     private let player = AVPlayer()
     private var playerLayer: AVPlayerLayer?
     private var skipButton: UIButton?
+    private var ctaButton: UIButton?
     private var skipTimer: Timer?
     private var isLoading = false
     private var viewabilityActive = false
@@ -188,6 +189,7 @@ import WebKit
                     return
                 }
                 self.delegate?.videoAdViewDidStartPlayback?(self)
+                self.attachClickThroughCta(ad: ad)
             }
         case .webMarkup:
             playerView.isHidden = true
@@ -269,11 +271,23 @@ import WebKit
         skipTimer = nil
     }
 
+    private func attachClickThroughCta(ad: Ad) {
+        ctaButton?.removeFromSuperview()
+        ctaButton = DKMadsClickThroughCta.attach(
+            to: self,
+            clickUrl: ad.clickUrl,
+            presenter: rootViewController,
+            onClickThrough: { [weak self] in self?.recordClick() },
+        )
+    }
+
     private func stopPlayback() {
         stopViewability()
         cancelSkipTimer()
         skipButton?.removeFromSuperview()
         skipButton = nil
+        ctaButton?.removeFromSuperview()
+        ctaButton = nil
         if videoEventsAttached {
             SSPSDK.shared.stopVideoLifecycleTracking(adUnitId: adUnitID)
             videoEventsAttached = false
@@ -327,7 +341,10 @@ extension DKMadsVideoAdView: WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
-        if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url {
+        if navigationAction.navigationType == .linkActivated,
+           let url = navigationAction.request.url,
+           let ad = loadedAd,
+           ClickThroughNavigation.matches(clickUrl: ad.clickUrl, navigationUrl: url.absoluteString) {
             recordClick()
             rootViewController?.present(SFSafariViewController(url: url), animated: true)
             decisionHandler(.cancel)

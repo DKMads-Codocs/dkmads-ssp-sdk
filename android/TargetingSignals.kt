@@ -9,6 +9,8 @@ data class TargetingSignals(
     val devicePid: String? = null,
     val gender: String? = null,
     val age: Int? = null,
+    /** ISO date `YYYY-MM-DD` (optional; server stores YOB only). */
+    val dateOfBirth: String? = null,
     val yob: Int? = null,
     val geoCountry: String? = null,
     val geoRegion: String? = null,
@@ -25,7 +27,12 @@ data class TargetingSignals(
         devicePid?.let { out["device_pid"] = it }
         gender?.let { out["gender"] = it }
         age?.let { out["age"] = it }
-        yob?.let { out["yob"] = it }
+        val resolvedYob = DemographicsYob.resolveYob(yob, dateOfBirth)
+        if (resolvedYob == null && !dateOfBirth.isNullOrBlank()) {
+            out["date_of_birth"] = dateOfBirth.trim()
+        } else if (resolvedYob != null) {
+            out["yob"] = resolvedYob
+        }
         geoCountry?.let { out["geo_country"] = it }
         geoRegion?.let { out["geo_region"] = it }
         connectionType?.let { out["connection_type"] = it }
@@ -60,7 +67,13 @@ data class TargetingSignals(
                 "keywords" to keywords,
             ).filterValues { (it as? List<*>)?.isNotEmpty() == true }
         }
-        geoCountry?.let { payload["metadata"] = mapOf("geo_country" to it) }
+        val meta = mutableMapOf<String, Any>()
+        geoCountry?.let { meta["geo_country"] = it }
+        val demo = mutableMapOf<String, Any>()
+        DemographicsYob.resolveYob(yob, dateOfBirth)?.let { demo["yob"] = it }
+        gender?.let { demo["gender"] = it }
+        if (demo.isNotEmpty()) meta["demographics"] = demo
+        if (meta.isNotEmpty()) payload["metadata"] = meta
         return payload.filterValues { it != "" }
     }
 }

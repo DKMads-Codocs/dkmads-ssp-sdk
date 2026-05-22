@@ -91,6 +91,7 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
         devicePid: (m["devicePid"] as? String) ?? (m["device_pid"] as? String),
         gender: m["gender"] as? String,
         age: m["age"] as? Int,
+        dateOfBirth: (m["dateOfBirth"] as? String) ?? (m["date_of_birth"] as? String) ?? (m["dob"] as? String),
         yob: m["yob"] as? Int,
         geoCountry: (m["geoCountry"] as? String) ?? (m["geo_country"] as? String),
         geoRegion: (m["geoRegion"] as? String) ?? (m["geo_region"] as? String),

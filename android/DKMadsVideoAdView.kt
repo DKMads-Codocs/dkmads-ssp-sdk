@@ -54,6 +54,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private val videoView: VideoView
     private val webView: WebView
     private var skipButton: Button? = null
+    private var ctaButton: Button? = null
     private var skipRunnable: Runnable? = null
     private var videoTracker: VideoTracker? = null
     private var viewabilityStarted = false
@@ -162,6 +163,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 listener?.onAdFailed(this, "Video playback failed", responseInfo)
                 true
             }
+            attachClickThroughCta(ad)
             return
         }
         if (ad.adm.isNotBlank() || ad.isHtml5) {
@@ -224,6 +226,16 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         skipButton = null
     }
 
+    private fun attachClickThroughCta(ad: Ad) {
+        removeClickThroughCta()
+        ctaButton = DKMadsClickThroughCta.attach(this, ad.clickUrl) { recordClick() }
+    }
+
+    private fun removeClickThroughCta() {
+        ctaButton?.let { removeView(it) }
+        ctaButton = null
+    }
+
     private fun recordClick() {
         val ad = loadedAd ?: return
         SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp)
@@ -251,6 +263,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
     fun stopPlayback() {
         stopViewability()
+        removeClickThroughCta()
         cancelSkip()
         videoTracker?.stop()
         videoTracker = null
