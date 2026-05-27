@@ -60,7 +60,12 @@ import AVFoundation
             payload["gpp_string"] = self.consent.gppString
             payload["gpp_sid"] = self.consent.gppSid
             payload["gdpr_applies"] = self.consent.gdpr
-            payload["us_privacy_string"] = self.consent.ccpa ? "1YYY" : "1---"
+            if let usp = self.consent.resolvedUsPrivacyString() {
+                payload["us_privacy_string"] = usp
+            }
+            if let att = self.consent.attStatus ?? AdvertisingIdentifiers.attStatus() {
+                payload["att_status"] = att
+            }
             if let ids = self.identityProvider?() {
                 if let user = ids["user_pid"], !(user ?? "").isEmpty { payload["user_pid"] = user }
                 if let device = ids["device_pid"], !(device ?? "").isEmpty { payload["device_pid"] = device }
@@ -191,6 +196,10 @@ import AVFoundation
     public func stopVideoTracking(adUnitId: String) {
         videoTrackers[adUnitId]?.stop()
         videoTrackers.removeValue(forKey: adUnitId)
+    }
+
+    public func markVideoUserSkipped(adUnitId: String) {
+        videoTrackers[adUnitId]?.markUserSkipped()
     }
 
     // MARK: - Built-in Fraud detection
@@ -429,6 +438,13 @@ public final class VideoTracker {
         displayLink?.invalidate(); displayLink = nil
     }
 
+    /// User tapped Skip — do not count completion or further quartiles.
+    public func markUserSkipped() {
+        skipped = true
+        completed = true
+        player.pause()
+    }
+
     private func durationSeconds() -> Double {
         let d = player.currentItem?.duration.seconds ?? 0
         return d.isFinite ? d : 0
@@ -463,7 +479,7 @@ public final class VideoTracker {
         }
         let pct = min(1.0, max(0.0, time.seconds / dur))
         let currentPosition = max(0, time.seconds)
-        if !started && player.rate > 0 {
+        if !started && player.rate > 0 && videoViewableFired {
             started = true
             lastPlayAt = CACurrentMediaTime()
             onVideoStart?(baseMeta())
@@ -484,6 +500,7 @@ public final class VideoTracker {
             let jumpedToEnd = (currentPosition - lastPositionSeconds) > 3.0 && pct >= 0.9
             if jumpedToEnd {
                 skipped = true
+                completed = true
                 onVideoSkipped?(baseMeta())
             }
         }
@@ -494,13 +511,15 @@ public final class VideoTracker {
         } else {
             lastPlayAt = nil
         }
-        for q in [25, 50, 75] where pct >= Double(q) / 100.0 && !quartileFired.contains(q) {
-            quartileFired.insert(q)
-            onQuartileReached?(q, baseMeta())
-        }
-        if pct >= 0.99 && !completed {
-            completed = true
-            onVideoComplete?(baseMeta())
+        if videoViewableFired && !skipped {
+            for q in [25, 50, 75] where pct >= Double(q) / 100.0 && !quartileFired.contains(q) {
+                quartileFired.insert(q)
+                onQuartileReached?(q, baseMeta())
+            }
+            if pct >= 0.99 && !completed {
+                completed = true
+                onVideoComplete?(baseMeta())
+            }
         }
         wasPlaying = player.rate > 0
         wasMuted = player.isMuted
@@ -508,7 +527,7 @@ public final class VideoTracker {
     }
 
     private func onEnded() {
-        guard !completed else { return }
+        guard !completed, !skipped else { return }
         completed = true
         onVideoComplete?(baseMeta())
     }
@@ -539,6 +558,10 @@ public final class VideoTracker {
                     meta["metadata"] = m
                 }
                 onVideoViewable?(meta)
+                if !started && playing {
+                    started = true
+                    onVideoStart?(baseMeta())
+                }
             }
         } else {
             videoRunStart = 0

@@ -13,12 +13,18 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.VideoView
+import android.media.MediaPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 /**
  * Drop-in video / instream view. Loads, renders MP4 (VideoView) or HTML video `adm` (WebView), tracks lifecycle.
@@ -54,8 +60,15 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private val videoView: VideoView
     private val webView: WebView
     private var skipButton: Button? = null
+    private var muteButton: ImageButton? = null
+    private var clickOverlay: View? = null
+    private var progressBar: ProgressBar? = null
+    private var mediaPlayer: MediaPlayer? = null
+    private var isMuted = true
     private var ctaButton: Button? = null
+    private var companionView: ImageView? = null
     private var skipRunnable: Runnable? = null
+    private var progressRunnable: Runnable? = null
     private var videoTracker: VideoTracker? = null
     private var viewabilityStarted = false
     private var playbackCompleted = false
@@ -79,6 +92,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
             return
         }
         loadedAd = ad
+        applySkipConfig(ad)
         this.responseInfo = responseInfo
         render(ad)
         if (!ad.impressionRecorded) {
@@ -130,6 +144,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         return@fold
                     }
                     loadedAd = ad
+                    applySkipConfig(ad)
                     render(ad)
                     SSPSDK.recordAdImpression(
                         adUnitId = adUnitId,
@@ -149,16 +164,44 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         }
     }
 
+    private fun extractVideoSrcFromAdm(adm: String): String? {
+        if (adm.isBlank()) return null
+        val patterns = listOf(
+            Regex("""<video[^>]+src=["']([^"']+)["']""", RegexOption.IGNORE_CASE),
+            Regex("""<source[^>]+src=["']([^"']+)["']""", RegexOption.IGNORE_CASE),
+        )
+        for (pattern in patterns) {
+            val src = pattern.find(adm)?.groupValues?.getOrNull(1)?.trim().orEmpty()
+            if (src.isBlank()) continue
+            val lower = src.lowercase()
+            if (
+                lower.contains(".mp4")
+                || lower.contains(".m3u8")
+                || lower.contains(".webm")
+                || lower.contains("/api/public/creative-assets/")
+            ) {
+                return src
+            }
+        }
+        return null
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun render(ad: Ad) {
         playbackCompleted = false
         cancelSkip()
-        if (ad.videoUrl.isNotBlank()) {
+        val playbackUrl = ad.videoUrl.ifBlank { extractVideoSrcFromAdm(ad.adm).orEmpty() }
+        if (playbackUrl.isNotBlank()) {
             webView.visibility = GONE
             videoView.visibility = VISIBLE
-            val uri = Uri.parse(ad.videoUrl)
+            val uri = Uri.parse(playbackUrl)
             videoView.setVideoURI(uri)
             videoView.setOnPreparedListener { mp ->
+                mediaPlayer = mp
+                isMuted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
+                mp.setVolume(if (isMuted) 0f else 1f, if (isMuted) 0f else 1f)
+                attachVideoClickOverlay(ad)
+                attachVideoChrome(ad)
                 videoTracker = SSPSDK.trackVideoLifecycle(
                     adUnitId = adUnitId,
                     campaignId = ad.campaignId,
@@ -173,7 +216,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     videoView.start()
                     listener?.onPlaybackStarted(this)
                 }
-                scheduleSkip()
+                startProgressUpdates()
                 post { startViewability() }
             }
             videoView.setOnCompletionListener { completePlayback(skipped = false) }
@@ -182,6 +225,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 true
             }
             attachClickThroughCta(ad)
+            attachCompanion(ad)
             return
         }
         if (ad.adm.isNotBlank() || ad.isHtml5) {
@@ -190,7 +234,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     listener?.onPlaybackStarted(this@DKMadsVideoAdView)
-                    scheduleSkip()
+                    attachVideoChrome(ad)
+                    attachVideoClickOverlay(ad)
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -213,29 +258,135 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         if (playbackCompleted) return
         playbackCompleted = true
         cancelSkip()
+        removeVideoChrome()
+        removeVideoClickOverlay()
+        stopProgressUpdates()
+        if (skipped) {
+            videoTracker?.markUserSkipped()
+            emitVideoSkip()
+        }
+        videoTracker?.stop()
+        videoTracker = null
+        try {
+            videoView.stopPlayback()
+        } catch (_e) { /* ignore */ }
+        mediaPlayer = null
         listener?.onAdComplete(this, skipped)
     }
 
-    private fun scheduleSkip() {
-        if (!isSkippable) return
-        cancelSkip()
-        val runnable = Runnable {
-            if (playbackCompleted || skipButton != null) return@Runnable
-            val btn = Button(context).apply {
-                text = "Skip"
-                setTextColor(Color.WHITE)
-                setBackgroundColor(0x8C000000.toInt())
-                setOnClickListener { completePlayback(skipped = true) }
+    private fun attachVideoChrome(ad: Ad) {
+        removeVideoChrome()
+        val template = ad.videoTemplate
+        if (DKMadsVideoChrome.showsMute(template)) {
+            val btn = DKMadsVideoChrome.muteIconButton(context, isMuted)
+            btn.setOnClickListener {
+                val mp = mediaPlayer ?: return@setOnClickListener
+                isMuted = !isMuted
+                mp.setVolume(if (isMuted) 0f else 1f, if (isMuted) 0f else 1f)
+                DKMadsVideoChrome.updateMuteIcon(btn, isMuted)
             }
-            val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END).apply {
-                val m = (12 * resources.displayMetrics.density).toInt()
-                setMargins(m, m, m, m)
+            val side = (10 * resources.displayMetrics.density).toInt()
+            val bottom = DKMadsVideoChrome.chromeBottomInsetPx(context, DKMadsVideoChrome.showsProgress(template))
+            val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.START).apply {
+                setMargins(side, side, side, bottom)
             }
             addView(btn, lp)
-            skipButton = btn
+            muteButton = btn
+        }
+        if (DKMadsVideoChrome.showsProgress(template)) {
+            val bar = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
+                max = 100
+            }
+            val lp = LayoutParams(LayoutParams.MATCH_PARENT, (3 * resources.displayMetrics.density).toInt().coerceAtLeast(3), Gravity.BOTTOM)
+            addView(bar, lp)
+            progressBar = bar
+        }
+        scheduleSkip(ad)
+    }
+
+    private fun startProgressUpdates() {
+        progressRunnable?.let { removeCallbacks(it) }
+        val runnable = object : Runnable {
+            override fun run() {
+                val bar = progressBar
+                if (bar != null && !playbackCompleted) {
+                    val dur = videoView.duration
+                    if (dur > 0) {
+                        bar.progress = ((videoView.currentPosition * 100) / dur).coerceIn(0, 100)
+                    }
+                    postDelayed(this, 200)
+                }
+            }
+        }
+        progressRunnable = runnable
+        post(runnable)
+    }
+
+    private fun stopProgressUpdates() {
+        progressRunnable?.let { removeCallbacks(it) }
+        progressRunnable = null
+    }
+
+    private fun removeVideoChrome() {
+        muteButton?.let { removeView(it) }
+        muteButton = null
+        progressBar?.let { removeView(it) }
+        progressBar = null
+    }
+
+    private fun scheduleSkip(ad: Ad) {
+        if (!DKMadsVideoChrome.showsSkip(ad.videoTemplate, isSkippable)) return
+        cancelSkip()
+        var left = (skipOffsetMs / 1000).toInt().coerceAtLeast(0)
+        val runnable = object : Runnable {
+            override fun run() {
+                if (playbackCompleted) return
+                if (left <= 0 && skipButton == null) {
+                    val btn = DKMadsVideoChrome.chromeButton(context, "Skip").apply {
+                        setOnClickListener { completePlayback(skipped = true) }
+                    }
+                    val side = (10 * resources.displayMetrics.density).toInt()
+                    val bottom = DKMadsVideoChrome.chromeBottomInsetPx(
+                        context,
+                        DKMadsVideoChrome.showsProgress(ad.videoTemplate),
+                    )
+                    val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END).apply {
+                        setMargins(side, side, side, bottom)
+                    }
+                    addView(btn, lp)
+                    skipButton = btn
+                    return
+                }
+                if (skipButton == null) {
+                    val btn = DKMadsVideoChrome.chromeButton(context, "Skip in ${left}s").apply {
+                        isEnabled = false
+                        alpha = 0.85f
+                    }
+                    val side = (10 * resources.displayMetrics.density).toInt()
+                    val bottom = DKMadsVideoChrome.chromeBottomInsetPx(
+                        context,
+                        DKMadsVideoChrome.showsProgress(ad.videoTemplate),
+                    )
+                    val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END).apply {
+                        setMargins(side, side, side, bottom)
+                    }
+                    addView(btn, lp)
+                    skipButton = btn
+                } else {
+                    skipButton?.text = if (left <= 0) "Skip" else "Skip in ${left}s"
+                    if (left <= 0) {
+                        skipButton?.isEnabled = true
+                        skipButton?.alpha = 1f
+                        skipButton?.setOnClickListener { completePlayback(skipped = true) }
+                        return
+                    }
+                }
+                left -= 1
+                postDelayed(this, 1000)
+            }
         }
         skipRunnable = runnable
-        postDelayed(runnable, skipOffsetMs)
+        post(runnable)
     }
 
     private fun cancelSkip() {
@@ -245,9 +396,43 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         skipButton = null
     }
 
+    private fun attachVideoClickOverlay(ad: Ad) {
+        removeVideoClickOverlay()
+        if (ad.clickUrl.isBlank()) return
+        val overlay = View(context).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            isClickable = true
+            setOnClickListener {
+                recordClick()
+                runCatching {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ad.clickUrl))
+                    if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                }
+            }
+        }
+        val lp = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        addView(overlay, 1, lp)
+        clickOverlay = overlay
+        videoView.isClickable = false
+    }
+
+    private fun removeVideoClickOverlay() {
+        clickOverlay?.let { removeView(it) }
+        clickOverlay = null
+    }
+
     private fun attachClickThroughCta(ad: Ad) {
         removeClickThroughCta()
-        ctaButton = DKMadsClickThroughCta.attach(this, ad.clickUrl) { recordClick() }
+        removeCompanion()
+        val style = DKMadsClickThroughCta.styleForAd(ad.videoTemplate, ad.ctaPosition)
+        ctaButton = DKMadsClickThroughCta.attach(
+            parent = this,
+            clickUrl = ad.clickUrl,
+            style = style,
+            label = ad.ctaLabel,
+            onClickThrough = { recordClick() },
+        )
     }
 
     private fun removeClickThroughCta() {
@@ -255,10 +440,72 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         ctaButton = null
     }
 
+    private fun attachCompanion(ad: Ad) {
+        removeCompanion()
+        val companionUrl = ad.companionImageUrl ?: return
+        val image = ImageView(context).apply {
+            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setBackgroundColor(Color.TRANSPARENT)
+        }
+        val lp = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
+            val m = (4 * resources.displayMetrics.density).toInt()
+            setMargins(m, m, m, m)
+        }
+        addView(image, lp)
+        companionView = image
+        scope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                runCatching { URL(companionUrl).openStream().use { android.graphics.BitmapFactory.decodeStream(it) } }.getOrNull()
+            }
+            if (bitmap != null) {
+                image.setImageBitmap(bitmap)
+                val canClick = ad.showCompanionClick != false && ad.clickUrl.isNotBlank()
+                if (canClick) {
+                    image.setOnClickListener {
+                        recordClick()
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ad.clickUrl)))
+                    }
+                }
+            } else {
+                removeCompanion()
+            }
+        }
+    }
+
+    private fun removeCompanion() {
+        companionView?.let { removeView(it) }
+        companionView = null
+    }
+
     private fun recordClick() {
         val ad = loadedAd ?: return
         SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp)
         listener?.onAdClicked(this)
+    }
+
+    private fun applySkipConfig(ad: Ad) {
+        ad.skippable?.let { isSkippable = it }
+        val skipSec = ad.skipAfterSec
+        if (skipSec != null && skipSec >= 0) {
+            skipOffsetMs = (skipSec * 1000).toLong()
+        }
+    }
+
+    private fun emitVideoSkip() {
+        val ad = loadedAd ?: return
+        val metadata = mutableMapOf<String, Any?>(
+            "skippable" to true,
+        )
+        TelemetryManager.shared.trackEvent(
+            "video_skip",
+            mutableMapOf<String, Any?>(
+                "ad_unit_id" to adUnitId,
+                "campaign_id" to ad.campaignId,
+                "creative_id" to (ad.creativeId ?: ad.id),
+                "metadata" to metadata,
+            ),
+        )
     }
 
     private fun startViewability() {
@@ -288,6 +535,10 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         stopViewability()
         removeClickThroughCta()
         cancelSkip()
+        stopProgressUpdates()
+        removeVideoChrome()
+        removeVideoClickOverlay()
+        mediaPlayer = null
         videoTracker?.stop()
         videoTracker = null
         SSPSDK.stopVideoLifecycleTracking(adUnitId)

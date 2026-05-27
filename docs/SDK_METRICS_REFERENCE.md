@@ -1,6 +1,8 @@
 # SDK metrics reference
 
-Events are sent to `POST /api/public/v1/events` and rolled up in the dashboard.
+Telemetry events sent to `POST /api/public/v1/events` and aggregated in **Reports**.
+
+**Principle:** count **served impressions** when the user sees the creative, not when the auction returns a winner.
 
 ## Bid win vs served impression
 
@@ -42,20 +44,44 @@ Per IAB/VAST practice, **only intentional navigation to the advertiser landing p
 Native MP4/HTML players expose a **Learn more** button when `click_url` is set. House video `adm` uses a separate `.dkmads-cta` link (video + controls are not wrapped in `<a>`).
 Web SDK video rendering also uses an explicit **overlay CTA** inside the video slot so click-through remains accessible even when the slot has fixed dimensions.
 
+### VAST / IMA players
+
+When `response_format=vast` on `POST /api/public/v1/bid`:
+
+| VAST element | Maps to ingest event |
+|--------------|----------------------|
+| `<Impression>` | `impression` → `impression_served` |
+| `<Tracking event="start">` | `video_start` (audio → `audio_start`) |
+| `<Tracking event="firstQuartile">` | `video_25` |
+| `<Tracking event="midpoint">` | `video_50` |
+| `<Tracking event="thirdQuartile">` | `video_75` |
+| `<Tracking event="complete">` | `video_100` |
+| `<ClickTracking>` | `click` |
+| `<ClickThrough>` | Landing URL only (player opens browser) |
+
+Beacon URL: `GET /api/public/v1/vast/track?p=<signed-token>` (1×1 GIF, 24h token TTL).
+
 ### Playback metrics
 
 | Metric | SDK event | Requires |
 |--------|-----------|----------|
-| Start | `video_start` | `DKMadsVideoAdController.attach` / `trackVideoLifecycle` / `SSP.bindVideo` |
-| 1st quartile | `video_25` | Same |
+| Viewable | `video_viewable` | 50% of player in view while playing for **2 consecutive seconds** |
+| Start | `video_start` | After `video_viewable` (web + native SDK default) |
+| 1st quartile | `video_25` | After `video_viewable`; not retroactive if user scrolls in late |
 | 2nd quartile | `video_50` | Same |
 | 3rd quartile | `video_75` | Same |
-| Complete | `video_100` | Same |
-| Viewable | `video_viewable` | Same |
-| Skip | `video_skip` | Same |
-| Pause / resume | `video_pause`, `video_resume` | Same |
-| Mute / unmute | `video_mute`, `video_unmute` | Same |
-| Error | `video_error` | Same |
+| Complete | `video_100` | Natural end only — **not** fired on Skip |
+| Skip | `video_skip` | User skip control or large forward seek |
+
+**Reporting vs VAST beacons:** VAST `<Tracking>` quartiles often fire on media time alone. DKMads dashboard metrics (`video_25` … `video_100`) are **viewability-gated** so completion rate and quartile funnels align with IAB/MRC video viewability (50% / 2s). Raw VAST beacon URLs are unchanged for third-party players.
+
+Pass `requireViewableProgress: false` to `SSP.bindVideo` only if you intentionally want playback-based quartiles (not recommended for publisher reporting).
+
+| Control | SDK event |
+|---------|-----------|
+| Pause / resume | `video_pause`, `video_resume` |
+| Mute / unmute | `video_mute`, `video_unmute` |
+| Error | `video_error` |
 
 ## HTML5 / rich-media display
 

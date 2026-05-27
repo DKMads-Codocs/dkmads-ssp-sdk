@@ -16,6 +16,15 @@ import Foundation
     @objc public let videoUrl: String?
     @objc public let deliveryType: String?
     @objc public let creativeType: String?
+    @objc public let videoTemplate: String?
+    @objc public let ctaLabel: String
+    @objc public let ctaPosition: String?
+    @objc public let companionImageUrl: String?
+    @objc public let showCompanionClick: NSNumber?
+    @objc public let skippable: NSNumber?
+    @objc public let skipAfterSec: NSNumber?
+    @objc public let unitFormat: String?
+    @objc public let placementContext: String?
 
     public init(from dictionary: [String: Any]) {
         let meta = dictionary["meta"] as? [String: Any]
@@ -57,6 +66,21 @@ import Foundation
         self.creativeId = crid.isEmpty ? nil : crid
         let dspVal = (dictionary["dsp"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.dsp = dspVal.isEmpty ? nil : dspVal
+        let tmpl = (dictionary["video_template"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.videoTemplate = tmpl.isEmpty ? nil : tmpl
+        let cta = (dictionary["cta_label"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.ctaLabel = cta.isEmpty ? "Learn more" : cta
+        let pos = (dictionary["cta_position"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.ctaPosition = pos.isEmpty ? nil : pos
+        let companion = (dictionary["companion_image_url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.companionImageUrl = companion.isEmpty ? nil : companion
+        self.showCompanionClick = dictionary["show_companion_click"] as? NSNumber
+        self.skippable = dictionary["skippable"] as? NSNumber
+        self.skipAfterSec = dictionary["skip_after_sec"] as? NSNumber
+        let format = (dictionary["unit_format"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.unitFormat = format.isEmpty ? nil : format
+        let context = (dictionary["placement_context"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.placementContext = context.isEmpty ? nil : context
     }
 
     @objc public var hasFill: Bool {

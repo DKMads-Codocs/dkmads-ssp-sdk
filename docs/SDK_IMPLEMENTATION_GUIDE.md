@@ -1,88 +1,71 @@
-# DKMads SSP — SDK implementation guide
+# SDK implementation guide
 
-This is the **main publisher documentation hub** for integrating DKMads across web and mobile. Use it like a product integration manual: prerequisites → initialize → request ads → measure → troubleshoot.
+The central reference for integrating DKMads across **web, iOS, Android, Flutter, and Unity**.
 
-**Dashboard:** **Developer → SDK guide** (in-app walkthrough).  
-**Fast path:** [60-minute Quickstart](./integration/QUICKSTART.md).
+**Audience:** publisher engineering teams  
+**Outcome:** a verified property, successful bid, rendered creative, and compliant telemetry  
+**Fast path:** [60-minute quickstart](./integration/QUICKSTART.md) · **In dashboard:** Developer → SDK guide
 
 ---
 
-## 1. Before you integrate
+## 1. Prerequisites
 
-### What you need from the dashboard
+Collect these from the DKMads dashboard before writing integration code:
 
-1. **Property** (web, iOS, or Android) — status active, integration key copied.
-2. **Ad unit** — UUID, format (banner, video, …), size(s).
-3. **Waterfall** — saved on the property (Demand → Waterfall).
-4. **Campaign** — active line item + approved creative matching the ad unit format.
+| Item | Where to find it |
+|------|------------------|
+| **Property** (web, iOS, or Android) | Inventory → Properties — status must be active |
+| **Integration key** | Property settings |
+| **Ad unit** (UUID, format, size) | Inventory → Ad units |
+| **Waterfall** | Demand → Waterfall — click **Save** after edits |
+| **Campaign + creative** | Matching ad unit format and size, approved |
 
-### Hostnames
+### API endpoints
 
-| Environment | API / script base |
-|-------------|-------------------|
+| Environment | Base URL |
+|-------------|----------|
 | Production | `https://ssp.dkmads.com` |
-| Your deployment | Your API origin (must serve `/api/public/v1/*` and optionally `/sdk/ssp-sdk.js`) |
+| Custom deployment | Your host serving `/api/public/v1/*` |
 
-Mobile SDKs call `POST {baseURL}/api/public/v1/bid` with header `X-Integration-Key`.
+All platforms use:
+
+- `POST /api/public/v1/bid` — auction (header `X-Integration-Key`)
+- `POST /api/public/v1/events` — telemetry batch
+
+Web additionally loads `https://ssp.dkmads.com/api/public/sp.js`.
 
 ---
 
-## 2. Platform packages
+## 2. Choose your platform
 
-| Platform | Delivery | Integration guide |
-|----------|----------|-------------------|
-| **Web** | Hosted script (`/api/public/sp.js`) | [integration/web.md](./integration/web.md) |
-| **iOS** | `DKMadsSSPSDK` — CocoaPods or SPM | [integration/ios.md](./integration/ios.md) |
-| **Android** | `com.dkmads.ssp:ssp-android` | [integration/android.md](./integration/android.md) |
-| **Flutter** | `dkmads_ssp` + native iOS/Android libraries | [integration/flutter.md](./integration/flutter.md) |
-| **Unity** | `com.dkmads.ssp` UPM + native iOS/Android libraries | [integration/unity.md](./integration/unity.md) |
+| Platform | Delivery | Guide |
+|----------|----------|--------|
+| Web | Hosted script | [Web integration](./integration/web.md) |
+| iOS | `DKMadsSSPSDK` (SPM / CocoaPods) | [iOS integration](./integration/ios.md) |
+| Android | `com.dkmads.ssp:ssp-android` | [Android integration](./integration/android.md) |
+| Flutter | `dkmads_ssp` plugin + native SDKs | [Flutter integration](./integration/flutter.md) |
+| Unity | `com.dkmads.ssp` UPM + native SDKs | [Unity integration](./integration/unity.md) |
 
-Each mobile guide includes an **Installation** section (CocoaPods, Gradle, path, or Git dependency). Web uses a single script tag—no app package install.
+**Mobile SDK releases:** [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) — use the version shown in your dashboard SDK guide (tags `sdk-<semver>`).
 
-**Publisher SDK repository (Git):** [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk)  
-Releases are tagged `sdk-<semver>` (for example `sdk-0.4.2`). The platform monorepo exports SDK sources to this repo on each SDK release.
+---
+
+## 3. Standard integration flow
 
 ```text
-ios/              → DKMadsSSPSDK (SPM / CocoaPods)
-android/          → Kotlin sources
-android-module/   → Gradle AAR publisher
-flutter/          → dkmads_ssp plugin
-unity/            → com.dkmads.ssp UPM package
-docs/             → Integration guides (mirrored from platform)
+1. Initialize the SDK once (app launch or page load)
+2. Set consent when GDPR, US privacy, or ATT applies
+3. Set targeting signals (optional)
+4. Request an ad or use a banner/video component
+5. Render winner.adm and/or winner.image_url
+6. Confirm impression and engagement events in Reports
 ```
 
-Web script remains hosted at `https://ssp.dkmads.com/api/public/sp.js` (built from `public/sdk/ssp-sdk.js` in the platform repo).
+Full API details: [SDK contract](./SDK_CONTRACT.md).
 
-**Operators:** release automation and security — [SDK_DISTRIBUTION.md](./SDK_DISTRIBUTION.md).
+### Minimal examples
 
----
-
-## 3. Integration flow (all platforms)
-
-```text
-1. Initialize SDK (once per app / page load)
-2. setConsent (if GDPR / US privacy applies)
-3. setTargetingSignals (optional — demographics, geo, segments, interests, content/page context)
-4. Load ad OR use banner/video view component
-5. Render winner.adm or winner.image_url
-6. Metrics fire automatically (banner/video) or via trackUserEvent
-```
-
-Canonical contract: [SDK_CONTRACT.md](./SDK_CONTRACT.md).
-
----
-
-## 4. Platform guides
-
-| Platform | Package / asset | Guide |
-|----------|-----------------|--------|
-| **Web** | `ssp-sdk.js` (script tag) | [integration/web.md](./integration/web.md) |
-| **iOS** | `DKMadsSSPSDK` (SPM / CocoaPods) | [integration/ios.md](./integration/ios.md) |
-| **Android** | `com.dkmads.ssp` module | [integration/android.md](./integration/android.md) |
-| **Flutter** | `dkmads_ssp` plugin | [integration/flutter.md](./integration/flutter.md) — `loadInterstitial` + `showInterstitial` |
-| **Unity** | `sdk/unity` bridge | [integration/unity.md](./integration/unity.md) — `LoadInterstitial` + `ShowInterstitial` |
-
-### Web — minimal tag
+**Web**
 
 ```html
 <script>window.ssp = window.ssp || [];</script>
@@ -91,9 +74,7 @@ Canonical contract: [SDK_CONTRACT.md](./SDK_CONTRACT.md).
 <div data-ssp-ad-unit="AD_UNIT_UUID" data-ssp-size="300x250"></div>
 ```
 
-Use `data-endpoint` on the script tag when the file is self-hosted but bids go to the SSP host.
-
-### iOS — minimal banner
+**iOS**
 
 ```swift
 DKMadsMobileAds.shared.start(with: config)
@@ -102,7 +83,7 @@ banner.rootViewController = self
 banner.load()
 ```
 
-### Android — minimal banner
+**Android**
 
 ```kotlin
 SSPSDK.initialize(context, config)
@@ -112,79 +93,75 @@ banner.load()
 
 ---
 
-## 5. Bid API (shared)
+## 4. Bid API essentials
 
-**Endpoint:** `POST /api/public/v1/bid`  
-**Header:** `X-Integration-Key: {property integration key}`
+**Fill rule:** treat the response as filled when `winner.adm` or `winner.image_url` is present (do not rely on `winner.id` alone).
 
-**Fill detection:** treat as filled when `winner.adm` or `winner.image_url` is present.  
-`winner.id` / `winner.crid` are optional but recommended for reporting.
+| `reason` | Meaning | Action |
+|----------|---------|--------|
+| `won` | Creative available | Render `adm` or image URL |
+| `no_tiers` | No waterfall configured | Save waterfall for the property |
+| `no_bids` | No eligible demand | Check campaign, creative, format, targeting |
+| `targeting_mismatch` | Ad unit rules not met | Adjust signals or ad unit targeting |
+| `consent_blocked` | Privacy gate failed | Fix CMP / ATT / USP (see consent docs) |
 
-| `reason` | Meaning |
-|----------|---------|
-| `won` | Creative returned — render it |
-| `no_tiers` | Property waterfall empty — save waterfall in dashboard |
-| `no_bids` | No eligible campaign/creative — check status, inventory, format |
-| `targeting_mismatch` | Ad unit targeting chips failed — relax rules or pass signals |
-
-Use `"debug": true` in the bid body during QA to receive `log` and `fraud` details.
+During QA, include `"debug": true` in the bid body for diagnostic logs.
 
 ---
 
-## 6. Targeting & first-party data
+## 5. Targeting and audiences
 
-- **Campaign targeting** (dashboard): geo, age, gender, interests, audiences — empty fields mean no filter on that dimension.
-- **Publisher signals** (SDK): `setTargetingSignals` — see [TARGETING_SIGNALS.md](./TARGETING_SIGNALS.md).
-- **FPD:** web `SSP.sendFirstPartyData` / mobile `syncFirstPartyProfile` for audience building.
-
----
-
-## 7. Metrics & viewability
-
-Event names and auto-instrumentation: [SDK_METRICS_REFERENCE.md](./SDK_METRICS_REFERENCE.md).
-
-- **Banner:** `DKMadsBannerAdView` / `SSP.bind` — IAB viewability (50% / 1s).
-- **Interstitial:** `DKMadsInterstitialAd` (iOS/Android) — fullscreen video, image, HTML5; use IAB sizes (320×480), not screen pixels.
-- **Video / instream:** iOS `DKMadsVideoAdView` + `DKMadsInstreamAdsLoader`; Android same + `DKMadsContentPlayback` for ExoPlayer pause/resume; web `SSP.bindVideo`.
-- **Video (BYO player):** `DKMadsVideoAdController` — attach your ExoPlayer / AVPlayer for quartiles.
-- **Native (Android):** `DKMadsNativeAdView` — image / HTML native units.
-- **Audio:** web `SSP.bindAudio`; Android `DKMadsAudioAdView` (`audio_url` / `adm`).
-- **Diagnostics:** `DKMadsResponseInfo.summary` on all Android drop-in views (and iOS equivalents).
+| Layer | Where | Purpose |
+|-------|--------|---------|
+| Campaign targeting | Dashboard → Campaigns | Geo, demographics, interests, audiences |
+| Publisher signals | SDK `setTargetingSignals` | Per-request context — [Targeting signals](./TARGETING_SIGNALS.md) |
+| First-party profiles | SDK FPD APIs | House campaigns only; blocked on exchange strict mode |
 
 ---
 
-## 8. Troubleshooting
+## 6. Measurement
 
-| Symptom | Check |
-|---------|--------|
-| `401` on bid | Integration key, property active |
-| `no_tiers` | Waterfall saved for property |
-| `no_bids` | Campaign/line item/creative active; inventory targets; format match |
-| `targeting_mismatch` | Ad unit targeting chips vs request signals |
-| SDK shows no ad but `reason: won` | Render `adm` / `image_url`; ensure `hasFill` logic uses creative not only `id` |
-| HTML error from API | Wrong `baseURL` — must be API host, not publisher site origin |
+Use platform components that auto-fire IAB-aligned events where possible:
 
----
+| Format | Web | iOS / Android |
+|--------|-----|----------------|
+| Banner | `SSP.bind` | `DKMadsBannerAdView` |
+| Interstitial | `SSP.displayInterstitial` | `DKMadsInterstitialAd` |
+| Video | `SSP.bindVideo` | `DKMadsVideoAdController`, instream loader |
+| Audio | `SSP.bindAudio` | `DKMadsAudioAdView` (Android) |
 
-## 9. Release checklist
-
-Complete [SDK_INTEGRATION_CHECKLIST.md](./SDK_INTEGRATION_CHECKLIST.md) before production traffic.
-
-Validation scripts (repo):
-
-```bash
-bash scripts/sdk-contract-check.sh
-bash scripts/validate-platform-alignment.sh
-```
+Event catalog: [SDK metrics reference](./SDK_METRICS_REFERENCE.md).
 
 ---
 
-## Related SDK source
+## 7. Troubleshooting
 
-| Path | Contents |
-|------|----------|
-| `sdk/ios/` | Swift package + sample app |
-| `sdk/android/` | Kotlin SDK |
-| `sdk/flutter/` | Flutter plugin |
-| `sdk/unity/` | Unity bridge |
-| `public/sdk/ssp-sdk.js` | Web IIFE bundle |
+| Symptom | Likely cause |
+|---------|----------------|
+| HTTP 401 on bid | Invalid integration key or inactive property |
+| `no_tiers` | Waterfall not saved |
+| `no_bids` | Inactive campaign/creative or format mismatch |
+| `targeting_mismatch` | Ad unit chips vs bid signals |
+| Ad blank but `reason: won` | Not rendering `adm` / `image_url` |
+| API returns HTML | Wrong `baseUrl` — must be SSP API host |
+
+---
+
+## 8. Launch readiness
+
+Complete the [SDK integration checklist](./SDK_INTEGRATION_CHECKLIST.md) before directing production traffic.
+
+---
+
+## 9. Google Exchange (optional)
+
+If your workspace supports Google demand, complete consent and transparency before pilot traffic:
+
+| Guide | Focus |
+|-------|--------|
+| [SDK Google policy checklist](./SDK_GOOGLE_POLICY_CHECKLIST.md) | Per-platform consent |
+| [Regional consent matrix](./REGIONAL_CONSENT_MATRIX.md) | Dashboard privacy settings |
+| [How Google Exchange works](./GOOGLE_EXCHANGE_ARCHITECTURE.md) | Model and responsibilities |
+| [Pilot rollout](./GOOGLE_PILOT_ROLLOUT.md) | Testing → live in Privacy settings |
+
+Configure **Privacy & Compliance** (exchange strict mode, supply chain, Google rollout).

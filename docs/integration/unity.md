@@ -1,6 +1,8 @@
-# Unity SDK Integration (Bridge)
+# Unity SDK integration guide
 
-The **com.dkmads.ssp** Unity package (v0.2.0) bridges to native **iOS/Android SDK v0.4.2**.
+The **com.dkmads.ssp** package bridges Unity to native iOS and Android SDKs for interstitial and video workflows.
+
+**Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [iOS](./ios.md) · [Android](./android.md)
 
 ## Prerequisites
 
@@ -61,6 +63,7 @@ Follow [iOS Installation](./ios.md) in the Xcode project Unity generates (CocoaP
 - **`SetTargetingSignals`** / JSON variant (Android + iOS)
 - **`LoadAd`** / **`LoadAdWithFormat`** — banner, interstitial, video, etc. (Android + iOS)
 - **`LoadInterstitial`** + **`ShowInterstitial`** — native fullscreen UI (Android + iOS)
+- **`LoadRewarded`** + **`ShowRewarded`** — native rewarded fullscreen UI (Android + iOS)
 - Forward video lifecycle events to telemetry (`EmitVideoEvent`)
 
 > Unity does not ship UGUI widgets or an **instream** bridge. Use **`ShowInterstitial`** for fullscreen (native activity/VC), **`LoadAd`** / **`LoadInterstitial`** JSON for custom UI, or **`EmitVideoEvent`** with your `VideoPlayer` for quartiles.
@@ -69,6 +72,14 @@ Follow [iOS Installation](./ios.md) in the Xcode project Unity generates (CocoaP
 
 ```csharp
 DKMadsSdk.Initialize("YOUR_INTEGRATION_KEY");
+
+// After UMP/CMP — native SDK also auto-reads IAB storage on each load:
+DKMadsSdk.SetConsent(new DKMadsConsent {
+    gdpr = true,
+    consentString = tcfFromCmp,
+    usPrivacyString = uspFromCmp,
+    attStatus = 3  // iOS only: ATT authorized
+});
 
 var signals = new DKMadsTargetingSignals {
     DevicePid = "device_123",
@@ -100,6 +111,14 @@ string json = DKMadsSdk.LoadInterstitial("INTERSTITIAL_UUID", 320, 480);
 DKMadsSdk.ShowInterstitial("INTERSTITIAL_UUID");
 ```
 
+### Rewarded
+
+```csharp
+string json = DKMadsSdk.LoadRewarded("REWARDED_UUID", 320, 480);
+// Parse JSON and check success first
+DKMadsSdk.ShowRewarded("REWARDED_UUID");
+```
+
 ### Video telemetry
 
 ```csharp
@@ -119,6 +138,10 @@ Native bridges return fields aligned with `Ad`:
 | `creativeUrl` | Image URL |
 | `html5EntryUrl` | HTML5 entry |
 | `isVideo` / `isHtml5` | Creative type hints |
+| `videoTemplate` / `ctaLabel` / `ctaPosition` | Video CTA contract |
+| `companionImageUrl` / `showCompanionClick` | Companion rendering contract |
+| `skippable` / `skipAfterSec` | Skip controls contract |
+| `unitFormat` / `placementContext` | Placement semantics |
 
 ## Runtime defaults
 

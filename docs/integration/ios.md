@@ -1,6 +1,8 @@
-# iOS SDK Quickstart
+# iOS SDK integration guide
 
-Integrate DKMads SSP in a native iOS app using **DKMadsSSPSDK** (v0.4.2).
+Integrate banner, interstitial, video, and native ads in native iOS apps with **DKMadsSSPSDK**.
+
+**Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md) · [Targeting signals](../TARGETING_SIGNALS.md)
 
 ## Prerequisites
 
@@ -127,6 +129,19 @@ DKMadsInterstitialAd.load(
 }
 ```
 
+## 2d) Rewarded (fullscreen with reward callback)
+
+```swift
+let rewarded = DKMadsRewardedAd(adUnitID: "YOUR_REWARDED_AD_UNIT_UUID")
+rewarded.delegate = self
+rewarded.load { ad, error in
+  guard let ad = ad else { return }
+  ad.present(from: self)
+}
+```
+
+Delegate callback to grant reward: `rewardedAdDidEarnReward`.
+
 Delegate: `interstitialAdDidReceiveAd`, `interstitialAdDidPresent`, `interstitialAdDidDismiss`, `interstitialAd(_:didFailToReceiveAdWithError:)`.
 
 ObjC: `+[DKMadsInterstitialAd loadInterstitialWithAdUnitID:request:completion:]` then `presentFromRootViewController:`.
@@ -153,8 +168,24 @@ SSPSDK.shared.loadAd(
 
 ## Consent + user data
 
+The SDK **auto-reads IAB CMP storage** (Google UMP) on init and before each ad request:
+
+- `IABTCF_TCString`, `IABTCF_gdprApplies`
+- `IABUSPrivacy_String`
+- `IABGPP_GppString`, `IABGPP_SID`
+- iOS **ATT** status (0–3); **IDFA** only when ATT authorized and consent allows
+
+Explicit `setConsent` values take precedence when non-blank. Do **not** use `syncFirstPartyProfile` on exchange inventory (server blocks when exchange strict mode is on).
+
 ```swift
-SSPSDK.shared.setConsent(ConsentData(gdpr: false, ccpa: false))
+// Optional after UMP — SDK merges CMP automatically:
+SSPSDK.shared.setConsent(ConsentData(
+  gdpr: true,
+  consentString: tcfFromCmp,
+  usPrivacyString: uspFromCmp,
+  attStatus: Int(ATTrackingManager.trackingAuthorizationStatus.rawValue)
+))
+
 SSPSDK.shared.setTargetingSignals(TargetingSignals(
   devicePid: "device_123",
   userPid: "user_abc",

@@ -34,8 +34,12 @@ import WebKit
     private let player = AVPlayer()
     private var playerLayer: AVPlayerLayer?
     private var skipButton: UIButton?
+    private var muteButton: UIButton?
+    private var clickOverlay: UIView?
     private var ctaButton: UIButton?
+    private var companionImageView: UIImageView?
     private var skipTimer: Timer?
+    private var isPlaybackMuted = true
     private var isLoading = false
     private var viewabilityActive = false
     private var videoEventsAttached = false
@@ -72,6 +76,7 @@ import WebKit
             return
         }
         loadedAd = ad
+        applySkipConfig(from: ad)
         render(ad: ad)
         if !ad.impressionRecorded {
             SSPSDK.shared.recordAdImpression(
@@ -122,6 +127,7 @@ import WebKit
                     return
                 }
                 self.loadedAd = ad
+                self.applySkipConfig(from: ad)
                 self.render(ad: ad)
                 SSPSDK.shared.recordAdImpression(
                     adUnitId: self.adUnitID,
@@ -206,8 +212,18 @@ import WebKit
                     self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: error)
                     return
                 }
+                let muted = DKMadsVideoChrome.defaultPlaybackMuted(
+                    unitFormat: ad.unitFormat,
+                    placementContext: ad.placementContext,
+                    videoTemplate: ad.videoTemplate
+                )
+                self.player.isMuted = muted
+                self.isPlaybackMuted = muted
+                self.attachVideoClickOverlay(ad: ad)
+                self.attachVideoChrome(ad: ad)
                 self.delegate?.videoAdViewDidStartPlayback?(self)
                 self.attachClickThroughCta(ad: ad)
+                self.attachCompanion(ad: ad)
             }
         case .webMarkup:
             playerView.isHidden = true
@@ -246,11 +262,17 @@ import WebKit
         guard !webPlaybackCompleted else { return }
         webPlaybackCompleted = true
         cancelSkipTimer()
+        removeVideoChrome()
+        removeVideoClickOverlay()
         skipButton?.removeFromSuperview()
         skipButton = nil
         if skipped {
+            TelemetryManager.shared.markVideoUserSkipped(adUnitId: adUnitID)
+            emitVideoSkip()
             delegate?.videoAdViewDidSkip?(self)
         }
+        player.pause()
+        SSPSDK.shared.stopVideoLifecycleTracking(adUnitId: adUnitID)
         delegate?.videoAdViewDidComplete?(self)
     }
 
@@ -271,14 +293,20 @@ import WebKit
         let button = UIButton(type: .system)
         button.setTitle("Skip", for: .normal)
         button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = UIColor.black.withAlphaComponent(0.55)
-        button.layer.cornerRadius = 6
-        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
+        button.backgroundColor = UIColor(red: 18 / 255, green: 18 / 255, blue: 18 / 255, alpha: 0.55)
+        button.layer.cornerRadius = 16
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.white.withAlphaComponent(0.22).cgColor
+        button.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
+        button.contentEdgeInsets = UIEdgeInsets(top: 7, left: 12, bottom: 7, right: 12)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
         addSubview(button)
+        let bottomInset = DKMadsVideoChrome.chromeBottomInset(
+            hasProgress: DKMadsVideoChrome.showsProgress(template: loadedAd?.videoTemplate)
+        )
         NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 12),
+            button.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomInset),
             button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
         ])
         skipButton = button
@@ -289,11 +317,73 @@ import WebKit
         skipTimer = nil
     }
 
+    private func attachVideoChrome(ad: Ad) {
+        removeVideoChrome()
+        guard DKMadsVideoChrome.showsMute(template: ad.videoTemplate) else { return }
+        let button = DKMadsVideoChrome.makeMuteButton(muted: isPlaybackMuted)
+        button.addTarget(self, action: #selector(muteTapped), for: .touchUpInside)
+        addSubview(button)
+        let bottomInset = DKMadsVideoChrome.chromeBottomInset(
+            hasProgress: DKMadsVideoChrome.showsProgress(template: ad.videoTemplate)
+        )
+        NSLayoutConstraint.activate([
+            button.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomInset),
+            button.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+        ])
+        muteButton = button
+    }
+
+    private func removeVideoChrome() {
+        muteButton?.removeFromSuperview()
+        muteButton = nil
+    }
+
+    @objc private func muteTapped() {
+        isPlaybackMuted.toggle()
+        player.isMuted = isPlaybackMuted
+        if let muteButton {
+            DKMadsVideoChrome.updateMuteButton(muteButton, muted: isPlaybackMuted)
+        }
+    }
+
+    private func attachVideoClickOverlay(ad: Ad) {
+        removeVideoClickOverlay()
+        guard !ad.clickUrl.isEmpty else { return }
+        let overlay = UIView()
+        overlay.backgroundColor = .clear
+        overlay.isUserInteractionEnabled = true
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        insertSubview(overlay, aboveSubview: playerView)
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: bottomAnchor),
+            overlay.leadingAnchor.constraint(equalTo: leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: trailingAnchor),
+        ])
+        let tap = UITapGestureRecognizer(target: self, action: #selector(videoSurfaceTapped))
+        overlay.addGestureRecognizer(tap)
+        clickOverlay = overlay
+    }
+
+    private func removeVideoClickOverlay() {
+        clickOverlay?.removeFromSuperview()
+        clickOverlay = nil
+    }
+
+    @objc private func videoSurfaceTapped() {
+        guard let ad = loadedAd, !ad.clickUrl.isEmpty, let url = URL(string: ad.clickUrl) else { return }
+        recordClick()
+        rootViewController?.present(SFSafariViewController(url: url), animated: true)
+    }
+
     private func attachClickThroughCta(ad: Ad) {
         ctaButton?.removeFromSuperview()
+        let style = DKMadsClickThroughCta.styleForAd(template: ad.videoTemplate, ctaPosition: ad.ctaPosition)
         ctaButton = DKMadsClickThroughCta.attach(
             to: self,
             clickUrl: ad.clickUrl,
+            style: style,
+            label: ad.ctaLabel,
             presenter: rootViewController,
             onClickThrough: { [weak self] in self?.recordClick() },
         )
@@ -302,10 +392,14 @@ import WebKit
     private func stopPlayback() {
         stopViewability()
         cancelSkipTimer()
+        removeVideoChrome()
+        removeVideoClickOverlay()
         skipButton?.removeFromSuperview()
         skipButton = nil
         ctaButton?.removeFromSuperview()
         ctaButton = nil
+        companionImageView?.removeFromSuperview()
+        companionImageView = nil
         if videoEventsAttached {
             SSPSDK.shared.stopVideoLifecycleTracking(adUnitId: adUnitID)
             videoEventsAttached = false
@@ -385,5 +479,61 @@ extension DKMadsVideoAdView: WKNavigationDelegate {
             dspSource: ad.dsp
         )
         delegate?.videoAdViewDidRecordClick?(self)
+    }
+
+    private func applySkipConfig(from ad: Ad) {
+        if let skippable = ad.skippable?.boolValue {
+            isSkippable = skippable
+        }
+        if let sec = ad.skipAfterSec?.doubleValue, sec >= 0 {
+            skipOffsetSeconds = sec
+        }
+    }
+
+    private func emitVideoSkip() {
+        guard let ad = loadedAd else { return }
+        SSPSDK.shared.trackEvent(
+            name: "video_skip",
+            data: [
+                "ad_unit_id": adUnitID,
+                "campaign_id": ad.campaignId as Any,
+                "creative_id": (ad.creativeId ?? ad.id),
+                "metadata": [
+                    "skippable": true,
+                ],
+            ],
+        )
+    }
+
+    private func attachCompanion(ad: Ad) {
+        companionImageView?.removeFromSuperview()
+        guard let urlString = ad.companionImageUrl, !urlString.isEmpty, let url = URL(string: urlString) else { return }
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.isUserInteractionEnabled = ad.showCompanionClick?.boolValue != false && !ad.clickUrl.isEmpty
+        if imageView.isUserInteractionEnabled {
+            imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(companionTapped)))
+        }
+        addSubview(imageView)
+        NSLayoutConstraint.activate([
+            imageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            imageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            imageView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
+            imageView.heightAnchor.constraint(lessThanOrEqualToConstant: 96),
+        ])
+        companionImageView = imageView
+        URLSession.shared.dataTask(with: url) { [weak imageView] data, _, _ in
+            guard let data, let image = UIImage(data: data) else { return }
+            DispatchQueue.main.async {
+                imageView?.image = image
+            }
+        }.resume()
+    }
+
+    @objc private func companionTapped() {
+        guard let ad = loadedAd, !ad.clickUrl.isEmpty, let url = URL(string: ad.clickUrl) else { return }
+        recordClick()
+        rootViewController?.present(SFSafariViewController(url: url), animated: true)
     }
 }

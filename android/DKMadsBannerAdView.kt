@@ -139,8 +139,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val uri = request?.url ?: return false
-                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                    onBannerClicked()
+                    if (!ClickThroughNavigation.matches(ad.clickUrl, uri.toString())) return false
+                    onBannerClicked(uri)
                     return true
                 }
             }
@@ -175,7 +175,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         }
     }
 
-    private fun onBannerClicked() {
+    private fun onBannerClicked(openUri: Uri? = null) {
         val ad = loadedAd ?: return
         SSPSDK.recordAdClick(
             adUnitId,
@@ -185,9 +185,9 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             dspSource = ad.dsp,
         )
         listener?.onAdClicked(this)
-        val click = ad.clickUrl
-        if (click.isNotBlank()) {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(click)))
+        val destination = openUri ?: ad.clickUrl.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+        if (destination != null) {
+            context.startActivity(Intent(Intent.ACTION_VIEW, destination))
         }
     }
 

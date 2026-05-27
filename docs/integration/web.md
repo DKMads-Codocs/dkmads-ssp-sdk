@@ -1,15 +1,12 @@
-# Web SDK Quickstart
+# Web SDK integration guide
 
-Integrate DKMads SSP into any modern website. The web SDK is a single **IIFE
-script** (no bundler required) that renders ad units, reports telemetry, and
-optionally collects first-party data under consent.
+Integrate display, video, and audio ads on any modern website using a single hosted JavaScript file—no bundler required.
 
-The web SDK is delivered as a **hosted JavaScript file**. No npm package or native library is required. For iOS, Android, Flutter, or Unity, see the corresponding [platform guides](./ios.md).
+**Audience:** web developers and ad-ops  
+**Prerequisites:** web property, integration key, and at least one ad unit in the dashboard  
+**Mobile apps:** see [iOS](./ios.md), [Android](./android.md), [Flutter](./flutter.md), or [Unity](./unity.md)
 
-**You will need:**
-- A **Property** of type `web` in the dashboard.
-- The property's **Integration Key** (shown on the property detail page).
-- At least one **Ad Unit** and, optionally, a **Placement** (for contextual overrides).
+**Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md)
 
 ---
 
@@ -49,8 +46,8 @@ correctly.
 **Alternate URL (filter lists)**
 
 Some browsers or networks block URLs that match filter lists. If `sp.js` is
-blocked, self-host the file from `public/sdk/ssp-sdk.js` and set
-`data-endpoint` to the SSP origin.
+blocked, self-host the SDK bundle from your DKMads deployment (same file as
+`/api/public/sp.js`) and set `data-endpoint` to the SSP origin.
 
 The SDK registers `window.SSP` for imperative use (`SSP.init`, `SSP.scan`,
 `SSP.display`, …).
@@ -78,11 +75,33 @@ from each slot (one property key per page load is the usual model).
 | `data-ssp-size`         | optional | `WxH` or `auto` for responsive ad units.       |
 | `data-ssp-sizes`        | optional | Comma-separated multi-size list (e.g. `728x90,300x250`). |
 | `data-ssp-placement`    | optional | Placement code (e.g. `article_page`).          |
-| `data-ssp-refresh`      | optional | Override the ad unit auto-refresh (seconds).   |
+| `data-ssp-refresh`      | optional | Declared auto-refresh interval in seconds (**minimum 30**). Required before `SSP.refresh()` or timed rotation in the same slot. |
+| `data-ssp-allow-duplicate` | optional | Allow multiple DOM slots with the same ad unit ID (default: warn in debug only). |
+
+**Refresh policy:** Undeclared background refresh is blocked server-side and in the SDK. See [AD_REFRESH_POLICY.md](../AD_REFRESH_POLICY.md). Use `SSP.refresh(slot, { refreshReason: 'viewable_timer' })` only after the slot was viewable and the declared interval elapsed; real navigation may use `refreshReason: 'navigation'`.
+
+When `refresh_interval_sec` is set on the ad unit in the dashboard, the bid response includes it and the SDK applies it to the slot (and may schedule viewable auto-refresh after the first viewable impression). You do not need `data-ssp-refresh` if the dashboard value is set.
 
 ---
 
-## 3. Render a reward/interstitial (imperative)
+## 3. Instream video (pause content → ad → resume)
+
+For players you control (not IMA-only VAST), use the instream coordinator:
+
+```js
+var loader = SSP.createInstreamLoader({
+  adContainer: document.getElementById('ad-break'),
+  onPauseContent: function () { myPlayer.pause(); },
+  onResumeContent: function () { myPlayer.play(); },
+});
+loader.requestAds({ adUnitId: 'AD_UNIT_UUID', width: 640, height: 360 });
+```
+
+Content pauses before the bid; it resumes after the ad completes, is skipped, or fails.
+
+---
+
+## 4. Render a reward/interstitial (imperative)
 
 For full-page or interstitial formats, request imperatively:
 
@@ -98,7 +117,7 @@ SSP.requestAd({
 
 ---
 
-## 4. Consent (IAB TCF 2.2 & GPP)
+## 5. Consent (IAB TCF 2.2 & GPP)
 
 The SDK automatically reads any installed TCF 2.2 / GPP CMP (via
 `window.__tcfapi` / `window.__gpp`). If the user has not given consent for
@@ -120,7 +139,7 @@ SSP.setConsent({
 
 ---
 
-## 5. First-party data (optional, consent-gated)
+## 6. First-party data (optional, consent-gated)
 
 If you want to enrich audience segments with behavioral data:
 
@@ -136,7 +155,7 @@ invalid — you will see a 403 in DevTools Network tab.
 
 ---
 
-## 6. Video lifecycle parity (cross-platform)
+## 7. Video lifecycle parity (cross-platform)
 
 For web video players, use `SSP.bindVideo(videoElement, opts)` so event naming
 matches iOS/Android/Flutter/Unity lifecycle telemetry:
@@ -149,7 +168,7 @@ matches iOS/Android/Flutter/Unity lifecycle telemetry:
 
 ---
 
-## 7. Verify your integration
+## 8. Verify your integration
 
 Run in the browser console on a page with the SDK loaded:
 
@@ -178,5 +197,4 @@ On the dashboard, confirm:
 | Reward callbacks never fire              | DSP returned non-rewarded creative; reject in waterfall |
 | `ssp.push` never runs                    | Ensure `SSP.init` ran (pasteable tag with `data-property-key`, or call `SSP.init` before pushing). |
 
-See also: [Waterfall runbook](../runbooks/bid-latency-high.md),
-[Creative upload runbook](../runbooks/creative-upload-broken.md).
+See also: [SDK Implementation Guide](./SDK_IMPLEMENTATION_GUIDE.md) (troubleshooting).

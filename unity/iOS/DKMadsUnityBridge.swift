@@ -3,6 +3,7 @@ import UIKit
 
 private var pendingInterstitialAds: [String: Ad] = [:]
 private var pendingInterstitialInstances: [String: DKMadsInterstitialAd] = [:]
+private var pendingRewardedAds: [String: DKMadsRewardedAd] = [:]
 
 @_cdecl("dkmads_initialize")
 public func dkmads_initialize(_ integrationKeyPtr: UnsafePointer<CChar>?,
@@ -57,6 +58,34 @@ public func dkmads_set_targeting_signals(_ jsonPayloadPtr: UnsafePointer<CChar>?
     pageType: str("page_type") ?? str("pageType")
   )
   SSPSDK.shared.setTargetingSignals(signals)
+}
+
+@_cdecl("dkmads_set_consent")
+public func dkmads_set_consent(_ jsonPayloadPtr: UnsafePointer<CChar>?) {
+  let payload = parseJsonDictionary(jsonPayloadPtr)
+  func str(_ key: String) -> String? {
+    guard let v = payload[key] as? String, !v.isEmpty else { return nil }
+    return v
+  }
+  func bool(_ key: String) -> Bool {
+    payload[key] as? Bool ?? false
+  }
+  func intOpt(_ key: String) -> Int? {
+    if let n = payload[key] as? Int { return n }
+    if let n = payload[key] as? Double { return Int(n) }
+    if let s = payload[key] as? String, let n = Int(s) { return n }
+    return nil
+  }
+  var consent = ConsentData(
+    gdpr: bool("gdpr"),
+    ccpa: bool("ccpa"),
+    consentString: str("consentString") ?? str("consent_string"),
+    gppString: str("gppString") ?? str("gpp_string"),
+    gppSid: str("gppSid") ?? str("gpp_sid"),
+    usPrivacyString: str("usPrivacyString") ?? str("us_privacy_string"),
+    attStatus: intOpt("attStatus") ?? intOpt("att_status")
+  )
+  SSPSDK.shared.setConsent(consent)
 }
 
 @_cdecl("dkmads_track_user_event")
@@ -168,6 +197,44 @@ public func dkmads_show_interstitial(_ adUnitIdPtr: UnsafePointer<CChar>?) {
   }
 }
 
+@_cdecl("dkmads_load_rewarded")
+public func dkmads_load_rewarded(_ adUnitIdPtr: UnsafePointer<CChar>?,
+                                 _ width: Int32,
+                                 _ height: Int32) -> UnsafeMutablePointer<CChar>? {
+  guard let adUnitIdPtr else { return strdup("{\"success\":false,\"reason\":\"invalid_args\"}") }
+  let adUnitId = String(cString: adUnitIdPtr)
+  let w = CGFloat(max(1, Int(width)))
+  let h = CGFloat(max(1, Int(height)))
+  let rewarded = DKMadsRewardedAd(adUnitID: adUnitId)
+  var jsonOut = "{\"success\":false,\"reason\":\"pending\"}"
+  let sem = DispatchSemaphore(value: 0)
+  rewarded.load(adSize: CGSize(width: w, height: h)) { adObj, error in
+    if let error {
+      jsonOut = "{\"success\":false,\"reason\":\"\(error.localizedDescription.replacingOccurrences(of: "\"", with: "'"))\"}"
+    } else if let adObj, let ad = adObj.loadedAd, ad.hasFill {
+      pendingRewardedAds[adUnitId] = adObj
+      jsonOut = adToJson(ad, responseInfo: adObj.responseInfo)
+    } else {
+      jsonOut = "{\"success\":false,\"reason\":\"no_fill\"}"
+    }
+    sem.signal()
+  }
+  _ = sem.wait(timeout: .now() + 30)
+  return strdup(jsonOut)
+}
+
+@_cdecl("dkmads_show_rewarded")
+public func dkmads_show_rewarded(_ adUnitIdPtr: UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {
+  guard let adUnitIdPtr else { return strdup("{\"success\":false,\"reason\":\"invalid_args\"}") }
+  let adUnitId = String(cString: adUnitIdPtr)
+  guard let rewarded = pendingRewardedAds[adUnitId] else { return strdup("{\"success\":false,\"reason\":\"not_loaded\"}") }
+  DispatchQueue.main.async {
+    guard let root = topViewController() else { return }
+    rewarded.present(from: root)
+  }
+  return strdup("{\"success\":true}")
+}
+
 private func topViewController() -> UIViewController? {
   let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
   let window = scenes.flatMap(\.windows).first { $0.isKeyWindow }
@@ -196,6 +263,17 @@ private func adToJson(_ ad: Ad, responseInfo: DKMadsResponseInfo?) -> String {
     "\"height\":\(ad.height)",
     "\"isVideo\":\(ad.isVideo)",
     "\"isHtml5\":\(ad.isHTML5)",
+    "\"campaignId\":\"\(escapeJson(ad.campaignId ?? ""))\"",
+    "\"creativeId\":\"\(escapeJson(ad.creativeId ?? ""))\"",
+    "\"videoTemplate\":\"\(escapeJson(ad.videoTemplate ?? ""))\"",
+    "\"ctaLabel\":\"\(escapeJson(ad.ctaLabel))\"",
+    "\"ctaPosition\":\"\(escapeJson(ad.ctaPosition ?? ""))\"",
+    "\"companionImageUrl\":\"\(escapeJson(ad.companionImageUrl ?? ""))\"",
+    "\"showCompanionClick\":\(ad.showCompanionClick?.boolValue == true ? "true" : "false")",
+    "\"skippable\":\(ad.skippable?.boolValue == true ? "true" : "false")",
+    "\"skipAfterSec\":\(ad.skipAfterSec?.doubleValue ?? 0)",
+    "\"unitFormat\":\"\(escapeJson(ad.unitFormat ?? ""))\"",
+    "\"placementContext\":\"\(escapeJson(ad.placementContext ?? ""))\"",
   ]
   if let reason = responseInfo?.reason { parts.append("\"reason\":\"\(escapeJson(reason))\"") }
   if let requestId = responseInfo?.requestId { parts.append("\"requestId\":\"\(escapeJson(requestId))\"") }

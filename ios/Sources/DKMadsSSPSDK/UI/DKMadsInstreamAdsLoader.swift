@@ -23,6 +23,8 @@ import UIKit
 
     private weak var contentPlayer: AVPlayer?
     private weak var adContainer: UIView?
+    private var onPauseContent: (() -> Void)?
+    private var onResumeContent: (() -> Void)?
     private var videoAdView: DKMadsVideoAdView?
     private var contentWasPlaying = false
     private var didPauseContentForAd = false
@@ -31,6 +33,19 @@ import UIKit
     @objc public init(contentPlayer: AVPlayer, adContainer: UIView) {
         self.contentPlayer = contentPlayer
         self.adContainer = adContainer
+        super.init()
+    }
+
+    /// Flutter / custom players: pause and resume via host callbacks instead of [AVPlayer].
+    @objc public init(
+        adContainer: UIView,
+        onPauseContent: @escaping () -> Void,
+        onResumeContent: @escaping () -> Void
+    ) {
+        self.adContainer = adContainer
+        self.onPauseContent = onPauseContent
+        self.onResumeContent = onResumeContent
+        super.init()
     }
 
     @objc public func requestAds(
@@ -49,17 +64,24 @@ import UIKit
         let view = DKMadsVideoAdView(adUnitID: adUnitID, frame: adContainer.bounds)
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.autoplay = true
+        view.rootViewController = adContainer.dkmadsOwningViewController()
         view.delegate = self
         adContainer.addSubview(view)
         videoAdView = view
 
         didPauseContentForAd = false
         savedContentTime = nil
-        if pauseContentAutomatically, let contentPlayer {
-            contentWasPlaying = contentPlayer.rate > 0
-            savedContentTime = contentPlayer.currentTime()
-            contentPlayer.pause()
-            didPauseContentForAd = true
+        adContainer.isHidden = false
+        if pauseContentAutomatically {
+            if let contentPlayer {
+                contentWasPlaying = contentPlayer.rate > 0
+                savedContentTime = contentPlayer.currentTime()
+                contentPlayer.pause()
+                didPauseContentForAd = true
+            } else if let onPauseContent {
+                onPauseContent()
+                didPauseContentForAd = true
+            }
         }
 
         let request = DKMadsAdRequest()
@@ -89,16 +111,34 @@ import UIKit
     }
 
     private func resumeContentIfNeeded() {
-        guard resumeContentAfterAd, let contentPlayer else { return }
-        let shouldResume = didPauseContentForAd || contentWasPlaying
-        guard shouldResume else { return }
-        if let saved = savedContentTime, saved.isValid, !saved.isIndefinite {
-            contentPlayer.seek(to: saved, toleranceBefore: .zero, toleranceAfter: .zero)
+        guard resumeContentAfterAd else { return }
+        if let contentPlayer {
+            let shouldResume = didPauseContentForAd || contentWasPlaying
+            guard shouldResume else { return }
+            if let saved = savedContentTime, saved.isValid, !saved.isIndefinite {
+                contentPlayer.seek(to: saved, toleranceBefore: .zero, toleranceAfter: .zero)
+            }
+            contentPlayer.play()
+            didPauseContentForAd = false
+            contentWasPlaying = false
+            savedContentTime = nil
+            return
         }
-        contentPlayer.play()
-        didPauseContentForAd = false
-        contentWasPlaying = false
-        savedContentTime = nil
+        if didPauseContentForAd, let onResumeContent {
+            onResumeContent()
+            didPauseContentForAd = false
+        }
+    }
+}
+
+private extension UIView {
+    func dkmadsOwningViewController() -> UIViewController? {
+        var responder: UIResponder? = self
+        while let current = responder {
+            if let vc = current as? UIViewController { return vc }
+            responder = current.next
+        }
+        return nil
     }
 }
 

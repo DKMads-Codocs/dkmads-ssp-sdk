@@ -5,6 +5,8 @@ import com.dkmads.ssp.Ad
 import com.dkmads.ssp.AdFormat
 import com.dkmads.ssp.Config
 import com.dkmads.ssp.DKMadsInterstitialAd
+import com.dkmads.ssp.DKMadsResponseInfo
+import com.dkmads.ssp.DKMadsRewardedAd
 import com.dkmads.ssp.SSPSDK
 import com.dkmads.ssp.TargetingSignals
 import com.dkmads.ssp.TelemetryManager
@@ -35,6 +37,15 @@ private fun adToMap(ad: Ad): Map<String, Any?> = mapOf(
   "price" to ad.price,
   "campaignId" to ad.campaignId,
   "creativeId" to ad.creativeId,
+  "videoTemplate" to ad.videoTemplate,
+  "ctaLabel" to ad.ctaLabel,
+  "ctaPosition" to ad.ctaPosition,
+  "companionImageUrl" to ad.companionImageUrl,
+  "showCompanionClick" to ad.showCompanionClick,
+  "skippable" to ad.skippable,
+  "skipAfterSec" to ad.skipAfterSec,
+  "unitFormat" to ad.unitFormat,
+  "placementContext" to ad.placementContext,
 )
 
 class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
@@ -42,6 +53,7 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
   private lateinit var appContext: Context
   private val activeVideoUnits = linkedSetOf<String>()
   private val interstitials = mutableMapOf<String, DKMadsInterstitialAd>()
+  private val rewardedAds = mutableMapOf<String, DKMadsRewardedAd>()
   private fun sendVideoEvent(adUnitId: String, eventName: String, payload: Map<String, Any?>) {
     val args = mapOf(
       "adUnitId" to adUnitId,
@@ -51,10 +63,25 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
     channel.invokeMethod("videoEvent", args)
   }
 
+  private fun sendInstreamEvent(viewId: Int, event: String, payload: Map<String, Any?>) {
+    val args = mutableMapOf<String, Any?>(
+      "viewId" to viewId,
+      "event" to event,
+    )
+    args.putAll(payload)
+    channel.invokeMethod("instreamEvent", args)
+  }
+
   override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     appContext = binding.applicationContext
     channel = MethodChannel(binding.binaryMessenger, "dkmads_ssp")
     channel.setMethodCallHandler(this)
+    binding.platformViewRegistry.registerViewFactory(
+      "dkmads_instream",
+      DkmadsInstreamViewFactory(binding.binaryMessenger) { viewId, event, extra ->
+        sendInstreamEvent(viewId, event, extra)
+      },
+    )
   }
 
   @Suppress("UNCHECKED_CAST")
@@ -123,6 +150,7 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
           consentString = call.argument<String>("consentString"),
           gppString = call.argument<String>("gppString"),
           gppSid = call.argument<String>("gppSid"),
+          usPrivacyString = call.argument<String>("usPrivacyString"),
         )
         result.success(null)
       }
@@ -241,6 +269,60 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
         interstitial.show(appContext)
         result.success(null)
       }
+      "loadRewarded" -> {
+        val adUnitId = call.argument<String>("adUnitId")
+        if (adUnitId.isNullOrBlank()) {
+          result.error("INVALID_ARGUMENT", "adUnitId is required", null)
+          return
+        }
+        val width = call.argument<Int>("width") ?: 320
+        val height = call.argument<Int>("height") ?: 480
+        val placementCode = call.argument<String>("placementCode")
+        val placementContext = call.argument<String>("placementContext")
+        val rewarded = DKMadsRewardedAd(adUnitId).apply {
+          this.adWidth = width
+          this.adHeight = height
+          listener = object : DKMadsRewardedAd.Listener {
+            override fun onAdLoaded(rewarded: DKMadsRewardedAd, ad: Ad, responseInfo: DKMadsResponseInfo) {
+              rewardedAds[adUnitId] = rewarded
+              result.success(adToMap(ad))
+            }
+            override fun onAdFailed(rewarded: DKMadsRewardedAd, message: String, responseInfo: DKMadsResponseInfo?) {
+              result.success(mapOf("success" to false, "reason" to message))
+            }
+          }
+        }
+        rewarded.load(
+          appContext,
+          placementCode = placementCode,
+          placementContext = placementContext,
+        )
+      }
+      "showRewarded" -> {
+        val adUnitId = call.argument<String>("adUnitId")
+        if (adUnitId.isNullOrBlank()) {
+          result.error("INVALID_ARGUMENT", "adUnitId is required", null)
+          return
+        }
+        val rewarded = rewardedAds[adUnitId]
+        if (rewarded == null || rewarded.loadedAd == null) {
+          result.error("NOT_LOADED", "Call loadRewarded first", null)
+          return
+        }
+        rewarded.listener = object : DKMadsRewardedAd.Listener {
+          override fun onUserEarnedReward(rewarded: DKMadsRewardedAd) {
+            channel.invokeMethod("rewardedEvent", mapOf("adUnitId" to adUnitId, "event" to "earned_reward"))
+          }
+          override fun onAdDismissed(rewarded: DKMadsRewardedAd) {
+            channel.invokeMethod("rewardedEvent", mapOf("adUnitId" to adUnitId, "event" to "dismissed"))
+          }
+          override fun onAdFailed(rewarded: DKMadsRewardedAd, message: String, responseInfo: DKMadsResponseInfo?) {
+            channel.invokeMethod("rewardedEvent", mapOf("adUnitId" to adUnitId, "event" to "failed", "reason" to message))
+          }
+        }
+        rewarded.show(appContext)
+        result.success(null)
+      }
       "trackUserEvent" -> {
         val name = call.argument<String>("name")
         if (name.isNullOrBlank()) {
@@ -297,6 +379,33 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
             eventName = "lifecycle_tracking_stopped",
             payload = mapOf("source" to "flutter_android_plugin"),
           )
+        }
+        result.success(null)
+      }
+      "requestInstreamAds" -> {
+        val viewId = call.argument<Int>("viewId")
+        val adUnitId = call.argument<String>("adUnitId")
+        if (viewId == null || adUnitId.isNullOrBlank()) {
+          result.error("INVALID_ARGUMENT", "viewId and adUnitId are required", null)
+          return
+        }
+        val view = InstreamPlatformRegistry.get(viewId)
+        if (view == null) {
+          result.error("NOT_FOUND", "Instream platform view not ready", null)
+          return
+        }
+        view.requestAds(
+          adUnitId = adUnitId,
+          width = call.argument<Int>("width") ?: 640,
+          height = call.argument<Int>("height") ?: 360,
+          placementContext = call.argument<String>("placementContext"),
+        )
+        result.success(null)
+      }
+      "destroyInstream" -> {
+        val viewId = call.argument<Int>("viewId")
+        if (viewId != null) {
+          InstreamPlatformRegistry.get(viewId)?.destroyLoader()
         }
         result.success(null)
       }

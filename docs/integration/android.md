@@ -1,6 +1,8 @@
-# Android SDK Quickstart (v0.4.2)
+# Android SDK integration guide
 
-Integrate DKMads SSP in a native Android app. Drop-in views cover banner, interstitial, video/instream, native, and audio; all expose **`DKMadsResponseInfo`** for bid diagnostics.
+Integrate banner, interstitial, video, instream, native, and audio ads in Android apps. Drop-in views expose **`DKMadsResponseInfo`** for fill diagnostics.
+
+**Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md) · [Targeting signals](../TARGETING_SIGNALS.md)
 
 ## Prerequisites
 
@@ -127,8 +129,21 @@ result.onSuccess { ad ->
 
 ## Consent + user data (optional)
 
+The SDK **auto-reads IAB CMP / UMP SharedPreferences** on init and before each `loadAd`:
+
+- `IABTCF_TCString`, `IABTCF_gdprApplies`
+- `IABUSPrivacy_String`, `IABGPP_*`
+- **GAID** only when `ConsentState.allowsAdvertisingId()` (TCF + USP opt-out + LAT)
+
 ```kotlin
-SSPSDK.setConsent(gdpr = true, ccpa = false, consentString = "TCF_STRING")
+// Optional explicit pass-through — CMP auto-merge runs automatically:
+SSPSDK.setConsent(
+  gdpr = true,
+  ccpa = true,
+  consentString = tcfFromUmp,
+  usPrivacyString = uspFromUmp,
+)
+
 SSPSDK.setTargetingSignals(
   TargetingSignals(
     devicePid = "device_123",
@@ -141,7 +156,6 @@ SSPSDK.setTargetingSignals(
   ),
 )
 
-// Optional: sync profile for Audiences rules
 // lifecycleScope.launch { SSPSDK.syncFirstPartyProfile(context, appBundle = "com.example.app") }
 
 SSPSDK.setUserData(
@@ -199,6 +213,22 @@ DKMadsInterstitialAd.load(
 ) { interstitial, error ->
   interstitial?.show(this)
 }
+```
+
+## Rewarded (fullscreen with completion callback)
+
+```kotlin
+val rewarded = DKMadsRewardedAd("YOUR_REWARDED_AD_UNIT_UUID").apply {
+  listener = object : DKMadsRewardedAd.Listener {
+    override fun onAdLoaded(rewarded: DKMadsRewardedAd, ad: Ad, responseInfo: DKMadsResponseInfo) {
+      rewarded.show(this@MainActivity)
+    }
+    override fun onUserEarnedReward(rewarded: DKMadsRewardedAd) {
+      // Grant reward here.
+    }
+  }
+}
+rewarded.load(this)
 ```
 
 ### Manual load API

@@ -48,11 +48,18 @@ public struct AdRequest {
         signals["gpp_string"] = consent.gppString ?? ""
         signals["gpp_sid"] = consent.gppSid ?? ""
         signals["gdpr"] = consent.gdpr
-        signals["us_privacy"] = consent.ccpa ? "1YYY" : "1---"
+        if let usp = consent.resolvedUsPrivacyString() {
+            signals["us_privacy"] = usp
+            signals["us_privacy_string"] = usp
+        }
+        if let att = consent.attStatus ?? AdvertisingIdentifiers.attStatus() {
+            signals["att_status"] = att
+        }
         if let platformUid = PlatformIdentity.get(), !platformUid.isEmpty {
             signals["platform_uid"] = platformUid
         }
-        if let idfa = AdvertisingIdentifiers.idfa(), !idfa.isEmpty {
+        if consent.allowsAdvertisingId(),
+           let idfa = AdvertisingIdentifiers.idfa(), !idfa.isEmpty {
             signals["idfa"] = idfa
         }
         var req: [String: Any] = [

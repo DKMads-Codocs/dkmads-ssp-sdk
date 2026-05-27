@@ -37,6 +37,7 @@ class DKMadsInterstitialActivity : Activity() {
         val onPresented: () -> Unit = {},
         val onDismissed: () -> Unit = {},
         val onRenderFailed: (String) -> Unit = {},
+        val onCompleted: (Boolean) -> Unit = {},
     )
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -51,6 +52,9 @@ class DKMadsInterstitialActivity : Activity() {
     private var videoTracker: VideoTracker? = null
     private var viewabilityStarted = false
     private var ctaButton: Button? = null
+    private var skipButton: Button? = null
+    private var skipRunnable: Runnable? = null
+    private var completionSignaled = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,6 +92,8 @@ class DKMadsInterstitialActivity : Activity() {
 
     override fun onDestroy() {
         stopViewability()
+        removeVideoClickThroughCta()
+        cancelVideoSkip()
         videoTracker?.stop()
         videoTracker = null
         scope.cancel()
@@ -100,7 +106,7 @@ class DKMadsInterstitialActivity : Activity() {
             setColorFilter(Color.WHITE)
             setBackgroundColor(0x73000000.toInt())
             contentDescription = "Close"
-            setOnClickListener { finish() }
+            setOnClickListener { closeFromUser() }
         }
         val closeLp = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -124,7 +130,10 @@ class DKMadsInterstitialActivity : Activity() {
         }
         videoView = VideoView(this).apply {
             visibility = View.GONE
-            setOnCompletionListener { finish() }
+            setOnCompletionListener {
+                signalCompletion(skipped = false)
+                finish()
+            }
             setOnErrorListener { _, _, _ ->
                 failAndFinish("Video playback failed")
                 true
@@ -203,8 +212,82 @@ class DKMadsInterstitialActivity : Activity() {
                 skippable = true,
             )
             videoView.start()
+            attachVideoClickThroughCta()
+            scheduleVideoSkip()
             startViewability()
         }
+    }
+
+    private fun attachVideoClickThroughCta() {
+        removeVideoClickThroughCta()
+        val style = DKMadsClickThroughCta.styleForAd(ad.videoTemplate, ad.ctaPosition)
+        ctaButton = DKMadsClickThroughCta.attach(
+            parent = root,
+            clickUrl = ad.clickUrl,
+            style = style,
+            label = ad.ctaLabel,
+            onClickThrough = { recordClick() },
+        )
+    }
+
+    private fun removeVideoClickThroughCta() {
+        ctaButton?.let { root.removeView(it) }
+        ctaButton = null
+    }
+
+    private fun scheduleVideoSkip() {
+        if (ad.skippable == false) return
+        cancelVideoSkip()
+        val skipAfterSec = ad.skipAfterSec?.takeIf { it >= 0 } ?: 5.0
+        val runnable = Runnable {
+            if (skipButton != null) return@Runnable
+            val btn = Button(this).apply {
+                text = "Skip"
+                setTextColor(Color.WHITE)
+                setBackgroundColor(0x8C000000.toInt())
+                setOnClickListener {
+                    videoTracker?.markUserSkipped()
+                    try {
+                        videoView.stopPlayback()
+                    } catch (_e) { /* ignore */ }
+                    emitVideoSkip()
+                    signalCompletion(skipped = true)
+                    finish()
+                }
+            }
+            val lp = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.END,
+            ).apply {
+                val m = (56 * resources.displayMetrics.density).toInt()
+                setMargins(m, m, m, m)
+            }
+            root.addView(btn, lp)
+            skipButton = btn
+        }
+        skipRunnable = runnable
+        root.postDelayed(runnable, (skipAfterSec * 1000).toLong())
+    }
+
+    private fun cancelVideoSkip() {
+        skipRunnable?.let { root.removeCallbacks(it) }
+        skipRunnable = null
+        skipButton?.let { root.removeView(it) }
+        skipButton = null
+    }
+
+    private fun emitVideoSkip() {
+        val metadata = mapOf("skippable" to true)
+        TelemetryManager.shared.trackEvent(
+            "video_skip",
+            mapOf(
+                "ad_unit_id" to adUnitId,
+                "campaign_id" to ad.campaignId,
+                "creative_id" to (ad.creativeId ?: ad.id),
+                "metadata" to metadata,
+            ),
+        )
     }
 
     private fun onStaticClicked() {
@@ -259,6 +342,19 @@ class DKMadsInterstitialActivity : Activity() {
 
     private fun failAndFinish(message: String) {
         callbacks.onRenderFailed(message)
+        finish()
+    }
+
+    private fun signalCompletion(skipped: Boolean) {
+        if (completionSignaled) return
+        completionSignaled = true
+        callbacks.onCompleted(skipped)
+    }
+
+    private fun closeFromUser() {
+        if (ad.isVideo) {
+            signalCompletion(skipped = true)
+        }
         finish()
     }
 

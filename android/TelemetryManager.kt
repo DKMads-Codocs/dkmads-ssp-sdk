@@ -74,7 +74,7 @@ class TelemetryManager {
             put("gpp_string", consent.gppString ?: JSONObject.NULL)
             put("gpp_sid", consent.gppSid ?: JSONObject.NULL)
             put("gdpr_applies", consent.gdpr)
-            put("us_privacy_string", if (consent.ccpa) "1YYY" else "1---")
+            consent.resolvedUsPrivacyString()?.let { put("us_privacy_string", it) }
             identityProvider?.invoke()?.forEach { (k, v) ->
                 if (!v.isNullOrBlank()) put(k, v)
             }
@@ -463,6 +463,12 @@ class VideoTracker(
         handler.removeCallbacksAndMessages(null)
     }
 
+    /** User tapped Skip — do not count completion or further quartiles. */
+    fun markUserSkipped() {
+        skipped = true
+        completed = true
+    }
+
     private fun baseMeta(): Map<String, Any?> = mapOf(
         "ad_unit_id" to adUnitId,
         "campaign_id" to campaignId,
@@ -490,38 +496,9 @@ class VideoTracker(
         val pos = positionMsProvider()
         val pct = (pos.toDouble() / dur.toDouble()).coerceIn(0.0, 1.0)
         val playing = isPlayingProvider()
-        if (!started && playing) {
-            started = true
-            onVideoStart?.invoke(baseMeta())
-        }
-        if (wasPlaying && !playing && !completed) {
-            onVideoPaused?.invoke(baseMeta())
-        } else if (!wasPlaying && playing && started && !completed) {
-            onVideoResumed?.invoke(baseMeta())
-        }
         val muted = isMutedProvider()
-        if (started && !completed && wasMuted != muted) {
-            if (muted) onVideoMuted?.invoke(baseMeta()) else onVideoUnmuted?.invoke(baseMeta())
-        }
-        if (skippable == true && started && !completed && !skipped) {
-            val jumpedToEnd = (pos - lastPositionMs) > 3000 && pct >= 0.9
-            if (jumpedToEnd) {
-                skipped = true
-                onVideoSkipped?.invoke(baseMeta())
-            }
-        }
-        for (q in listOf(25, 50, 75)) {
-            if (!reached.contains(q) && pct >= q / 100.0) {
-                reached.add(q)
-                onQuartileReached?.invoke(q, baseMeta())
-            }
-        }
-        if (!completed && pct >= 0.99) {
-            completed = true
-            onVideoComplete?.invoke(baseMeta())
-        }
 
-        // Viewable: 50% visible + playing for 2s
+        // Viewable: 50% visible + playing for 2s (must precede progress quartiles)
         val now = System.currentTimeMillis()
         val rect = Rect()
         val isGlobal = containerView.getGlobalVisibleRect(rect)
@@ -543,9 +520,42 @@ class VideoTracker(
                 meta["metadata"] = m
                 @Suppress("UNCHECKED_CAST")
                 onVideoViewable?.invoke(meta as Map<String, Any?>)
+                if (!started) {
+                    started = true
+                    onVideoStart?.invoke(baseMeta())
+                }
             }
         } else {
             videoRunStart = 0L
+        }
+
+        if (wasPlaying && !playing && !completed) {
+            onVideoPaused?.invoke(baseMeta())
+        } else if (!wasPlaying && playing && started && !completed) {
+            onVideoResumed?.invoke(baseMeta())
+        }
+        if (started && !completed && wasMuted != muted) {
+            if (muted) onVideoMuted?.invoke(baseMeta()) else onVideoUnmuted?.invoke(baseMeta())
+        }
+        if (skippable == true && started && !completed && !skipped) {
+            val jumpedToEnd = (pos - lastPositionMs) > 3000 && pct >= 0.9
+            if (jumpedToEnd) {
+                skipped = true
+                completed = true
+                onVideoSkipped?.invoke(baseMeta())
+            }
+        }
+        if (videoViewableFired && !skipped) {
+            for (q in listOf(25, 50, 75)) {
+                if (!reached.contains(q) && pct >= q / 100.0) {
+                    reached.add(q)
+                    onQuartileReached?.invoke(q, baseMeta())
+                }
+            }
+            if (!completed && pct >= 0.99) {
+                completed = true
+                onVideoComplete?.invoke(baseMeta())
+            }
         }
         wasPlaying = playing
         wasMuted = muted

@@ -6,6 +6,8 @@ import com.dkmads.ssp.AdFormat
 import com.dkmads.ssp.Config
 import com.dkmads.ssp.DKMadsInterstitialActivity
 import com.dkmads.ssp.DKMadsInterstitialAd
+import com.dkmads.ssp.DKMadsResponseInfo
+import com.dkmads.ssp.DKMadsRewardedAd
 import com.dkmads.ssp.SSPSDK
 import com.dkmads.ssp.TargetingSignals
 import com.dkmads.ssp.TelemetryManager
@@ -14,6 +16,7 @@ import org.json.JSONObject
 
 object DKMadsUnityBridge {
   private val pendingInterstitialAds = mutableMapOf<String, Ad>()
+  private val pendingRewardedAds = mutableMapOf<String, DKMadsRewardedAd>()
 
   @JvmStatic
   fun initialize(activity: Activity, integrationKey: String, propertyId: String?, propertyCode: String?) {
@@ -50,6 +53,25 @@ object DKMadsUnityBridge {
       } catch (_: Throwable) { }
     }
     SSPSDK.registerAdUnit(adUnitId, formatEnum, sizes)
+  }
+
+  @JvmStatic
+  fun setConsent(jsonPayload: String) {
+    val raw = parseJson(jsonPayload)
+    val attRaw = raw["attStatus"] ?: raw["att_status"]
+    val attStatus = when (attRaw) {
+      is Number -> attRaw.toInt()
+      is String -> attRaw.toIntOrNull()
+      else -> null
+    }
+    SSPSDK.setConsent(
+      gdpr = raw["gdpr"] as? Boolean ?: false,
+      ccpa = raw["ccpa"] as? Boolean ?: false,
+      consentString = raw["consentString"]?.toString() ?: raw["consent_string"]?.toString(),
+      gppString = raw["gppString"]?.toString() ?: raw["gpp_string"]?.toString(),
+      gppSid = raw["gppSid"]?.toString() ?: raw["gpp_sid"]?.toString(),
+      usPrivacyString = raw["usPrivacyString"]?.toString() ?: raw["us_privacy_string"]?.toString(),
+    )
   }
 
   @JvmStatic
@@ -144,6 +166,42 @@ object DKMadsUnityBridge {
   }
 
   @JvmStatic
+  fun loadRewarded(activity: Activity, adUnitId: String, width: Int, height: Int): String =
+    runBlocking {
+      val rewarded = DKMadsRewardedAd(adUnitId).apply {
+        adWidth = width
+        adHeight = height
+      }
+      val payload = JSONObject()
+      rewarded.listener = object : DKMadsRewardedAd.Listener {
+        override fun onAdLoaded(rewarded: DKMadsRewardedAd, ad: Ad, responseInfo: DKMadsResponseInfo) {
+          pendingRewardedAds[adUnitId] = rewarded
+          payload.putFromAd(ad)
+        }
+
+        override fun onAdFailed(rewarded: DKMadsRewardedAd, message: String, responseInfo: DKMadsResponseInfo?) {
+          payload.put("success", false)
+          payload.put("reason", message)
+        }
+      }
+      rewarded.load(activity.applicationContext)
+      payload.toString()
+    }
+
+  @JvmStatic
+  fun showRewarded(activity: Activity, adUnitId: String): String {
+    val rewarded = pendingRewardedAds[adUnitId]
+    if (rewarded == null || rewarded.loadedAd == null) return "{\"success\":false,\"reason\":\"not_loaded\"}"
+    rewarded.listener = object : DKMadsRewardedAd.Listener {
+      override fun onUserEarnedReward(rewarded: DKMadsRewardedAd) {
+        TelemetryManager.shared.trackEvent("rewarded_earned", mapOf("ad_unit_id" to adUnitId))
+      }
+    }
+    rewarded.show(activity)
+    return "{\"success\":true}"
+  }
+
+  @JvmStatic
   fun loadAdWithFormat(activity: Activity, adUnitId: String, format: String, width: Int, height: Int): String {
     return runBlocking {
       val formatEnum = when (format.lowercase()) {
@@ -205,6 +263,15 @@ object DKMadsUnityBridge {
     put("price", ad.price ?: JSONObject.NULL)
     put("campaignId", ad.campaignId ?: JSONObject.NULL)
     put("creativeId", ad.creativeId ?: JSONObject.NULL)
+    put("videoTemplate", ad.videoTemplate ?: JSONObject.NULL)
+    put("ctaLabel", ad.ctaLabel)
+    put("ctaPosition", ad.ctaPosition ?: JSONObject.NULL)
+    put("companionImageUrl", ad.companionImageUrl ?: JSONObject.NULL)
+    put("showCompanionClick", ad.showCompanionClick ?: JSONObject.NULL)
+    put("skippable", ad.skippable ?: JSONObject.NULL)
+    put("skipAfterSec", ad.skipAfterSec ?: JSONObject.NULL)
+    put("unitFormat", ad.unitFormat ?: JSONObject.NULL)
+    put("placementContext", ad.placementContext ?: JSONObject.NULL)
   }
 
   private fun parseJson(raw: String): Map<String, Any?> {

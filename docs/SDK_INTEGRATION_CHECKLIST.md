@@ -1,38 +1,52 @@
-# SDK Integration Checklist (Release Gate)
+# SDK integration checklist
 
-Use this checklist before public launch.
+Use this checklist as a **release gate** before sending production traffic. Complete every section for each platform you ship (web, iOS, Android).
 
-## A. Dashboard setup (5 min)
+**Related:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](./SDK_CONTRACT.md)
 
-- [ ] Property created (iOS or Android type)
-- [ ] Integration key copied from property settings
-- [ ] Ad unit created and active
-- [ ] At least one active campaign + creative matching ad unit size
-- [ ] Property waterfall saved (Demand → Waterfall → Save)
+---
 
-## B. SDK setup (10 min)
+## A. Dashboard configuration
 
-- [ ] SDK initialized once at app launch
-- [ ] `baseUrl = https://ssp.dkmads.com`
-- [ ] `debug = true` during integration
-- [ ] Consent/user data set before first ad request (if required)
-- [ ] Targeting signals set when campaigns use demographics/geo/interests ([TARGETING_SIGNALS.md](TARGETING_SIGNALS.md))
-- [ ] `device_pid` stable per install; `user_pid` when logged in
+- [ ] Property created with correct type (web / iOS / Android)
+- [ ] Property status is **active**
+- [ ] Integration key stored securely (not committed to public repos)
+- [ ] Ad unit created, active, format and size match placement
+- [ ] Campaign, line item, and creative active and approved
+- [ ] Property waterfall saved (**Demand → Waterfall → Save**)
 
-## C. First ad request (10 min)
+---
 
-- [ ] Use **Ad Unit UUID** (not workspace ID)
-- [ ] Request includes size (e.g. `300x250`)
-- [ ] Observe HTTP 200 from `/api/public/v1/bid`
-- [ ] Handle `reason` in callback/logs
+## B. SDK initialization
 
-## D. Render validation (10 min)
+- [ ] SDK initialized once per app session or page load
+- [ ] `baseUrl` points to `https://ssp.dkmads.com` (or your deployment host)
+- [ ] `debug` enabled only in non-production builds
+- [ ] Consent set before first ad request where required (GDPR, US, ATT)
+- [ ] Targeting signals sent when campaigns use geo, demographics, or interests — [Targeting signals](./TARGETING_SIGNALS.md)
+- [ ] Stable `device_pid` per install; `user_pid` when user is logged in
 
-- [ ] If `reason=won`, render `winner.adm` (WebView) or image URL
-- [ ] If no fill, show explicit diagnostic (`no_tiers` / `no_bids`)
-- [ ] Impression/click events fire after render
+---
 
-## E. API parity curl (2 min)
+## C. Ad request
+
+- [ ] Requests use **ad unit UUID** (not workspace ID)
+- [ ] Size included for banner/display (e.g. `300x250`)
+- [ ] HTTP 200 from `POST /api/public/v1/bid`
+- [ ] Application handles all `reason` values without crashing
+
+---
+
+## D. Render and measurement
+
+- [ ] On `won`, creative rendered from `winner.adm` and/or `winner.image_url`
+- [ ] On no-fill, user-visible or logged fallback (`no_tiers`, `no_bids`, etc.)
+- [ ] Impression fired **after** creative is visible (not on bid response alone)
+- [ ] Click-through uses `winner.click_url` when provided
+
+---
+
+## E. API smoke test
 
 ```bash
 curl -sS -X POST 'https://ssp.dkmads.com/api/public/v1/bid' \
@@ -41,11 +55,19 @@ curl -sS -X POST 'https://ssp.dkmads.com/api/public/v1/bid' \
   -d '{"ad_unit_id":"YOUR_AD_UNIT_UUID","debug":true,"request":{"sizes":["300x250"],"device_type":"mobile","os":"ios"}}'
 ```
 
-Expected:
-- `reason: "won"` when campaign/creative/waterfall are valid
-- `reason: "no_tiers"` when waterfall not saved
+- [ ] `reason: "won"` with valid inventory, or expected no-fill with clear cause
 
-## F. Go / No-go
+---
 
-- **Go** if all sections A–E pass on iOS and Android.
-- **No-go** if any P0 item fails on both platforms.
+## F. Go / no-go
+
+| Decision | Criteria |
+|----------|----------|
+| **Go** | Sections A–E pass on every production platform |
+| **No-go** | Any blocking item fails on a platform you ship |
+
+---
+
+## Optional — Google Exchange
+
+If enrolled, also complete the [SDK Google policy checklist](./SDK_GOOGLE_POLICY_CHECKLIST.md) and [pilot rollout](./GOOGLE_PILOT_ROLLOUT.md) before enabling live Google demand.

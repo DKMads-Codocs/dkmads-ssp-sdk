@@ -4,6 +4,7 @@ import UIKit
 public class DkmadsSspPlugin: NSObject, FlutterPlugin {
   private var activeVideoUnits = Set<String>()
   private var interstitials: [String: DKMadsInterstitialAd] = [:]
+  private var rewardedAds: [String: DKMadsRewardedAd] = [:]
   private var channel: FlutterMethodChannel?
 
   private func adPayload(from ad: Ad, success: Bool, reason: String?, requestId: String?, dsp: String?, price: Double?) -> [String: Any] {
@@ -25,6 +26,15 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
       "price": price as Any,
       "campaignId": ad.campaignId as Any,
       "creativeId": ad.creativeId as Any,
+      "videoTemplate": ad.videoTemplate as Any,
+      "ctaLabel": ad.ctaLabel,
+      "ctaPosition": ad.ctaPosition as Any,
+      "companionImageUrl": ad.companionImageUrl as Any,
+      "showCompanionClick": ad.showCompanionClick as Any,
+      "skippable": ad.skippable as Any,
+      "skipAfterSec": ad.skipAfterSec as Any,
+      "unitFormat": ad.unitFormat as Any,
+      "placementContext": ad.placementContext as Any,
     ]
   }
 
@@ -41,6 +51,16 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
     let instance = DkmadsSspPlugin()
     instance.channel = channel
     registrar.addMethodCallDelegate(instance, channel: channel)
+    let factory = DkmadsInstreamViewFactory(messenger: registrar.messenger()) { viewId, event, payload in
+      instance.sendInstreamEvent(viewId: viewId, event: event, payload: payload)
+    }
+    registrar.register(factory, withId: "dkmads_instream")
+  }
+
+  private func sendInstreamEvent(viewId: Int64, event: String, payload: [String: Any]) {
+    var args: [String: Any] = ["viewId": viewId, "event": event]
+    payload.forEach { args[$0.key] = $0.value }
+    channel?.invokeMethod("instreamEvent", arguments: args)
   }
 
   private func sendVideoEvent(adUnitId: String, eventName: String, payload: [String: Any]) {
@@ -121,6 +141,8 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
       consent.consentString = args?["consentString"] as? String
       consent.gppString = args?["gppString"] as? String
       consent.gppSid = args?["gppSid"] as? String
+      consent.usPrivacyString = args?["usPrivacyString"] as? String
+      if let att = args?["attStatus"] as? Int { consent.attStatus = att }
       SSPSDK.shared.setConsent(consent)
       result(nil)
     case "clearIdentifiers":
@@ -261,6 +283,61 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
       }
       interstitial.present(from: root)
       result(nil)
+    case "loadRewarded":
+      guard
+        let args = call.arguments as? [String: Any],
+        let adUnitId = args["adUnitId"] as? String,
+        !adUnitId.isEmpty
+      else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "adUnitId is required", details: nil))
+        return
+      }
+      let width = (args["width"] as? NSNumber)?.doubleValue ?? 320
+      let height = (args["height"] as? NSNumber)?.doubleValue ?? 480
+      var request = DKMadsAdRequest()
+      request.placementCode = args["placementCode"] as? String
+      request.placementContext = args["placementContext"] as? String
+      let rewarded = DKMadsRewardedAd(adUnitID: adUnitId)
+      rewarded.load(request: request, adSize: CGSize(width: width, height: height)) { [weak self] adObj, error in
+        guard let self else { return }
+        if let error {
+          result(["success": false, "reason": error.localizedDescription])
+          return
+        }
+        guard let adObj, let ad = adObj.loadedAd else {
+          result(["success": false, "reason": "no_fill"])
+          return
+        }
+        self.rewardedAds[adUnitId] = adObj
+        result(self.adPayload(
+          from: ad,
+          success: ad.hasFill,
+          reason: "won",
+          requestId: adObj.responseInfo?.requestId,
+          dsp: adObj.responseInfo?.dsp,
+          price: adObj.responseInfo?.price?.doubleValue
+        ))
+      }
+    case "showRewarded":
+      guard
+        let args = call.arguments as? [String: Any],
+        let adUnitId = args["adUnitId"] as? String,
+        !adUnitId.isEmpty
+      else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "adUnitId is required", details: nil))
+        return
+      }
+      guard let rewarded = rewardedAds[adUnitId], rewarded.loadedAd != nil else {
+        result(FlutterError(code: "NOT_LOADED", message: "Call loadRewarded first", details: nil))
+        return
+      }
+      guard let root = topViewController() else {
+        result(FlutterError(code: "NO_ROOT_VC", message: "No root view controller", details: nil))
+        return
+      }
+      rewarded.delegate = self
+      rewarded.present(from: root)
+      result(nil)
     case "trackUserEvent":
       guard
         let args = call.arguments as? [String: Any],
@@ -320,8 +397,53 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
         )
       }
       result(nil)
+    case "requestInstreamAds":
+      let args = call.arguments as? [String: Any]
+      guard
+        let viewId = args?["viewId"] as? Int,
+        let adUnitId = args?["adUnitId"] as? String,
+        !adUnitId.isEmpty
+      else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "viewId and adUnitId are required", details: nil))
+        return
+      }
+      guard let view = InstreamPlatformRegistry.shared.get(viewId: Int64(viewId)) else {
+        result(FlutterError(code: "NOT_FOUND", message: "Instream platform view not ready", details: nil))
+        return
+      }
+      view.requestAds(
+        adUnitId: adUnitId,
+        width: args?["width"] as? Int ?? 640,
+        height: args?["height"] as? Int ?? 360,
+        placementContext: args?["placementContext"] as? String
+      )
+      result(nil)
+    case "destroyInstream":
+      let args = call.arguments as? [String: Any]
+      if let viewId = args?["viewId"] as? Int {
+        InstreamPlatformRegistry.shared.get(viewId: Int64(viewId))?.destroyLoader()
+      }
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+}
+
+extension DkmadsSspPlugin: DKMadsRewardedAdDelegate {
+  public func rewardedAdDidDismiss(_ ad: DKMadsRewardedAd) {
+    channel?.invokeMethod("rewardedEvent", arguments: ["adUnitId": ad.adUnitID, "event": "dismissed"])
+  }
+
+  public func rewardedAdDidEarnReward(_ ad: DKMadsRewardedAd) {
+    channel?.invokeMethod("rewardedEvent", arguments: ["adUnitId": ad.adUnitID, "event": "earned_reward"])
+  }
+
+  public func rewardedAd(_ ad: DKMadsRewardedAd, didFailToReceiveAdWithError error: Error) {
+    channel?.invokeMethod("rewardedEvent", arguments: [
+      "adUnitId": ad.adUnitID,
+      "event": "failed",
+      "reason": error.localizedDescription,
+    ])
   }
 }

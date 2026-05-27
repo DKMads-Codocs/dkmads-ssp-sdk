@@ -1,6 +1,8 @@
-# Flutter SDK Integration (Bridge)
+# Flutter SDK integration guide
 
-The **dkmads_ssp** plugin (v0.2.0) bridges to native **iOS/Android SDK v0.4.2** (`DKMadsInterstitialAd`, `DKMadsResponseInfo` on `DkmadsAdResult`, IAB interstitial sizes).
+The **dkmads_ssp** plugin bridges Flutter to native iOS and Android SDKs for banners, interstitials, and video events.
+
+**Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [iOS](./ios.md) · [Android](./android.md)
 
 ## Prerequisites
 
@@ -20,7 +22,7 @@ For web properties, use the [Web SDK](./web.md) (hosted script); there is no Flu
 
 ### 1. Flutter plugin
 
-**Local path** (monorepo or vendor checkout):
+**Local path** (if you vendor the SDK repo alongside your app):
 
 ```yaml
 # pubspec.yaml
@@ -74,6 +76,7 @@ Add `com.dkmads.ssp:ssp-android:0.4.2` per [Android Installation](./android.md).
 - **`registerAdUnit`** — IAB size tokens for interstitial/banner (native `SSPSDK.registerAdUnit`)
 - **`loadBanner`** — native bid + creative payload (`adm`, `videoUrl`, `isVideo`, …)
 - **`loadInterstitial`** + **`showInterstitial`** — native `DKMadsInterstitialAd` fullscreen UI (iOS/Android)
+- **`loadRewarded`** + **`showRewarded`** — native rewarded fullscreen UI with `rewardedEvent` callbacks (`earned_reward`, `dismissed`, `failed`)
 - Track/emit video lifecycle telemetry
 
 > Flutter does not ship `PlatformView` widgets or an **instream** bridge yet. Use **`showInterstitial`** for fullscreen (native UI), **`loadBanner`** / **`loadInterstitial`** JSON for custom render, or **`trackVideoLifecycle`** + your player for video quartiles. Native instream: use iOS/Android SDK directly in platform channels if needed.
@@ -125,6 +128,26 @@ if (fill.hasFill) {
 }
 ```
 
+### Rewarded
+
+```dart
+final rewarded = await DkmadsSsp.loadRewarded(
+  adUnitId: 'REWARDED_UUID',
+  width: 320,
+  height: 480,
+);
+if (rewarded.hasFill) {
+  await DkmadsSsp.showRewarded(
+    adUnitId: 'REWARDED_UUID',
+    onEvent: (event, payload) {
+      if (event == 'earned_reward') {
+        // Grant reward here.
+      }
+    },
+  );
+}
+```
+
 ### Video telemetry
 
 ```dart
@@ -143,7 +166,7 @@ await DkmadsSsp.emitVideoEvent(
 
 ## `DkmadsAdResult` fields
 
-Aligned with native `Ad`: `videoUrl`, `html5EntryUrl`, `isVideo`, `isHtml5`, `hasFill`, `campaignId`, `creativeId`, plus `adm`, `creativeUrl`, `clickUrl`, `reason`, `requestId`, `dsp`, `price`.
+Aligned with native `Ad`: `videoUrl`, `html5EntryUrl`, `isVideo`, `isHtml5`, `hasFill`, `campaignId`, `creativeId`, `videoTemplate`, `ctaLabel`, `ctaPosition`, `companionImageUrl`, `showCompanionClick`, `skippable`, `skipAfterSec`, `unitFormat`, `placementContext`, plus `adm`, `creativeUrl`, `clickUrl`, `reason`, `requestId`, `dsp`, `price`.
 
 Targeting: [TARGETING_SIGNALS.md](../TARGETING_SIGNALS.md).
 

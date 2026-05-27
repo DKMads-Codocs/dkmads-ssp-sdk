@@ -1,32 +1,24 @@
-# Ad formats matrix (Banner · Video · Audio)
+# Ad formats reference
 
-Cross-stack map of where each format is defined, created, served, rendered, and measured.
+Supported creative formats across the dashboard, bid API, and SDKs.
+
+**Related:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · [Platform parity](./PLATFORM_ALIGNMENT.md)
 
 ## Summary
 
-| Format | Dashboard ad unit | Creative upload | House bid `adm` | Public `/v1/bid` | Web SDK | iOS SDK | Android SDK |
-|--------|-------------------|-----------------|-----------------|------------------|---------|---------|-------------|
-| **Banner** | Ad Units → `banner` | Image / tag / HTML5 | `<img>` HTML | JSON `winner.adm` | `SSP.bind` (auto viewable) | `DKMadsBannerAdView` (auto viewable) | `DKMadsBannerAdView` (auto viewable) |
-| **Interstitial** | `interstitial` | Image / tag / HTML5 | Same as banner | JSON | `SSP.displayInterstitial` | `DKMadsInterstitialAd` (video, image, HTML5) | `DKMadsInterstitialAd` (video, image, HTML5) |
-| **Native** | `native` | Image / tag | Image/HTML | JSON | Fluid slot | `loadAd(.native)` | `loadAd` |
-| **Video** | `video` | MP4 upload | `<video>` HTML | JSON or **VAST XML** | `SSP.bindVideo()` | `DKMadsVideoAdController` | `DKMadsVideoAdController` |
-| **Rewarded** | `rewarded` | Video creative | Video HTML | JSON / VAST | `bindVideo` + app logic | Video APIs | Video APIs |
-| **Splash** | `splash` | Video / image | Video/image HTML | JSON / VAST | Slot | `loadAd` | `loadAd` |
-| **Audio** | `audio` (new) | MP3/M4A upload | `<audio>` HTML | JSON / VAST (audio) | `SSP.bindAudio()` | `loadAd(.audio)` | `loadAd` |
+| Format | Dashboard ad unit | Creative types | Web SDK | iOS | Android |
+|--------|-------------------|----------------|---------|-----|---------|
+| **Banner** | `banner` | Image, tag, HTML5 | `SSP.bind` | `DKMadsBannerAdView` | `DKMadsBannerAdView` |
+| **Interstitial** | `interstitial` | Image, tag, HTML5, video | `SSP.displayInterstitial` | `DKMadsInterstitialAd` | `DKMadsInterstitialAd` |
+| **Native** | `native` | Image, tag | Fluid slot | `loadAd(.native)` | `loadAd` |
+| **Video** | `video` | MP4 upload | `SSP.bindVideo()` | `DKMadsVideoAdController` | `DKMadsVideoAdController` |
+| **Rewarded** | `rewarded` | Video creative | `bindVideo` + app logic | Video APIs | Video APIs |
+| **Splash** | `splash` | Video / image | Slot | `loadAd` | `loadAd` |
+| **Audio** | `audio` | MP3/M4A | `SSP.bindAudio()` | `loadAd(.audio)` | `loadAd` |
 
-## Backend (Node)
+## Bid response (all formats)
 
-| Path | Role |
-|------|------|
-| `server/lib/ad-formats.js` | Canonical format list + compatibility aliases |
-| `server/lib/dsp/house.js` | Builds `adm` for image, video, audio |
-| `server/index.js` | `executeBidAuction`, `buildVastXml`, creative validation |
-| `server/routes/public-ad.js` | `POST /api/public/v1/bid`, `POST /v1/events` |
-| `server/lib/openrtb.js` | `imp.banner` vs `imp.video` for external DSP |
-| `server/lib/waterfall.js` | Tier execution (all formats) |
-| `database/schema.sql` | `ad_units.format`, `creatives.type` |
-
-### Bid response fields
+Successful fills return JSON from `POST /api/public/v1/bid`:
 
 ```json
 {
@@ -35,62 +27,68 @@ Cross-stack map of where each format is defined, created, served, rendered, and 
     "adm": "<html>…</html>",
     "w": 300,
     "h": 250,
-    "video_url": "…",
-    "audio_url": "…",
-    "dsp": "house_ads"
+    "video_url": "https://…",
+    "audio_url": "https://…",
+    "image_url": "https://…",
+    "click_url": "https://…"
   }
 }
 ```
 
-- **VAST** auto-returned when ad unit format is `video`, `rewarded`, `splash`, or `audio`, or `response_format=vast`.
+- Render **`winner.adm`** in a WebView (mobile) or inject into your slot (web).
+- If only **`winner.image_url`** is present, use an image view.
+- **VAST XML** may be returned for video, rewarded, splash, or audio when the ad unit format requires it, or when you pass `response_format=vast`.
 
-## Frontend (React dashboard)
+## Web publisher
 
-| Path | Role |
-|------|------|
-| `src/pages/AdUnits.tsx` | Ad unit format picker |
-| `src/pages/Creatives.tsx` | Creative list / filters |
-| `src/components/creatives/CreativeUploadDialog.tsx` | Upload by delivery mode |
-| `src/lib/creative-upload-spec.ts` | Image / video / **audio** rules |
-| `src/lib/ad-formats.ts` | Canonical format list (mirrors `server/lib/ad-formats.js`) |
-| `src/lib/ad-size-catalog.ts` | IAB sizes + video + audio groups |
-| `src/components/campaigns/builder/*` | Campaign line creatives |
-| `src/pages/Waterfall.tsx` | Simulation (all formats) |
+```html
+<script async src="https://ssp.dkmads.com/api/public/sp.js"
+        data-property-key="YOUR_INTEGRATION_KEY"></script>
+<div data-ssp-ad-unit="AD_UNIT_UUID" data-ssp-size="300x250"></div>
+```
 
-## Web publisher SDK
+| API | Use for |
+|-----|---------|
+| `SSP.bind(el)` | Banner / display |
+| `SSP.bindVideo(videoEl, opts)` | Instream / outstream video |
+| `SSP.bindAudio(audioEl, opts)` | Audio units |
+| `SSP.createInstreamLoader(...)` | Pause content during ad breaks |
 
-| Path | Role |
-|------|------|
-| `public/sdk/ssp-sdk.js` | Init, slots, `bindVideo`, **`bindAudio`**, viewability |
-
-Embed: `<script src="/sdk/ssp-sdk.js">` + `data-ssp-ad-unit`.
+See [integration/web.md](./integration/web.md).
 
 ## Mobile SDKs
 
-| Path | Role |
-|------|------|
-| `sdk/ios/` | `DKMadsBannerAdView`, `DKMadsInterstitialAd`, video lifecycle |
-| `sdk/android/` | Banner, interstitial, `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader`, native, audio |
-| `sdk/flutter/`, `sdk/unity/` | Bridges: `loadBanner`, `loadInterstitial` + `showInterstitial` (iOS/Android) |
+| Format | iOS | Android |
+|--------|-----|---------|
+| Banner | `DKMadsBannerAdView` | `DKMadsBannerAdView` |
+| Interstitial | `DKMadsInterstitialAd` | `DKMadsInterstitialAd` |
+| Video / instream | `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader` | Same + `DKMadsContentPlayback` |
+| Audio | `loadAd` + player or `adm` | `DKMadsAudioAdView` |
 
-## Event telemetry (video + audio)
+Flutter and Unity use native bridges — see [integration/flutter.md](./integration/flutter.md) and [integration/unity.md](./integration/unity.md).
 
-| Event family | Web SDK | iOS/Android |
-|--------------|---------|-------------|
-| Video | `video_start`, `video_25`…`video_100`, `video_viewable` | `trackVideoLifecycle` |
-| Audio | `audio_start`, `audio_25`…`audio_100`, `audio_pause` | Use `trackUserEvent` or web parity |
+## Events (video & audio)
 
-## Deploy checklist
+| Family | Examples | Used for |
+|--------|----------|----------|
+| Video | `video_start`, `video_25` … `video_100`, `video_viewable` | Quartiles, viewability |
+| Audio | `audio_start`, `audio_25` … `audio_100` | Audio completion |
 
-1. Apply DB migrations (if any pending under `database/migrations/`).
-2. Deploy API (`server/index.js` + `public-ad` routes).
-3. Build frontend: `pnpm run build:prod`.
-4. Publish mobile SDK tags / CocoaPods path.
-5. Verify curl bid per format (see `docs/SDK_INTEGRATION_CHECKLIST.md`).
+Full list: [SDK_METRICS_REFERENCE.md](./SDK_METRICS_REFERENCE.md).
 
-## Known gaps (post-upgrade)
+## Video layouts (CTA / click-through)
 
-- iOS: no dedicated `DKMadsAudioAdView` (use `loadAd` + `adm` or app player + events).
-- Flutter: no `PlatformView` or instream bridge — `loadInterstitial` + `showInterstitial` uses native `DKMadsInterstitialAd`; video via `emitVideoEvent`.
-- Unity: no UGUI or instream bridge — `LoadInterstitial` + `ShowInterstitial` on iOS/Android; video via `EmitVideoEvent`.
-- External DSP connectors: audio OpenRTB `imp.audio` not yet wired (house + VAST path works).
+Video creatives can include optional **CTA label** and **companion image** in the dashboard upload form. The bid response may include `video_template`, `cta_label`, and `placement_context` for native styling.
+
+Video clicks are tracked via dedicated click events (not the whole player surface) — see metrics reference.
+
+## Platform notes
+
+- **Flutter / Unity:** bridge-only; use native interstitial/video APIs where banner viewability widgets are not available.
+- **External exchange demand:** audio OpenRTB from third-party buyers may be limited; house and VAST paths support audio today.
+
+## Related
+
+- [SDK Implementation Guide](./SDK_IMPLEMENTATION_GUIDE.md)
+- [Platform parity](./PLATFORM_ALIGNMENT.md)
+- [SDK Integration Checklist](./SDK_INTEGRATION_CHECKLIST.md)

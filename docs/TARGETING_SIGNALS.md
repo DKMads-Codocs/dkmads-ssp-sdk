@@ -1,6 +1,9 @@
-# Targeting signals (publisher → SSP → DMP profiles)
+# Targeting signals
 
-Canonical schema shared by **web**, **iOS**, **Android**, **Flutter**, and **Unity**. Server normalizes in `server/lib/targeting-signals.js`; campaign rules are stored on `campaigns.targeting` JSONB.
+Pass contextual and audience signals on each bid request. DKMads merges them with campaign rules configured in your dashboard.
+
+**Platforms:** web, iOS, Android, Flutter, Unity  
+**Related:** [SDK contract](./SDK_CONTRACT.md) · [Regional consent matrix](./REGIONAL_CONSENT_MATRIX.md)
 
 ## Bid payload shape
 
@@ -33,52 +36,44 @@ Canonical schema shared by **web**, **iOS**, **Android**, **Flutter**, and **Uni
 }
 ```
 
-Geo resolution order when `geo_country` is omitted on `request`: explicit `signals.geo_country` → CDN headers (`CF-IPCountry`, etc.) on the bid request.
+**Geo:** If `request.geo_country` is omitted, the SSP may infer country from CDN headers or from `signals.geo_country`.
 
-At bid time the server **merges** publisher signals with stored FPD profiles (`web_user_profiles` / `mobile_user_profiles`), resolves **audience membership**, then evaluates **campaign targeting**.
+On each bid, the SSP merges publisher signals with stored audience profiles (when consent allows), resolves audience membership, and evaluates campaign targeting.
 
 ## SDK entry points
 
-| Platform | Targeting API | FPD profile sync |
-|----------|---------------|------------------|
-| Web | `SSP.setTargetingSignals({ userPid, devicePid, gender, segments, contentCategory, … })` | `SSP.init({ collectFirstParty: true })` or `SSP.sendFirstPartyData` |
-| Android | `SSPSDK.setTargetingSignals(TargetingSignals(…))` | `SSPSDK.syncFirstPartyProfile()` |
-| iOS | `SSPSDK.shared.setTargetingSignals(TargetingSignals(…))` | `SSPSDK.shared.syncFirstPartyProfile()` |
+| Platform | Targeting | First-party profile (house campaigns) |
+|----------|-----------|----------------------------------------|
+| Web | `SSP.setTargetingSignals({ … })` | `SSP.init({ collectFirstParty: true })` or `SSP.sendFirstPartyData` |
+| iOS | `SSPSDK.shared.setTargetingSignals(...)` | `SSPSDK.shared.syncFirstPartyProfile()` |
+| Android | `SSPSDK.setTargetingSignals(...)` | `SSPSDK.syncFirstPartyProfile()` |
 | Flutter | `DkmadsSsp.setTargetingSignals({...})` | `DkmadsSsp.syncFirstPartyProfile()` |
-| Unity | `DKMadsSdk.SetTargetingSignals` / JSON | Native bridge |
+| Unity | `DKMadsSdk.SetTargetingSignals` | Native bridge |
 
-Web tag bids now include `device_type`, `os`, and contextual fields on `request` when set via `setTargetingSignals`.
+When **exchange strict mode** is enabled, first-party profile sync is blocked for exchange inventory — use a separate DMP product for house-only audiences.
 
-## Campaign targeting (dashboard) — DMP-aligned
+## Campaign targeting (dashboard)
 
-Campaign builder → **Audience targeting** writes JSON evaluated by `matchesTargeting` (house ads):
+In **Campaigns → Audience targeting**, empty fields mean “no filter” on that dimension.
 
-| UI section | Stored JSON | Matched against |
-|------------|-------------|-----------------|
-| Audiences | `audience_ids` | Profile rows in `audience_members` (server-resolved → `signals.audience_ids`) |
-| Geography | `geos`, `demographics.geos`, `technical.geos` | `request.geo_country` |
-| Demographics | `demographics.genders`, `age_min` / `age_max` | `signals.gender`, `signals.yob` (age derived server-side) |
-| Device & environment | `device_types`, `os`, `technical.connection_types` | `request.device_type`, `request.os`, `request.connection_type` |
-| Segments & interests | `segments`, `behavioral.interests`, `behavioral.keywords` | `signals.segments`, `signals.interests`, `signals.keywords` |
-| Contextual | `contextual.content_categories`, `contextual.page_types` | `request.content_category`, `request.page_type` |
+| Section | You configure | Matched against |
+|---------|---------------|-----------------|
+| Audiences | Audience lists | Resolved membership at bid time |
+| Geography | Countries / regions | `request.geo_country` |
+| Demographics | Gender, age range | `signals.gender`, `signals.yob` |
+| Device | Device type, OS, connection | `request.device_type`, `request.os`, `request.connection_type` |
+| Segments & interests | Segments, keywords | `signals.segments`, `signals.interests`, `signals.keywords` |
+| Contextual | Content category, page type | `request.content_category`, `request.page_type` |
 
-Leave a dimension empty to serve all users on that dimension.
+## Demographics (DOB or year of birth)
 
-## Demographics (DOB or YOB → store YOB only)
+| You send | Example | Stored |
+|----------|---------|--------|
+| Date of birth | `"1998-06-15"` | Converted to **year of birth only** |
+| `yob` | `1998` | Year of birth |
+| `age` | `28` | Used at bid time only if YOB not set |
 
-Publishers may send either:
-
-| Wire field | Example | Stored in DMP |
-|------------|---------|---------------|
-| `date_of_birth` / `dateOfBirth` / `dob` | `"1998-06-15"` | **No** — converted to `yob` |
-| `yob` | `1998` | **`metadata.demographics.yob`** |
-| `age` | `28` | **No** — bid-time fallback only |
-
-**Precedence:** valid DOB → `yob = year(dob)`; else explicit `yob`; else snapshot `age` for matching only.
-
-When both DOB and `yob` are sent, **DOB wins** and only one `yob` is stored. Full DOB is stripped before FPD persist.
-
-FPD profiles persist **`metadata.demographics`** (`yob`, `gender` only). `syncFirstPartyProfile` / web FPD ingest merge these fields; bid-time `loadMergedProfileSignals` rehydrates `signals.yob` from the profile.
+If both DOB and `yob` are sent, **DOB wins**. Full DOB is not retained in audience profiles.
 
 ```json
 "signals": {
@@ -87,32 +82,21 @@ FPD profiles persist **`metadata.demographics`** (`yob`, `gender` only). `syncFi
 }
 ```
 
-## DMP-style storage (server)
-
-| Table | Role |
-|-------|------|
-| `web_user_profiles` | Web FPD: `interests`, `behaviors`, `consent`, `metadata` (incl. `demographics.yob`) keyed by `workspace_id` + `device_pid` + `domain` |
-| `mobile_user_profiles` | App FPD: same + `events_rollup`, `att_status`, keyed by `workspace_id` + `device_pid` + `app_bundle` |
-| `audience_members` | Links profiles → `audiences` with `matched_by_rules` |
-| `campaigns.targeting` | Campaign delivery rules (not a user profile) |
-| `fpd_ingest_jobs` | Audit trail for profile ingest |
-
-Bid pipeline:
-
-1. `normalizePublisherSignals(rawSignals)`
-2. `enrichRequestGeo` + `enrichBidRequestFromSignals` (request ← signals)
-3. `loadMergedProfileSignals` (FPD merge)
-4. Resolve `audience_ids` from `audience_members`
-5. `matchesTargeting(campaign.targeting, signals, request)`
-6. Ad-unit chip rules via `evaluateChipTargeting`
-
 ## Consent
 
-All identity fields are gated by workspace privacy settings via `applyConsentPolicy` on ingest and bid.
+Identity fields (`user_pid`, `device_pid`, IDFA, GAID) are only used when workspace privacy settings and CMP consent allow. See [REGIONAL_CONSENT_MATRIX.md](./REGIONAL_CONSENT_MATRIX.md).
 
-## Audio / video engagement
+## Video & audio engagement
 
-- **Video:** `trackVideoLifecycle` / web `bindVideo` → quartile + viewability events.
-- **Audio:** `trackAudioLifecycle` / web `bindAudio` → `audio_start`, `audio_25` … `audio_100`, `audio_pause`.
+Attach lifecycle events after render:
 
-Both attach `campaign_id` / `creative_id` when available from the bid response (`cid` / `crid`).
+- **Video:** `trackVideoLifecycle` (mobile) or `SSP.bindVideo` (web)
+- **Audio:** `SSP.bindAudio` (web) or equivalent custom events on mobile
+
+Events include `campaign_id` / `creative_id` from the bid response when available.
+
+## Related
+
+- [SDK Contract](./SDK_CONTRACT.md)
+- [Regional consent matrix](./REGIONAL_CONSENT_MATRIX.md)
+- [SDK Google policy checklist](./SDK_GOOGLE_POLICY_CHECKLIST.md)

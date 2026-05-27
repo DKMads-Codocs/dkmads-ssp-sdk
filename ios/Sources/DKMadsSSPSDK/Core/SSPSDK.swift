@@ -27,16 +27,20 @@ import AVFoundation
             targetingSignals.devicePid = defaultDevicePid
         }
         TelemetryManager.shared.configure(with: config)
+        refreshCmpConsent()
         TelemetryManager.shared.setIdentityProvider { [weak self] in
             guard let self else { return [:] }
-            return [
+            var ids: [String: String?] = [
                 "user_pid": (self.userData["user_pid"] as? String) ?? self.targetingSignals.userPid,
                 "device_pid": (self.userData["device_pid"] as? String)
                     ?? self.targetingSignals.devicePid
                     ?? defaultDevicePid,
                 "platform_uid": (self.userData["platform_uid"] as? String) ?? PlatformIdentity.get(),
-                "idfa": (self.userData["idfa"] as? String) ?? AdvertisingIdentifiers.idfa(),
             ]
+            if self.consent.allowsAdvertisingId() {
+                ids["idfa"] = (self.userData["idfa"] as? String) ?? AdvertisingIdentifiers.idfa()
+            }
+            return ids
         }
 
         let deviceInfo = DeviceDetector.getDeviceInfo()
@@ -78,6 +82,7 @@ import AVFoundation
             completion(.failure(SDKError.invalidConfig))
             return
         }
+        refreshCmpConsent()
 
         let request = AdRequest(
             adUnitId: code,
@@ -249,7 +254,15 @@ import AVFoundation
 
     public func setConsent(_ consent: ConsentData) {
         self.consent = consent
+        refreshCmpConsent()
         consentConfigured = true
+    }
+
+    private func refreshCmpConsent() {
+        consent = CmpConsent.merge(into: consent)
+        if CmpConsent.hasMinimalConsent(consent) {
+            consentConfigured = true
+        }
         TelemetryManager.shared.setConsent(consent)
     }
 

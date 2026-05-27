@@ -42,6 +42,7 @@ private object PublicApiPaths {
 object SSPSDK {
 
     private var config: Config? = null
+    private var applicationContext: Context? = null
     private val adUnits = mutableMapOf<String, AdUnit>()
     private val telemetryManager = TelemetryManager()
     private var userData: Map<String, Any> = emptyMap()
@@ -54,6 +55,7 @@ object SSPSDK {
     fun initialize(context: Context, config: Config) {
         this.config = config
         val appContext = context.applicationContext
+        applicationContext = appContext
         val defaultDevicePid = DeviceIdentity.getOrCreateDevicePid(appContext)
         if (targetingSignals.devicePid.isNullOrBlank()) {
             targetingSignals = targetingSignals.copy(devicePid = defaultDevicePid)
@@ -61,7 +63,7 @@ object SSPSDK {
 
         telemetryManager.setApplicationContext(appContext)
         telemetryManager.configure(config)
-        val gaid = AdvertisingIds.getGaid(appContext)
+        refreshCmpConsent(appContext)
         telemetryManager.setIdentityProvider {
             val platformUid = userData["platform_uid"]?.toString()
                 ?: PlatformIdentity.get(appContext)
@@ -73,7 +75,7 @@ object SSPSDK {
                         ?: defaultDevicePid
                     ),
                 "platform_uid" to platformUid,
-                "gaid" to (userData["gaid"]?.toString() ?: gaid),
+                "gaid" to resolveGaid(appContext),
             )
         }
         telemetryManager.trackEvent(
@@ -115,6 +117,7 @@ object SSPSDK {
         )
 
         try {
+            refreshCmpConsent(context.applicationContext)
             val request = buildAdRequest(context, adUnitCode, format, sizes, placementCode, placementContext, keyValues)
             val response = sendRequest(context, PublicApiPaths.bidURL(cfg.baseUrl), request)
 
@@ -152,6 +155,15 @@ object SSPSDK {
                     price = adData.optDouble("price").takeIf { !it.isNaN() },
                     campaignId = adData.optString("cid").takeIf { it.isNotBlank() },
                     creativeId = adData.optString("crid").takeIf { it.isNotBlank() },
+                    videoTemplate = adData.optString("video_template").takeIf { it.isNotBlank() },
+                    ctaLabel = adData.optString("cta_label", "Learn more").ifBlank { "Learn more" },
+                    ctaPosition = adData.optString("cta_position").takeIf { it.isNotBlank() },
+                    companionImageUrl = adData.optString("companion_image_url").takeIf { it.isNotBlank() },
+                    showCompanionClick = adData.takeIf { it.has("show_companion_click") }?.optBoolean("show_companion_click"),
+                    skippable = adData.takeIf { it.has("skippable") }?.optBoolean("skippable"),
+                    skipAfterSec = adData.takeIf { it.has("skip_after_sec") }?.optDouble("skip_after_sec")?.takeIf { !it.isNaN() },
+                    unitFormat = adData.optString("unit_format").takeIf { it.isNotBlank() },
+                    placementContext = adData.optString("placement_context").takeIf { it.isNotBlank() },
                 )
 
                 // Served impressions are recorded when the creative is shown (banner/video views), not on bid response.
@@ -249,9 +261,18 @@ object SSPSDK {
         ccpa: Boolean = false,
         consentString: String? = null,
         gppString: String? = null,
-        gppSid: String? = null
+        gppSid: String? = null,
+        usPrivacyString: String? = null,
     ) {
-        consentData = ConsentState(gdpr, ccpa, consentString, gppString, gppSid)
+        consentData = ConsentState(
+            gdpr,
+            ccpa,
+            consentString,
+            gppString,
+            gppSid,
+            usPrivacyString ?: consentData.usPrivacyString,
+        )
+        applicationContext?.let { refreshCmpConsent(it) }
         telemetryManager.setConsent(consentData)
         if (config?.debug == true) {
             android.util.Log.d("DKMads SSP", "Consent updated: GDPR=$gdpr, CCPA=$ccpa")
@@ -403,6 +424,11 @@ object SSPSDK {
 
     // Private helper functions
 
+    private fun refreshCmpConsent(context: Context) {
+        consentData = CmpConsent.mergeInto(consentData, CmpConsent.readSnapshot(context))
+        telemetryManager.setConsent(consentData)
+    }
+
     private fun buildAdRequest(
         context: Context,
         adUnitCode: String,
@@ -440,12 +466,15 @@ object SSPSDK {
                 put("user_pid", signalMap["user_pid"])
                 put("device_pid", signalMap["device_pid"])
                 PlatformIdentity.get(context)?.let { put("platform_uid", it) }
-                AdvertisingIds.getGaid(context)?.let { put("gaid", it) }
+                resolveGaid(context)?.let { put("gaid", it) }
                 put("tcf_string", consentData.consentString ?: "")
                 put("gpp_string", consentData.gppString ?: "")
                 put("gpp_sid", consentData.gppSid ?: "")
                 put("gdpr", consentData.gdpr)
-                put("us_privacy", if (consentData.ccpa) "1YYY" else "1---")
+                consentData.resolvedUsPrivacyString()?.let { usp ->
+                    put("us_privacy", usp)
+                    put("us_privacy_string", usp)
+                }
                 for ((k, v) in signalMap) {
                     if (k in listOf("user_pid", "device_pid")) continue
                     when (v) {
@@ -464,6 +493,12 @@ object SSPSDK {
             put("response_format", "json")
             put("debug", config?.debug == true)
         }
+    }
+
+    private fun resolveGaid(context: Context): String? {
+        if (!consentData.allowsAdvertisingId()) return null
+        userData["gaid"]?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+        return AdvertisingIds.getGaid(context)
     }
 
     private fun getDeviceType(context: Context): String {
@@ -537,8 +572,26 @@ data class ConsentState(
     val ccpa: Boolean = false,
     val consentString: String? = null,
     val gppString: String? = null,
-    val gppSid: String? = null
-)
+    val gppSid: String? = null,
+    val usPrivacyString: String? = null,
+) {
+    fun resolvedUsPrivacyString(): String? {
+        val trimmed = usPrivacyString?.trim()
+        return trimmed?.takeIf { it.isNotEmpty() }
+    }
+
+    /** Gate GAID on bid/events — aligns with server assessBidConsent (client-side subset). */
+    fun allowsAdvertisingId(): Boolean {
+        if (gdpr) {
+            val cs = consentString?.trim()
+            if (cs.isNullOrEmpty()) return false
+        }
+        resolvedUsPrivacyString()?.let { usp ->
+            if (usp.length >= 3 && usp[2] == 'Y') return false
+        }
+        return true
+    }
+}
 
 // Ad format enum
 enum class AdFormat {
@@ -595,6 +648,16 @@ data class Ad(
     val price: Double? = null,
     val campaignId: String? = null,
     val creativeId: String? = null,
+    /** House/web parity: video_instream | video_outstream | display_video | rewarded | splash */
+    val videoTemplate: String? = null,
+    val ctaLabel: String = "Learn more",
+    val ctaPosition: String? = null,
+    val companionImageUrl: String? = null,
+    val showCompanionClick: Boolean? = null,
+    val skippable: Boolean? = null,
+    val skipAfterSec: Double? = null,
+    val unitFormat: String? = null,
+    val placementContext: String? = null,
     /** Set after [recordAdImpression] (avoids duplicate on [DKMadsVideoAdView.display] / interstitial). */
     val impressionRecorded: Boolean = false,
 ) {

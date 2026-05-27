@@ -1,8 +1,10 @@
-# DKMads SSP SDK Contract (v0.3.x)
+# SDK contract (v0.3.x)
 
-This is the canonical cross-platform contract for public SDK integration.
+Canonical **request, response, and lifecycle** contract for web, iOS, Android, Flutter, and Unity integrations.
 
-## Design principles (aligned with industry SDKs)
+**Use with:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · platform integration guides
+
+## Design principles
 
 1. **Initialize once at app launch** before any ad request.
 2. **Set consent/user data** before first ad request when required.
@@ -40,7 +42,7 @@ Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
 | Capability | iOS | Android | Flutter | Unity | Web |
 |---|---|---|---|---|
 | Initialize | `DKMadsMobileAds.start` / `SSPSDK.initialize` | `SSPSDK.initialize` | `DkmadsSsp.initialize` | `DKMadsSdk.Initialize` | `SSP.init` |
-| Consent | `setConsent(_:)` | `setConsent(...)` | `setConsent(...)` | via native | `SSP.setConsent` |
+| Consent | `setConsent(_:)` | `setConsent(...)` | `setConsent(...)` | `SetConsent(DKMadsConsent)` | `SSP.setConsent` |
 | Targeting signals | `setTargetingSignals(_:)` | `setTargetingSignals(...)` | `setTargetingSignals(map)` | native `SetUserData` | `SSP.setTargetingSignals` |
 | User data | `setUserData(_:)` | `setUserData(map)` | `setUserData(map)` | `SetUserData(json)` | `SSP.setUser` |
 | FPD profile sync | `syncFirstPartyProfile` | `syncFirstPartyProfile` | `syncFirstPartyProfile` | — | `sendFirstPartyData` / `collectFirstParty` |
