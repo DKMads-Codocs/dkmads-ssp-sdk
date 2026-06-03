@@ -249,7 +249,7 @@ class DKMadsInterstitialActivity : Activity() {
                     videoTracker?.markUserSkipped()
                     try {
                         videoView.stopPlayback()
-                    } catch (_e) { /* ignore */ }
+                    } catch (_: Exception) { /* ignore */ }
                     emitVideoSkip()
                     signalCompletion(skipped = true)
                     finish()

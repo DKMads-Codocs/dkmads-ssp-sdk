@@ -1,6 +1,7 @@
 package com.dkmads.ssp
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -269,7 +270,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         videoTracker = null
         try {
             videoView.stopPlayback()
-        } catch (_e) { /* ignore */ }
+        } catch (_: Exception) { /* ignore */ }
         mediaPlayer = null
         listener?.onAdComplete(this, skipped)
     }
