@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.4
+
+- Banner auto-refresh reuses last load params (`placementCode`, `placementContext`, `keyValues`).
+- `DKMadsInstreamAdsLoader.requestAds` accepts `placementCode` + `keyValues`; `useTestAds` injects `test_mode`.
+- Native video: 15s prepare timeout, `onPlaybackBuffering`, 12s buffer stall fail-fast.
+
 ## 0.5.2
 
 - iOS compile fixes aligned with 0.5.2 tag (consent error, app open presenter, rewarded ObjC load).

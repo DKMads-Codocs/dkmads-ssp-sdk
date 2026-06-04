@@ -51,7 +51,8 @@ import UIKit
     @objc public func requestAds(
         adUnitID: String,
         contentPosition: String? = nil,
-        adSize: CGSize = CGSize(width: 640, height: 360)
+        adSize: CGSize = CGSize(width: 640, height: 360),
+        request: DKMadsAdRequest? = nil
     ) {
         guard let adContainer else {
             delegate?.instreamAdsLoader?(self, didFailWithError: DKMadsAdError.invalidConfig.nsError())
@@ -84,9 +85,11 @@ import UIKit
             }
         }
 
-        let request = DKMadsAdRequest()
-        request.placementContext = contentPosition
-        view.load(request, adSize: adSize)
+        let adRequest = request ?? DKMadsAdRequest()
+        if adRequest.placementContext == nil {
+            adRequest.placementContext = contentPosition
+        }
+        view.load(adRequest, adSize: adSize)
     }
 
     @objc public func destroy() {

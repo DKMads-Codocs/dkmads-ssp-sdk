@@ -50,6 +50,8 @@ class DKMadsInstreamAdsLoader(
         contentPosition: String? = null,
         width: Int = 640,
         height: Int = 360,
+        placementCode: String? = null,
+        keyValues: Map<String, Any> = emptyMap(),
     ) {
         if (adUnitId.isBlank()) {
             listener?.onAdFailed(this, "adUnitId is required")
@@ -80,7 +82,9 @@ class DKMadsInstreamAdsLoader(
         view.load(
             width = width,
             height = height,
+            placementCode = placementCode,
             placementContext = contentPosition,
+            keyValues = keyValues,
         )
     }
 

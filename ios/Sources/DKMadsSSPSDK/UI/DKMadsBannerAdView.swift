@@ -27,6 +27,7 @@ import SafariServices
     private var isLoading = false
     private var viewabilityActive = false
     private var refreshTimer: Timer?
+    private var lastAdRequest: DKMadsAdRequest?
 
     @objc public init(adUnitID: String, adSize: CGSize = CGSize(width: 300, height: 250)) {
         self.adUnitID = adUnitID
@@ -50,6 +51,8 @@ import SafariServices
 
     @objc public func load(_ request: DKMadsAdRequest? = nil) {
         guard !isLoading else { return }
+        if let request { lastAdRequest = request }
+        let effectiveRequest = request ?? lastAdRequest
         guard SSPSDK.shared.isSDKInitialized else {
             delegate?.bannerAdView?(self, didFailToReceiveAdWithError: SDKError.notInitialized)
             return
@@ -62,9 +65,9 @@ import SafariServices
             code: adUnitID,
             format: .banner,
             sizes: [adSize],
-            placementCode: request?.placementCode,
-            placementContext: request?.placementContext,
-            keyValues: request?.keyValues ?? [:]
+            placementCode: effectiveRequest?.placementCode,
+            placementContext: effectiveRequest?.placementContext,
+            keyValues: effectiveRequest?.keyValues ?? [:]
         ) { [weak self] result in
             guard let self else { return }
             self.isLoading = false
@@ -124,7 +127,7 @@ import SafariServices
         refreshTimer?.invalidate()
         guard let sec = intervalSec, sec >= 30 else { return }
         refreshTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(sec), repeats: true) { [weak self] _ in
-            self?.load()
+            self?.load(self?.lastAdRequest)
         }
     }
 

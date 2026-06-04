@@ -51,6 +51,12 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val refreshHandler = Handler(Looper.getMainLooper())
     private var refreshRunnable: Runnable? = null
+    private data class BannerLoadParams(
+        val placementCode: String? = null,
+        val placementContext: String? = null,
+        val keyValues: Map<String, Any> = emptyMap(),
+    )
+    private var lastLoadParams: BannerLoadParams? = null
     private val webView: WebView
     private val imageView: ImageView
     private var viewabilityStarted = false
@@ -84,12 +90,18 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     fun load(
         placementCode: String? = null,
         placementContext: String? = null,
-        keyValues: Map<String, Any> = emptyMap(),
+        keyValues: Map<String, Any>? = null,
     ) {
         if (adUnitId.isBlank()) {
             listener?.onAdFailed(this, "adUnitId is required", null)
             return
         }
+        val resolved = BannerLoadParams(
+            placementCode = placementCode ?: lastLoadParams?.placementCode,
+            placementContext = placementContext ?: lastLoadParams?.placementContext,
+            keyValues = keyValues ?: lastLoadParams?.keyValues ?: emptyMap(),
+        )
+        lastLoadParams = resolved
         stopViewability()
         clearCreative()
         scope.launch {
@@ -98,9 +110,9 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 adUnitCode = adUnitId,
                 format = AdFormat.BANNER,
                 sizes = listOf(adWidth to adHeight),
-                placementCode = placementCode,
-                placementContext = placementContext,
-                keyValues = keyValues,
+                placementCode = resolved.placementCode,
+                placementContext = resolved.placementContext,
+                keyValues = resolved.keyValues,
             )
             result.fold(
                 onSuccess = { ad ->

@@ -41,6 +41,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         fun onAdLoaded(view: DKMadsVideoAdView, ad: Ad, responseInfo: DKMadsResponseInfo) {}
         fun onAdFailed(view: DKMadsVideoAdView, message: String, responseInfo: DKMadsResponseInfo?) {}
         fun onPlaybackStarted(view: DKMadsVideoAdView) {}
+        fun onPlaybackBuffering(view: DKMadsVideoAdView, buffering: Boolean) {}
         fun onAdComplete(view: DKMadsVideoAdView, skipped: Boolean) {}
         fun onAdClicked(view: DKMadsVideoAdView) {}
         fun onAdImpression(view: DKMadsVideoAdView) {}
@@ -73,6 +74,14 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private var videoTracker: VideoTracker? = null
     private var viewabilityStarted = false
     private var playbackCompleted = false
+    private var isPrepared = false
+    private var prepareTimeoutRunnable: Runnable? = null
+    private var bufferTimeoutRunnable: Runnable? = null
+
+    private companion object {
+        const val INITIAL_LOAD_TIMEOUT_MS = 15_000L
+        const val BUFFER_STALL_TIMEOUT_MS = 12_000L
+    }
 
     init {
         setBackgroundColor(Color.BLACK)
@@ -195,9 +204,18 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         if (playbackUrl.isNotBlank()) {
             webView.visibility = GONE
             videoView.visibility = VISIBLE
+            isPrepared = false
+            cancelPlaybackTimeouts()
             val uri = Uri.parse(playbackUrl)
             videoView.setVideoURI(uri)
+            prepareTimeoutRunnable = Runnable {
+                if (!isPrepared && !playbackCompleted) {
+                    listener?.onAdFailed(this, "Video playback timed out while loading", responseInfo)
+                }
+            }.also { postDelayed(it, INITIAL_LOAD_TIMEOUT_MS) }
             videoView.setOnPreparedListener { mp ->
+                isPrepared = true
+                cancelPrepareTimeout()
                 mediaPlayer = mp
                 isMuted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
                 mp.setVolume(if (isMuted) 0f else 1f, if (isMuted) 0f else 1f)
@@ -220,8 +238,22 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 startProgressUpdates()
                 post { startViewability() }
             }
+            videoView.setOnInfoListener { _, what, _ ->
+                when (what) {
+                    MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
+                        listener?.onPlaybackBuffering(this, true)
+                        scheduleBufferStallTimeout()
+                    }
+                    MediaPlayer.MEDIA_INFO_BUFFERING_END -> {
+                        cancelBufferStallTimeout()
+                        listener?.onPlaybackBuffering(this, false)
+                    }
+                }
+                false
+            }
             videoView.setOnCompletionListener { completePlayback(skipped = false) }
             videoView.setOnErrorListener { _, _, _ ->
+                cancelPlaybackTimeouts()
                 listener?.onAdFailed(this, "Video playback failed", responseInfo)
                 true
             }
@@ -532,11 +564,36 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         }
     }
 
+    private fun cancelPrepareTimeout() {
+        prepareTimeoutRunnable?.let { removeCallbacks(it) }
+        prepareTimeoutRunnable = null
+    }
+
+    private fun cancelBufferStallTimeout() {
+        bufferTimeoutRunnable?.let { removeCallbacks(it) }
+        bufferTimeoutRunnable = null
+    }
+
+    private fun cancelPlaybackTimeouts() {
+        cancelPrepareTimeout()
+        cancelBufferStallTimeout()
+    }
+
+    private fun scheduleBufferStallTimeout() {
+        cancelBufferStallTimeout()
+        bufferTimeoutRunnable = Runnable {
+            if (!playbackCompleted && !videoView.isPlaying) {
+                listener?.onAdFailed(this, "Video playback stalled while buffering", responseInfo)
+            }
+        }.also { postDelayed(it, BUFFER_STALL_TIMEOUT_MS) }
+    }
+
     fun stopPlayback() {
         stopViewability()
         removeClickThroughCta()
         cancelSkip()
         stopProgressUpdates()
+        cancelPlaybackTimeouts()
         removeVideoChrome()
         removeVideoClickOverlay()
         mediaPlayer = null
@@ -549,6 +606,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         webView.visibility = GONE
         loadedAd = null
         playbackCompleted = false
+        isPrepared = false
     }
 
     fun destroy() {

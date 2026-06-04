@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.4
+
+- Banner auto-refresh reuses the last `DKMadsAdRequest` (placement + `keyValues` including `test_mode`).
+- `DKMadsInstreamAdsLoader.requestAds` accepts an optional `DKMadsAdRequest`; `useTestAds` injects `test_mode` into bid `key_values`.
+- Native video (HLS/MP4): 15s initial load timeout, buffering delegate callbacks, 12s stall fail-fast.
+
 ## 0.5.3
 
 - Restore `SSPSDK.registeredSizes(for:)` for interstitial / app open IAB bid tokens (used by `DKMadsInterstitialAd.bidSizes`).

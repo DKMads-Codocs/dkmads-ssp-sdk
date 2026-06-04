@@ -132,7 +132,15 @@ object SSPSDK {
 
         try {
             refreshCmpConsent(context.applicationContext)
-            val request = buildAdRequest(context, adUnitCode, format, sizes, placementCode, placementContext, keyValues)
+            val request = buildAdRequest(
+                context,
+                adUnitCode,
+                format,
+                sizes,
+                placementCode,
+                placementContext,
+                mergedKeyValues(keyValues),
+            )
             val started = System.currentTimeMillis()
             val response = sendRequest(context, PublicApiPaths.bidURL(cfg.baseUrl), request)
             val latencyMs = (System.currentTimeMillis() - started).toInt()
@@ -480,6 +488,12 @@ object SSPSDK {
         telemetryManager.setConsent(consentData)
     }
 
+    private fun mergedKeyValues(keyValues: Map<String, Any>): Map<String, Any> {
+        if (config?.useTestAds != true) return keyValues
+        if (keyValues.containsKey("test_mode")) return keyValues
+        return keyValues + ("test_mode" to true)
+    }
+
     private fun buildAdRequest(
         context: Context,
         adUnitCode: String,
@@ -765,4 +779,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.3"
+const val SDK_VERSION = "0.5.4"

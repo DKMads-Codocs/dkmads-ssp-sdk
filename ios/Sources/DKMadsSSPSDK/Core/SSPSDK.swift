@@ -91,12 +91,12 @@ import AVFoundation
             sizes: sizes,
             placementCode: placementCode,
             placementContext: placementContext,
-            keyValues: keyValues,
+            keyValues: mergedKeyValues(keyValues),
             userData: userData,
             targetingSignals: targetingSignals,
             device: DeviceDetector.getDeviceInfo(),
             consent: consent,
-            debug: config.debug
+            debug: config.debug || config.useTestAds
         )
 
         TelemetryManager.shared.trackEvent(
@@ -344,6 +344,14 @@ import AVFoundation
             consentConfigured = true
         }
         TelemetryManager.shared.setConsent(consent)
+    }
+
+    private func mergedKeyValues(_ keyValues: [String: Any]) -> [String: Any] {
+        guard config?.useTestAds == true else { return keyValues }
+        if keyValues["test_mode"] != nil { return keyValues }
+        var merged = keyValues
+        merged["test_mode"] = true
+        return merged
     }
 
     public func clearIdentifiers() {

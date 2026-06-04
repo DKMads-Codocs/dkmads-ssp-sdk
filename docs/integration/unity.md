@@ -15,7 +15,7 @@ The **com.dkmads.ssp** package bridges Unity to native iOS and Android SDKs for 
 | Component | Package / coordinates |
 |-----------|------------------------|
 | Unity bridge | `com.dkmads.ssp` (`sdk/unity`) |
-| Android | `com.dkmads.ssp:ssp-android:0.5.3` |
+| Android | `com.dkmads.ssp:ssp-android:0.5.4` |
 | iOS | `DKMadsSSPSDK` |
 
 For web, use the [Web SDK](./web.md).

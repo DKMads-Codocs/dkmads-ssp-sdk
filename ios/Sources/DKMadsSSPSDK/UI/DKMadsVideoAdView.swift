@@ -8,6 +8,8 @@ import WebKit
     @objc optional func videoAdViewDidReceiveAd(_ videoAdView: DKMadsVideoAdView)
     @objc optional func videoAdView(_ videoAdView: DKMadsVideoAdView, didFailToReceiveAdWithError error: Error)
     @objc optional func videoAdViewDidStartPlayback(_ videoAdView: DKMadsVideoAdView)
+    @objc optional func videoAdViewDidStartBuffering(_ videoAdView: DKMadsVideoAdView)
+    @objc optional func videoAdViewDidEndBuffering(_ videoAdView: DKMadsVideoAdView)
     @objc optional func videoAdViewDidComplete(_ videoAdView: DKMadsVideoAdView)
     @objc optional func videoAdViewDidRecordClick(_ videoAdView: DKMadsVideoAdView)
     @objc optional func videoAdViewDidRecordImpression(_ videoAdView: DKMadsVideoAdView)
@@ -45,6 +47,7 @@ import WebKit
     private var videoEventsAttached = false
     private var webPlaybackStarted = false
     private var webPlaybackCompleted = false
+    private var nativePlaybackHandle: AdNativePlaybackHandle?
 
     @objc public init(adUnitID: String, frame: CGRect = .zero) {
         self.adUnitID = adUnitID
@@ -206,25 +209,43 @@ import WebKit
             playerView.isHidden = false
             attachVideoTelemetry(skippable: isSkippable)
             scheduleSkipIfNeeded()
-            AdVideoPlayback.loadNative(ad: ad, player: player, autoplay: autoplay) { [weak self] error in
-                guard let self else { return }
-                if let error {
+            nativePlaybackHandle?.invalidate()
+            nativePlaybackHandle = AdVideoPlayback.loadNative(
+                ad: ad,
+                player: player,
+                autoplay: autoplay,
+                onReady: { [weak self] error in
+                    guard let self else { return }
+                    if let error {
+                        self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: error)
+                        return
+                    }
+                    let muted = DKMadsVideoChrome.defaultPlaybackMuted(
+                        unitFormat: ad.unitFormat,
+                        placementContext: ad.placementContext,
+                        videoTemplate: ad.videoTemplate
+                    )
+                    self.player.isMuted = muted
+                    self.isPlaybackMuted = muted
+                    self.attachVideoClickOverlay(ad: ad)
+                    self.attachVideoChrome(ad: ad)
+                    self.delegate?.videoAdViewDidStartPlayback?(self)
+                    self.attachClickThroughCta(ad: ad)
+                    self.attachCompanion(ad: ad)
+                },
+                onBuffering: { [weak self] buffering in
+                    guard let self else { return }
+                    if buffering {
+                        self.delegate?.videoAdViewDidStartBuffering?(self)
+                    } else {
+                        self.delegate?.videoAdViewDidEndBuffering?(self)
+                    }
+                },
+                onStallFailed: { [weak self] error in
+                    guard let self else { return }
                     self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: error)
-                    return
                 }
-                let muted = DKMadsVideoChrome.defaultPlaybackMuted(
-                    unitFormat: ad.unitFormat,
-                    placementContext: ad.placementContext,
-                    videoTemplate: ad.videoTemplate
-                )
-                self.player.isMuted = muted
-                self.isPlaybackMuted = muted
-                self.attachVideoClickOverlay(ad: ad)
-                self.attachVideoChrome(ad: ad)
-                self.delegate?.videoAdViewDidStartPlayback?(self)
-                self.attachClickThroughCta(ad: ad)
-                self.attachCompanion(ad: ad)
-            }
+            )
         case .webMarkup:
             playerView.isHidden = true
             webView.isHidden = false
@@ -404,6 +425,8 @@ import WebKit
             SSPSDK.shared.stopVideoLifecycleTracking(adUnitId: adUnitID)
             videoEventsAttached = false
         }
+        nativePlaybackHandle?.invalidate()
+        nativePlaybackHandle = nil
         player.pause()
         player.replaceCurrentItem(with: nil)
         webView.loadHTMLString("", baseURL: nil)
