@@ -4,6 +4,7 @@
 
 - Restore `SSPSDK.registeredSizes(for:)` for interstitial / app open IAB bid tokens (used by `DKMadsInterstitialAd.bidSizes`).
 - Click-through CTA uses `addTarget` instead of `UIButton.addAction` (iOS 13 deployment target).
+- ObjC `setConsentGdpr:…gppSid:` converts `NSNumber` to `String` for `ConsentData.gppSid`.
 
 ## 0.5.2
 

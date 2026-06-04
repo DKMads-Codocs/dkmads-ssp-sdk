@@ -105,11 +105,11 @@ df8cba96be503ebbc5fef0c977e1cd4b6658bef3b95ccc3091b6d3cb453641dd  ./artifacts/an
 60f1726b936bfbcc0293263cad99a9d9d785ee6dbe5492a2d0d244c55f67dfca  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/0.5.3/ssp-android-0.5.3.pom.sha1
 55d98aeab2488ec35c8d2f6817a423b053782030938a87e86c72f990b906acad  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/0.5.3/ssp-android-0.5.3.pom.sha256
 a012b95e7bac10b4feb9b1ca2875e0c80db2dedb4dc2c08d2ea0920df16b911b  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/0.5.3/ssp-android-0.5.3.pom.sha512
-575de1e6b93b6bdc374d67baadcd5d96900ba5028f7a73df748533e42b8ebb80  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml
-f3e7d4fc8302544c7a442534bd8e7efd763a17c04d4141b8c063818b6fce6263  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.md5
-6d412df847d943c13e17a279c1bd6a95a7fd09c05a4e19dfdab349e3b4b4fe8c  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.sha1
-c7e5c8736b9932c2d55368fee7c1aabdf9bee7e0f4266b8115e6c8ed218d8125  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.sha256
-99433561c821f0fe4726f79200893a73e36b3220c6de2f7d475b0c4159e58f28  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.sha512
+c5c7905b59f14e990cd0ac860d28f8bd8dccc1c28e525470a538c28d3e4a0ebb  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml
+25d618832e64b94d259068793fe363148ae8f20e74911c96e46ed023debe7c85  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.md5
+370e1d4d73cad6a87d4beac26dacebd4b21f9cff0ba878212cdb07522e0303f9  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.sha1
+954b68acb308782770bbe34c6459fab1a72d80c10b26a0d49d4c5eff6b9f4032  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.sha256
+c905d674035653c4db4833c3cab40b9502a691bb6ff54b9eb50ccda2196477b8  ./artifacts/android-maven/com/dkmads/ssp/ssp-android/maven-metadata.xml.sha512
 46597e3dd94f4f0bc6b80e5fff961ac82568c4eeac673248a41eb9ed60a72295  ./docs/AD_FORMATS_MATRIX.md
 03d0484204035a927736812c23b12be2a039553fcc7f2858bfa6308caaa16055  ./docs/integration/android.md
 a330459480665d529a2072c929540862f0f8c069e2901fbb6405dbc74efdd2b6  ./docs/integration/flutter.md
@@ -139,7 +139,7 @@ bdaf69003565150005c5e9010056256c6ddb4a3062579fd6d323fd40e3ff9017  ./flutter/ios/
 e84a9776dcf29563f71c27e92d8dcd957e5ee2c2ca1eda8fa3963c1655e9e0b2  ./flutter/lib/dkmads_ssp.dart
 503562e31b5e88cd50f7eb00f3e22b5d58e48fd62d51ebc593a4b0e52fd17b3d  ./flutter/pubspec.yaml
 cb29a77d5012ac5ba6b9015ab140f75211ce2718cd39131935d776796ff01618  ./flutter/test/video_lifecycle_test.dart
-9b5ca4bbe16b33f8fd7192ced2b841694bac07d399852d0b2d5e9197b6c349f4  ./ios/CHANGELOG.md
+04e3718ff7fbbfd36a6750357696075767f257d3ecd15d3d7e6a1a7c11bced69  ./ios/CHANGELOG.md
 601fbc560dac0f5b0911706584e5989bd90777306292325c8c3ae4e6bc956e16  ./ios/DKMadsSSPSDK.podspec
 efa4fbe90276f78713d2f14ff873c03418ad0c6cb7ffb0e4ac93375c6d975cbc  ./ios/Package.swift
 a0dcd2467a47b144fe15b3078c9dc47743dfd861c0ce154231e32b63835a8366  ./ios/README.md
@@ -158,7 +158,7 @@ c7256a7826874fee73302e1e51666054e96b29f3a003ff661001f86651425c35  ./ios/Sources/
 0f6c3f745d0c8f278bdfdfb92567f07aa4c482ed89b9198dcd1792019db0c5ab  ./ios/Sources/DKMadsSSPSDK/Core/PlatformIdentity.swift
 138efe515a87b648919c436204293d87767d621661a940cb2d717ce6d6b87661  ./ios/Sources/DKMadsSSPSDK/Core/SDKVersion.swift
 490db514af146d69828b578424e1a347946b1042aee58e8a482fc1e066d51b2f  ./ios/Sources/DKMadsSSPSDK/Core/SSPSDK.swift
-8bac08e48798e7747e606ba620bd7a1643e7a1ba4ed6d7b1fdc9584b71ca3e39  ./ios/Sources/DKMadsSSPSDK/Core/SSPSDK+ObjC.swift
+a97a8a79f30f9cd49e478e2de772e5bedcdb2c43a0f8fedca85b7f79b57428c9  ./ios/Sources/DKMadsSSPSDK/Core/SSPSDK+ObjC.swift
 5cce7108ad2decb2a3632dbf1010600d1942c0d7a52fed778eace321a8f38b34  ./ios/Sources/DKMadsSSPSDK/Core/SSPSDKConfig.swift
 b4a0d49b999494671144e513d0215c3c37713335dfe7ae577d4bd0fc8a6a57be  ./ios/Sources/DKMadsSSPSDK/Models/Ad.swift
 4a3c9699630657c71764c8beb5c0ba51402e3d0ac60ce42c77ba8ae54cd6884b  ./ios/Sources/DKMadsSSPSDK/Models/AdCreativeRenderer.swift
@@ -193,7 +193,7 @@ bef25869789468afeb20daf35b519c70cd85ab8b8f33f608f9fa856c04adba9e  ./ios/Sources/
 75a0d69af095b1cee3b8632331af83a29616b85d19cec96a0f6a8c10fc81dda4  ./ios/Sources/DKMadsSSPSDK/UI/DKMadsVideoAdView.swift
 35c0056b9bf2fb4b7b3092d8e1ca542c46b8eac663407f3825c472ae51d1e5cb  ./ios/Sources/DKMadsSSPSDK/UI/DKMadsVideoChrome.swift
 36d0a1c46e0b22298e722464f4c1c44a75b4439c4899f3761880270dc8fc63ff  ./README.md
-3fa9983bb7ce1d1633d15fde3b40762ca41d4d2f639b44b8e3a3d81717183bba  ./RELEASE.json
+a00eb16a536eb8eeb2579f9d361d67ae474a2dd2b566d88b71b40d4f9504f065  ./RELEASE.json
 95451f2acf9182b30e475e6ca67b8f22b8c1ee7063b5dc3830913c78de11dd02  ./unity/Android/src/main/java/com/dkmads/ssp/unity/DKMadsUnityBridge.kt
 410918783bec29c52307e548de1a1bd8fc3bab5ab15932b820a8a944ed85b97d  ./unity/CHANGELOG.md
 125ea158f04f787ef0a51324a0c405d9796e525e305bdb72bb3c914b45771599  ./unity/iOS/DKMadsUnityBridge.swift

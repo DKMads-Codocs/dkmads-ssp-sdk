@@ -14,7 +14,7 @@ extension SSPSDK {
         consent.consentString = consentString
         consent.usPrivacyString = usPrivacy
         consent.gppString = gppString
-        if let gppSid { consent.gppSid = gppSid.intValue }
+        if let gppSid { consent.gppSid = gppSid.stringValue }
         setConsent(consent)
     }
 
