@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| |**Version** | `0.5.1` |
-| **Release tag** | `sdk-0.5.1` |
+| ||**Version** | `0.5.2` |
+| **Release tag** | `sdk-0.5.2` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.1',
+    :tag => 'sdk-0.5.2',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -132,13 +132,14 @@ DKMadsInterstitialAd.load(
 ## 2d) Rewarded (fullscreen with reward callback)
 
 ```swift
-let rewarded = DKMadsRewardedAd(adUnitID: "YOUR_REWARDED_AD_UNIT_UUID")
-rewarded.delegate = self
-rewarded.load { ad, error in
+DKMadsRewardedAd.load(adUnitID: "YOUR_REWARDED_AD_UNIT_UUID") { ad, error in
   guard let ad = ad else { return }
+  ad.delegate = self
   ad.present(from: self)
 }
 ```
+
+ObjC: `+[DKMadsRewardedAd loadRewardedWithAdUnitID:request:completion:]` (no optional `CGSize` on `@objc` load).
 
 Delegate callback to grant reward: `rewardedAdDidEarnReward`.
 

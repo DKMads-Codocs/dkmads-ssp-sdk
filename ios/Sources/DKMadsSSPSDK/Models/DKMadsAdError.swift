@@ -43,6 +43,7 @@ import Foundation
             case .invalidConfig: return .invalidConfig
             case .networkError: return .network
             case .consentRequired: return .consentRequired
+            case .adExpired: return .adExpired
             }
         }
         let code = (error as NSError).code

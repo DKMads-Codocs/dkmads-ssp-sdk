@@ -1,12 +1,14 @@
 import Foundation
 
-public let SDK_VERSION = "0.5.1"
+public let SDK_VERSION = "0.5.2"
 
 public enum SDKError: Error, LocalizedError {
     case notInitialized
     case invalidConfig
     case networkError
     case noFill
+    case consentRequired
+    case adExpired
 
     public var errorDescription: String? {
         switch self {
@@ -14,6 +16,8 @@ public enum SDKError: Error, LocalizedError {
         case .invalidConfig: return "Invalid SDK configuration."
         case .networkError: return "Network request failed."
         case .noFill: return "No ad fill for this request."
+        case .consentRequired: return "Consent required before requesting ads."
+        case .adExpired: return "Loaded ad expired. Call load again before show."
         }
     }
 }

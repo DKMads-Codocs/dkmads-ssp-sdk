@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2
+
+- Fix Xcode compile: `SDKError.consentRequired` / `adExpired` for `DKMadsAdError.from(_:)`.
+- `DKMadsInterstitialPresenter` moved to shared module file (app open can present splash).
+- `DKMadsRewardedAd`: Swift-only `load(adSize:)`; ObjC uses `loadRewardedWithAdUnitID:request:completion:`.
+- Consent gate returns `SDKError.consentRequired` when `requireConsentBeforeAds` blocks bids.
+
 ## 0.5.1
 
 - `DKMadsNativeAd` + `DKMadsNativeAdAssets` (`Ad.nativeAssets`); `DKMadsAdCachePolicy` fullscreen expiry.

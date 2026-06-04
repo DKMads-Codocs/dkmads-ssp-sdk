@@ -25,9 +25,29 @@ public final class DKMadsRewardedAd: NSObject, DKMadsFullScreenPresenting {
         self.adUnitID = adUnitID
     }
 
-    @objc public func load(
-        request: DKMadsAdRequest? = nil,
+    /// Swift API — optional `adSize` for IAB bid tokens (defaults to 320×480).
+    public static func load(
+        adUnitID: String,
         adSize: CGSize? = nil,
+        request: DKMadsAdRequest? = nil,
+        completion: @escaping (DKMadsRewardedAd?, Error?) -> Void
+    ) {
+        DKMadsRewardedAd(adUnitID: adUnitID).load(adSize: adSize, request: request, completion: completion)
+    }
+
+    /// ObjC entry point — do not expose optional `CGSize` on `@objc` instance `load`.
+    @objc(loadRewardedWithAdUnitID:request:completion:)
+    public static func loadRewarded(
+        adUnitID: String,
+        request: DKMadsAdRequest?,
+        completion: @escaping (DKMadsRewardedAd?, Error?) -> Void
+    ) {
+        load(adUnitID: adUnitID, adSize: nil, request: request, completion: completion)
+    }
+
+    public func load(
+        adSize: CGSize? = nil,
+        request: DKMadsAdRequest? = nil,
         completion: ((DKMadsRewardedAd?, Error?) -> Void)? = nil
     ) {
         guard SSPSDK.shared.isSDKInitialized else {
@@ -36,10 +56,11 @@ public final class DKMadsRewardedAd: NSObject, DKMadsFullScreenPresenting {
             completion?(nil, err)
             return
         }
+        let bidSizes = DKMadsInterstitialAd.bidSizes(adUnitID: adUnitID, adSize: adSize)
         SSPSDK.shared.loadAd(
             code: adUnitID,
             format: .rewarded,
-            sizes: adSize != nil ? [adSize!] : [CGSize(width: 320, height: 480)],
+            sizes: bidSizes,
             placementCode: request?.placementCode,
             placementContext: request?.placementContext,
             keyValues: request?.keyValues ?? [:]

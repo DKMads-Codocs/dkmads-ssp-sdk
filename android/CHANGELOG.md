@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- iOS compile fixes aligned with 0.5.2 tag (consent error, app open presenter, rewarded ObjC load).
+
 ## 0.5.1
 
 - `DKMadsNativeAd` + `DKMadsNativeAdAssets` for custom in-feed layouts.

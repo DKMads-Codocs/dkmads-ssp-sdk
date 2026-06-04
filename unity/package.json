@@ -1,6 +1,6 @@
 {
   "name": "com.dkmads.ssp",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "displayName": "DKMads SSP Unity SDK",
   "description": "Unity wrapper for DKMads SSP native iOS/Android SDKs.",
   "unity": "2019.4",

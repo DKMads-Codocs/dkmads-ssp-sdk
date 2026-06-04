@@ -80,7 +80,7 @@ import AVFoundation
             return
         }
         if !canRequestAds() {
-            completion(.failure(SDKError.invalidConfig))
+            completion(.failure(SDKError.consentRequired))
             return
         }
         refreshCmpConsent()

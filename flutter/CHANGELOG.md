@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+
+- iOS compile fixes for publisher CocoaPods builds (see ios CHANGELOG).
+- Tracks native SDK 0.5.2.
+
 ## 0.5.1
 
 - `loadNative` + `DkmadsAdResult` headline/body/callToAction/iconUrl fields.
