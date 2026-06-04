@@ -48,9 +48,14 @@ namespace DKMads.SSP
         [DllImport("__Internal")] private static extern IntPtr dkmads_load_ad(string adUnitId, string format, int width, int height);
         [DllImport("__Internal")] private static extern IntPtr dkmads_load_interstitial(string adUnitId, int width, int height);
         [DllImport("__Internal")] private static extern void dkmads_show_interstitial(string adUnitId);
+        [DllImport("__Internal")] private static extern IntPtr dkmads_load_app_open(string adUnitId);
+        [DllImport("__Internal")] private static extern void dkmads_show_app_open(string adUnitId);
+        [DllImport("__Internal")] private static extern void dkmads_present_ad_inspector();
         [DllImport("__Internal")] private static extern IntPtr dkmads_load_rewarded(string adUnitId, int width, int height);
         [DllImport("__Internal")] private static extern IntPtr dkmads_show_rewarded(string adUnitId);
         [DllImport("__Internal")] private static extern void dkmads_free_string(IntPtr ptr);
+        [DllImport("__Internal")] private static extern void dkmads_emit_video_event(string adUnitId, string eventName, string jsonPayload);
+        [DllImport("__Internal")] private static extern void dkmads_sync_first_party_profile(string appBundle);
         #endif
 
         public static void Initialize(string integrationKey, string propertyId = null, string propertyCode = null)
@@ -141,8 +146,34 @@ namespace DKMads.SSP
 
         public static void TrackVideoLifecycle(string adUnitId, bool? skippable = null, Action<string, string> onEvent = null)
         {
-            Debug.Log($"[DKMadsSdk] TrackVideoLifecycle adUnitId={adUnitId} skippable={skippable}");
-            onEvent?.Invoke("video_start", "{\"ad_unit_id\":\"" + adUnitId + "\"}");
+            var payload = "{\"ad_unit_id\":\"" + adUnitId + "\",\"skippable\":" + (skippable == true ? "true" : "false") + "}";
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            using (var bridge = new AndroidJavaClass("com.dkmads.ssp.unity.DKMadsUnityBridge"))
+            {
+                bridge.CallStatic("emitVideoEvent", adUnitId, "video_start", payload);
+            }
+            #elif UNITY_IOS && !UNITY_EDITOR
+            dkmads_emit_video_event(adUnitId, "video_start", payload);
+            #else
+            Debug.Log($"[DKMadsSdk] TrackVideoLifecycle adUnitId={adUnitId}");
+            #endif
+            onEvent?.Invoke("video_start", payload);
+        }
+
+        public static void SyncFirstPartyProfile(string appBundle = null)
+        {
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            using (var bridge = new AndroidJavaClass("com.dkmads.ssp.unity.DKMadsUnityBridge"))
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            {
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                bridge.CallStatic("syncFirstPartyProfile", activity, appBundle);
+            }
+            #elif UNITY_IOS && !UNITY_EDITOR
+            dkmads_sync_first_party_profile(appBundle);
+            #else
+            Debug.Log("[DKMadsSdk] SyncFirstPartyProfile");
+            #endif
         }
 
         public static void StopVideoLifecycleTracking(string adUnitId)
@@ -167,6 +198,9 @@ namespace DKMads.SSP
         /// <summary>Loads a banner via native SDK. Returns JSON (parse with JsonUtility or your JSON lib).</summary>
         public static string LoadAd(string adUnitId, int width = 300, int height = 250) =>
             LoadAdWithFormat(adUnitId, "banner", width, height);
+
+        public static string LoadNative(string adUnitId, int width = 320, int height = 50) =>
+            LoadAdWithFormat(adUnitId, "native", width, height);
 
         /// <summary>Loads with format: banner, interstitial, video, native, rewarded, audio.</summary>
         public static string LoadAdWithFormat(string adUnitId, string format, int width = 300, int height = 250)
@@ -220,6 +254,56 @@ namespace DKMads.SSP
             dkmads_show_interstitial(adUnitId);
             #else
             Debug.Log($"[DKMadsSdk] ShowInterstitial adUnitId={adUnitId}");
+            #endif
+        }
+
+        /// <summary>Loads app open / splash (dashboard format splash).</summary>
+        public static string LoadAppOpen(string adUnitId)
+        {
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            using (var bridge = new AndroidJavaClass("com.dkmads.ssp.unity.DKMadsUnityBridge"))
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            {
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                return bridge.CallStatic<string>("loadAppOpen", activity, adUnitId);
+            }
+            #elif UNITY_IOS && !UNITY_EDITOR
+            var ptr = dkmads_load_app_open(adUnitId);
+            return PtrToStringAndFree(ptr);
+            #else
+            return "{\"success\":false,\"reason\":\"unsupported_platform\"}";
+            #endif
+        }
+
+        public static void ShowAppOpen(string adUnitId)
+        {
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            using (var bridge = new AndroidJavaClass("com.dkmads.ssp.unity.DKMadsUnityBridge"))
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            {
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                bridge.CallStatic("showAppOpen", activity, adUnitId);
+            }
+            #elif UNITY_IOS && !UNITY_EDITOR
+            dkmads_show_app_open(adUnitId);
+            #else
+            Debug.Log($"[DKMadsSdk] ShowAppOpen adUnitId={adUnitId}");
+            #endif
+        }
+
+        public static void PresentAdInspector()
+        {
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            using (var bridge = new AndroidJavaClass("com.dkmads.ssp.unity.DKMadsUnityBridge"))
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            {
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                bridge.CallStatic("presentAdInspector", activity);
+            }
+            #elif UNITY_IOS && !UNITY_EDITOR
+            dkmads_present_ad_inspector();
+            #else
+            Debug.Log("[DKMadsSdk] PresentAdInspector");
             #endif
         }
 

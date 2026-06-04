@@ -26,6 +26,10 @@ import Foundation
         }
     }
 
+    @objc public var canRequestAds: Bool {
+        SSPSDK.shared.canRequestAds()
+    }
+
     private var configDebug: Bool {
         SSPSDK.shared.isDebugEnabled
     }

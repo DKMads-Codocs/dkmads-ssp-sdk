@@ -3,7 +3,7 @@ package com.dkmads.ssp
 import android.content.Context
 
 /**
- * Read IAB TCF / USP / GPP strings from CMP / UMP SDK storage (Google UMP, Sourcepoint, etc.).
+ * Read IAB TCF / USP / GPP strings from CMP SDK storage (Sourcepoint, OneTrust, in-app CMP, etc.).
  * Explicit [SSPSDK.setConsent] values take precedence over CMP when non-blank.
  */
 data class CmpSnapshot(

@@ -42,6 +42,11 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 }
 
+// sdk/android/sample is reference-only; not part of the published AAR.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+  exclude("**/sample/**")
+}
+
 afterEvaluate {
   publishing {
     publications {
@@ -68,6 +73,18 @@ afterEvaluate {
       maven {
         name = "localSdk"
         url = uri(layout.buildDirectory.dir("repo"))
+      }
+      val ghUser = System.getenv("GITHUB_ACTOR")
+      val ghToken = System.getenv("GITHUB_TOKEN")
+      if (!ghUser.isNullOrBlank() && !ghToken.isNullOrBlank()) {
+        maven {
+          name = "githubPackages"
+          url = uri("https://maven.pkg.github.com/DKMads-Codocs/dkmads-ssp-sdk")
+          credentials {
+            username = ghUser
+            password = ghToken
+          }
+        }
       }
     }
   }

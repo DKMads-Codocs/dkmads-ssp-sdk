@@ -15,7 +15,7 @@ The **com.dkmads.ssp** package bridges Unity to native iOS and Android SDKs for 
 | Component | Package / coordinates |
 |-----------|------------------------|
 | Unity bridge | `com.dkmads.ssp` (`sdk/unity`) |
-| Android | `com.dkmads.ssp:ssp-android:0.4.2` |
+| Android | `com.dkmads.ssp:ssp-android:0.5.1` |
 | iOS | `DKMadsSSPSDK` |
 
 For web, use the [Web SDK](./web.md).
@@ -52,23 +52,29 @@ Follow [Android Installation](./android.md). Unity merges `sdk/unity/Android`; t
 
 Follow [iOS Installation](./ios.md) in the Xcode project Unity generates (CocoaPods or SPM).
 
-### Sample
+### Samples
 
-`sdk/unity/Samples~/VideoLifecycleSample/`
+- **Quickstart** — `sdk/unity/Samples~/QuickstartSample/` (init, interstitial, app open, inspector)
+- **Video lifecycle** — `sdk/unity/Samples~/VideoLifecycleSample/`
 
 ## Current capability
 
 - Initialize native SDK with integration key (Android + iOS)
 - Pass user data / custom app events
 - **`SetTargetingSignals`** / JSON variant (Android + iOS)
-- **`LoadAd`** / **`LoadAdWithFormat`** — banner, interstitial, video, etc. (Android + iOS)
-- **`LoadInterstitial`** + **`ShowInterstitial`** — native fullscreen UI (Android + iOS)
-- **`LoadRewarded`** + **`ShowRewarded`** — native rewarded fullscreen UI (Android + iOS)
+- **`LoadAd`** / **`LoadAdWithFormat`** — banner, interstitial, video, splash, etc.
+- **`LoadInterstitial`** + **`ShowInterstitial`** — native fullscreen UI
+- **`LoadAppOpen`** + **`ShowAppOpen`** — splash / app open
+- **`PresentAdInspector`** — last bid diagnostics
+- **`LoadNative`** — native format JSON (headline, creativeUrl, cta fields when present in bid)
+- **`LoadRewarded`** + **`ShowRewarded`** — native rewarded fullscreen UI
 - Forward video lifecycle events to telemetry (`EmitVideoEvent`)
 
-> Unity does not ship UGUI widgets or an **instream** bridge. Use **`ShowInterstitial`** for fullscreen (native activity/VC), **`LoadAd`** / **`LoadInterstitial`** JSON for custom UI, or **`EmitVideoEvent`** with your `VideoPlayer` for quartiles.
+> Unity has no UGUI banner widget. Use **`LoadInterstitial`** / **`LoadAppOpen`** for native fullscreen, or **`LoadAd`** JSON for custom UI.
 
 ## Quickstart
+
+See `Samples~/QuickstartSample/QuickstartSample.cs`.
 
 ```csharp
 DKMadsSdk.Initialize("YOUR_INTEGRATION_KEY");
@@ -110,6 +116,29 @@ string json = DKMadsSdk.LoadInterstitial("INTERSTITIAL_UUID", 320, 480);
 // if success → native fullscreen:
 DKMadsSdk.ShowInterstitial("INTERSTITIAL_UUID");
 ```
+
+### App open (splash)
+
+```csharp
+string json = DKMadsSdk.LoadAppOpen("SPLASH_UUID");
+if (json.Contains("\"success\":true"))
+    DKMadsSdk.ShowAppOpen("SPLASH_UUID");
+```
+
+### Ad Inspector
+
+```csharp
+DKMadsSdk.PresentAdInspector();
+```
+
+### Native
+
+```csharp
+string json = DKMadsSdk.LoadNative("NATIVE_UUID", 320, 50);
+// Parse headline, creativeUrl, callToAction from JSON for custom UI
+```
+
+See [Native ad SDK](../NATIVE_AD_SDK.md).
 
 ### Rewarded
 

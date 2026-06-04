@@ -12,11 +12,13 @@ import SafariServices
 
 /// Fullscreen interstitial (video, image, HTML5, or tag). Use for dashboard format `interstitial`.
 @objc(DKMadsInterstitialAd)
-public final class DKMadsInterstitialAd: NSObject {
+public final class DKMadsInterstitialAd: NSObject, DKMadsFullScreenPresenting {
     @objc public weak var delegate: DKMadsInterstitialAdDelegate?
+    @objc public weak var fullScreenContentDelegate: DKMadsFullScreenContentDelegate?
     @objc public let adUnitID: String
     @objc public private(set) var responseInfo: DKMadsResponseInfo?
     @objc public private(set) var loadedAd: Ad?
+    private var loadedAt: Date?
 
     private var presenter: DKMadsInterstitialPresenter?
 
@@ -75,6 +77,7 @@ public final class DKMadsInterstitialAd: NSObject {
                     return
                 }
                 self.loadedAd = ad
+                self.loadedAt = Date()
                 self.delegate?.interstitialAdDidReceiveAd?(self)
                 completion(self, nil)
             case .failure(let error):
@@ -85,7 +88,7 @@ public final class DKMadsInterstitialAd: NSObject {
     }
 
     /// IAB interstitial tokens for bid matching — not raw UIScreen pixel dimensions.
-    private static func bidSizes(adUnitID: String, adSize: CGSize?) -> [CGSize] {
+    static func bidSizes(adUnitID: String, adSize: CGSize?) -> [CGSize] {
         if let adSize, adSize.width > 0, adSize.height > 0 {
             return [adSize]
         }
@@ -102,11 +105,18 @@ public final class DKMadsInterstitialAd: NSObject {
             delegate?.interstitialAd?(self, didFailToReceiveAdWithError: DKMadsAdError.noFill.nsError())
             return
         }
+        if DKMadsAdCachePolicy.isExpired(loadedAt: loadedAt, format: .interstitial) {
+            let err = DKMadsAdError.adExpired.nsError()
+            delegate?.interstitialAd?(self, didFailToReceiveAdWithError: err)
+            fullScreenContentDelegate?.ad?(self, didFailToPresentFullScreenContentWithError: err)
+            return
+        }
         let vc = DKMadsInterstitialPresenter(adUnitID: adUnitID, ad: loadedAd)
         vc.onDismiss = { [weak self] in
             guard let self else { return }
             self.presenter = nil
             self.delegate?.interstitialAdDidDismiss?(self)
+            self.fullScreenContentDelegate?.adDidDismissFullScreenContent?(self)
         }
         vc.onPlaybackComplete = { [weak self] in
             self?.presenter?.dismiss(animated: true)
@@ -116,8 +126,10 @@ public final class DKMadsInterstitialAd: NSObject {
             self.presenter = nil
             rootViewController.dismiss(animated: true)
             self.delegate?.interstitialAd?(self, didFailToReceiveAdWithError: error)
+            self.fullScreenContentDelegate?.ad?(self, didFailToPresentFullScreenContentWithError: error)
         }
         presenter = vc
+        fullScreenContentDelegate?.adWillPresentFullScreenContent?(self)
         rootViewController.present(vc, animated: true) { [weak self] in
             guard let self else { return }
             self.delegate?.interstitialAdDidPresent?(self)

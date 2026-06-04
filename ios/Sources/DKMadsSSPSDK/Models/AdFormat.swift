@@ -7,6 +7,7 @@ import Foundation
     case rewarded = 3
     case video = 4
     case audio = 5
+    case splash = 6
 
     public var apiValue: String {
         switch self {
@@ -16,6 +17,7 @@ import Foundation
         case .rewarded: return "rewarded"
         case .video: return "video"
         case .audio: return "audio"
+        case .splash: return "splash"
         }
     }
 }

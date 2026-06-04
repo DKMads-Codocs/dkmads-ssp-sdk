@@ -65,7 +65,7 @@ Publish to GitHub Releases on a **minimal public repo** that contains no server 
 
 ## Release workflow
 
-1. Bump versions in `sdk/*/CHANGELOG.md` and platform constants (`SDK_VERSION`, `gradle.properties`, `package.json`).
+1. Bump `sdk/VERSION`, run `bash scripts/sync-sdk-versions.sh`, and add entries in `sdk/*/CHANGELOG.md`.
 2. Run contract check: `bash scripts/sdk-contract-check.sh`.
 3. Run the release exporter (local or CI):
 
@@ -75,17 +75,19 @@ Publish to GitHub Releases on a **minimal public repo** that contains no server 
    # Preview
    ./scripts/publish-sdk-release.sh 0.4.2 --dry-run
 
-   # Build dist/sdk-release/sdk-0.4.2/ + tarball + SHA256
+   # Build dist/sdk-release/sdk-0.5.1/ + tarball + SHA256
    ./scripts/publish-sdk-release.sh 0.4.2 --archive-only
 
    # Tag this monorepo
    ./scripts/publish-sdk-release.sh 0.4.2 --archive-only --tag-monorepo
-   git push origin sdk-0.4.2
+   git push origin sdk-0.5.1
 
    # Push to publisher repository
    export SDK_PUBLISH_TOKEN=ghp_...   # PAT with repo scope on dkmads-ssp-sdk
-   ./scripts/publish-sdk-release.sh 0.4.2 --skip-android-build
+   ./scripts/publish-sdk-release.sh 0.5.1 --skip-android-build
    # default push: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
+
+   Full release **with Android AAR** needs JDK 17+ locally (`sdk/android-module/gradlew`) or run the **SDK Release** GitHub Action (Java 17 on Ubuntu).
    ```
 
 4. Update public docs (`docs/integration/*.md`) if versions changed; redeploy dashboard docs.
@@ -115,7 +117,7 @@ Artifacts uploaded: `sdk-release-<version>/` (folder, `.tar.gz`, `.sha256`).
 ### Release bundle contents
 
 ```text
-sdk-0.4.2/
+sdk-0.5.1/
   ios/ android/ android-module/ flutter/ unity/
   docs/integration/ …
   artifacts/android-maven/   # when Gradle build ran

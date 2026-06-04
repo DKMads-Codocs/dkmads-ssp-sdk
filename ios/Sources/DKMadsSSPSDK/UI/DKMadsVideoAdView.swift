@@ -15,7 +15,7 @@ import WebKit
     @objc optional func videoAdViewDidSkip(_ videoAdView: DKMadsVideoAdView)
 }
 
-/// Drop-in video / instream view (AdMob-style). Loads, renders MP4 or HTML video `adm`, and tracks lifecycle.
+/// Drop-in video / instream view. Loads, renders MP4 or HTML video `adm`, and tracks lifecycle.
 @objc public final class DKMadsVideoAdView: UIView {
     @objc public weak var delegate: DKMadsVideoAdViewDelegate?
     @objc public weak var rootViewController: UIViewController?

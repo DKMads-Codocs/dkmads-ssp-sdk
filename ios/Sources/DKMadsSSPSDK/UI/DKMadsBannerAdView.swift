@@ -26,6 +26,7 @@ import SafariServices
     private let imageView: UIImageView
     private var isLoading = false
     private var viewabilityActive = false
+    private var refreshTimer: Timer?
 
     @objc public init(adUnitID: String, adSize: CGSize = CGSize(width: 300, height: 250)) {
         self.adUnitID = adUnitID
@@ -90,6 +91,7 @@ import SafariServices
                 DispatchQueue.main.async {
                     self.delegate?.bannerAdViewDidReceiveAd?(self)
                     self.delegate?.bannerAdViewDidRecordImpression?(self)
+                    self.scheduleRefreshIfNeeded(response.refreshIntervalSec?.intValue)
                 }
             case .failure(let error):
                 self.delegate?.bannerAdView?(self, didFailToReceiveAdWithError: error)
@@ -114,7 +116,16 @@ import SafariServices
     }
 
     deinit {
+        refreshTimer?.invalidate()
         stopViewability()
+    }
+
+    private func scheduleRefreshIfNeeded(_ intervalSec: Int?) {
+        refreshTimer?.invalidate()
+        guard let sec = intervalSec, sec >= 30 else { return }
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(sec), repeats: true) { [weak self] _ in
+            self?.load()
+        }
     }
 
     private func setupViews() {
@@ -155,7 +166,7 @@ import SafariServices
         imageView.image = nil
     }
 
-    private static func makeWebViewConfiguration() -> WKWebViewConfiguration {
+    static func makeWebViewConfiguration() -> WKWebViewConfiguration {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         if #available(iOS 14.0, *) {

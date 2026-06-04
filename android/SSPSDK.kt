@@ -48,6 +48,11 @@ object SSPSDK {
     private var userData: Map<String, Any> = emptyMap()
     private var targetingSignals: TargetingSignals = TargetingSignals()
     private var consentData: ConsentState = ConsentState()
+    private var consentConfigured = false
+
+    @Volatile
+    var lastBidDiagnostics: DKMadsBidDiagnostics? = null
+        private set
 
     /**
      * Initialize the SDK with configuration
@@ -95,6 +100,12 @@ object SSPSDK {
     /**
      * Load an ad for the specified ad unit
      */
+    fun canRequestAds(): Boolean {
+        val cfg = config ?: return false
+        if (cfg.requireConsentBeforeAds) return consentConfigured
+        return true
+    }
+
     suspend fun loadAd(
         context: Context,
         adUnitCode: String,
@@ -105,6 +116,9 @@ object SSPSDK {
         keyValues: Map<String, Any> = emptyMap()
     ): Result<Ad> = withContext(Dispatchers.IO) {
         val cfg = config ?: return@withContext Result.failure(SDKError.NotInitialized)
+        if (!canRequestAds()) {
+            return@withContext Result.failure(SDKError.ConsentRequired)
+        }
 
         telemetryManager.trackEvent(
             type = "ad_request",
@@ -119,10 +133,13 @@ object SSPSDK {
         try {
             refreshCmpConsent(context.applicationContext)
             val request = buildAdRequest(context, adUnitCode, format, sizes, placementCode, placementContext, keyValues)
+            val started = System.currentTimeMillis()
             val response = sendRequest(context, PublicApiPaths.bidURL(cfg.baseUrl), request)
+            val latencyMs = (System.currentTimeMillis() - started).toInt()
 
             val reason = response.optString("reason").takeIf { it.isNotBlank() }
             val requestId = response.optString("request_id").takeIf { it.isNotBlank() }
+            val refreshSec = response.optInt("refresh_interval_sec", -1).takeIf { it >= 0 }
             val adData = response.optJSONObject("winner")
             if (adData != null && adData.length() > 0) {
                 val adm = adData.optString("adm", "")
@@ -164,20 +181,53 @@ object SSPSDK {
                     skipAfterSec = adData.takeIf { it.has("skip_after_sec") }?.optDouble("skip_after_sec")?.takeIf { !it.isNaN() },
                     unitFormat = adData.optString("unit_format").takeIf { it.isNotBlank() },
                     placementContext = adData.optString("placement_context").takeIf { it.isNotBlank() },
+                    refreshIntervalSec = refreshSec,
                 )
 
-                // Served impressions are recorded when the creative is shown (banner/video views), not on bid response.
+                recordBidDiagnostics(adUnitCode, format.name.lowercase(), ad, latencyMs, refreshSec)
                 Result.success(ad)
             } else {
-                Result.success(Ad.empty(reason = reason, requestId = requestId))
+                val empty = Ad.empty(reason = reason, requestId = requestId, refreshIntervalSec = refreshSec)
+                recordBidDiagnostics(adUnitCode, format.name.lowercase(), empty, latencyMs, refreshSec)
+                Result.success(empty)
             }
         } catch (e: Exception) {
             telemetryManager.trackEvent(
                 type = "ad_error",
                 data = mapOf<String, Any?>("error" to (e.message ?: "Unknown error")),
             )
+            recordBidDiagnostics(
+                adUnitCode,
+                format.name.lowercase(),
+                null,
+                null,
+                null,
+                errorMessage = e.message,
+            )
             Result.failure(e)
         }
+    }
+
+    private fun recordBidDiagnostics(
+        adUnitId: String,
+        format: String,
+        ad: Ad?,
+        latencyMs: Int?,
+        refreshSec: Int?,
+        errorMessage: String? = null,
+    ) {
+        lastBidDiagnostics = DKMadsBidDiagnostics(
+            adUnitId = adUnitId,
+            format = format,
+            reason = ad?.reason,
+            requestId = ad?.requestId,
+            dsp = ad?.dsp,
+            price = ad?.price,
+            latencyMs = latencyMs,
+            refreshIntervalSec = refreshSec ?: ad?.refreshIntervalSec,
+            loaded = ad?.hasFill == true,
+            errorMessage = errorMessage,
+        )
     }
 
     /**
@@ -273,6 +323,7 @@ object SSPSDK {
             usPrivacyString ?: consentData.usPrivacyString,
         )
         applicationContext?.let { refreshCmpConsent(it) }
+        consentConfigured = true
         telemetryManager.setConsent(consentData)
         if (config?.debug == true) {
             android.util.Log.d("DKMads SSP", "Consent updated: GDPR=$gdpr, CCPA=$ccpa")
@@ -491,7 +542,7 @@ object SSPSDK {
                 targetingSignals.pageType?.let { put("page_type", it) }
             })
             put("response_format", "json")
-            put("debug", config?.debug == true)
+            put("debug", config?.effectiveDebug == true)
         }
     }
 
@@ -564,8 +615,12 @@ data class Config(
     val propertyId: String? = null,
     val propertyCode: String? = null,
     val debug: Boolean = false,
-    val baseUrl: String = "https://ssp.dkmads.com"
-)
+    val baseUrl: String = "https://ssp.dkmads.com",
+    val requireConsentBeforeAds: Boolean = false,
+    val useTestAds: Boolean = false,
+) {
+    val effectiveDebug: Boolean get() = debug || useTestAds
+}
 
 data class ConsentState(
     val gdpr: Boolean = false,
@@ -601,6 +656,7 @@ enum class AdFormat {
     REWARDED,
     VIDEO,
     AUDIO,
+    SPLASH,
 }
 
 // Ad unit data class
@@ -658,6 +714,7 @@ data class Ad(
     val skipAfterSec: Double? = null,
     val unitFormat: String? = null,
     val placementContext: String? = null,
+    val refreshIntervalSec: Int? = null,
     /** Set after [recordAdImpression] (avoids duplicate on [DKMadsVideoAdView.display] / interstitial). */
     val impressionRecorded: Boolean = false,
 ) {
@@ -693,8 +750,8 @@ data class Ad(
             || creativeUrl.isNotBlank()
 
     companion object {
-        fun empty(reason: String? = null, requestId: String? = null) =
-            Ad("", "", "", 0, 0, reason = reason, requestId = requestId)
+        fun empty(reason: String? = null, requestId: String? = null, refreshIntervalSec: Int? = null) =
+            Ad("", "", "", 0, 0, reason = reason, requestId = requestId, refreshIntervalSec = refreshIntervalSec)
     }
 }
 
@@ -703,7 +760,9 @@ sealed class SDKError : Exception() {
     object NotInitialized : SDKError()
     object NetworkError : SDKError()
     object NoFill : SDKError()
+    object ConsentRequired : SDKError()
+    object AdExpired : SDKError()
 }
 
 // SDK version
-const val SDK_VERSION = "0.4.2"
+const val SDK_VERSION = "0.5.1"

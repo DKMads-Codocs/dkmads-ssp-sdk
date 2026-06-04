@@ -1,6 +1,8 @@
-# SDK contract (v0.3.x)
+# SDK contract (v0.5.x)
 
 Canonical **request, response, and lifecycle** contract for web, iOS, Android, Flutter, and Unity integrations.
+
+All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.1**).
 
 **Use with:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · platform integration guides
 
@@ -46,13 +48,16 @@ Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
 | Targeting signals | `setTargetingSignals(_:)` | `setTargetingSignals(...)` | `setTargetingSignals(map)` | native `SetUserData` | `SSP.setTargetingSignals` |
 | User data | `setUserData(_:)` | `setUserData(map)` | `setUserData(map)` | `SetUserData(json)` | `SSP.setUser` |
 | FPD profile sync | `syncFirstPartyProfile` | `syncFirstPartyProfile` | `syncFirstPartyProfile` | — | `sendFirstPartyData` / `collectFirstParty` |
-| Banner UI + metrics | `DKMadsBannerAdView` | `DKMadsBannerAdView` | `loadBanner` only* | — | `SSP.bind` |
-| Video metrics | `DKMadsVideoAdController` | `DKMadsVideoAdController` | `trackVideoLifecycle` | `TrackVideoLifecycle` | `SSP.bindVideo` |
-| Audio metrics | manual events | manual events | manual events | manual events | `SSP.bindAudio` |
-| Load ad (raw) | `loadAd(...)` | `loadAd(...)` | `loadBanner(...)` | `LoadAd` Android | `SSP.requestAd` |
+| Banner UI + metrics | `DKMadsBannerAdView` | `DKMadsBannerAdView` | `DkmadsBannerAd` widget | — | `SSP.bind` |
+| Interstitial UI | `DKMadsInterstitialAd` | `DKMadsInterstitialAd` | `loadInterstitial` + `showInterstitial` | `LoadInterstitial` + `ShowInterstitial` | `SSP.displayInterstitial` |
+| App open (splash) | `DKMadsAppOpenAd` | `DKMadsAppOpenAd` | `loadAppOpen` + `showAppOpen` | `LoadAppOpen` + `ShowAppOpen` | `SSP.displaySplash` |
+| Ad Inspector | `DKMadsMobileAds.presentAdInspector` | `DKMadsAdInspector` | `presentAdInspector` | `PresentAdInspector` | `SSP.lastBidDiagnostics` |
+| Consent gate | `canRequestAds()` | `canRequestAds()` | via native | via native | `SSP.canRequestAds()` |
+| Native assets | `DKMadsNativeAdAssets` | `DKMadsNativeAdAssets` | `loadNative` fields | `LoadNative` JSON | `winner.native_assets` / auto native card |
+| Video metrics | `DKMadsVideoAdController` | `DKMadsVideoAdView` | `trackVideoLifecycle` | `EmitVideoEvent` | `SSP.bindVideo` |
+| Audio metrics | `DKMadsAudioAdView` / events | `DKMadsAudioAdView` | manual events | manual events | `SSP.bindAudio` |
+| Load ad (raw) | `loadAd(...)` | `loadAd(...)` | `loadBanner(...)` | `LoadAd` / `LoadAdWithFormat` | `SSP.requestAd` |
 | App events | `trackUserEvent(...)` | `trackUserEvent(...)` | `trackUserEvent(...)` | `TrackUserEvent` | `SSP.track` |
-
-\*Flutter has no `PlatformView` banner viewability yet; use native views or forward events manually.
 
 ## Standard request object
 

@@ -4,6 +4,8 @@ import android.app.Activity
 import com.dkmads.ssp.Ad
 import com.dkmads.ssp.AdFormat
 import com.dkmads.ssp.Config
+import com.dkmads.ssp.DKMadsAdInspector
+import com.dkmads.ssp.DKMadsAppOpenAd
 import com.dkmads.ssp.DKMadsInterstitialActivity
 import com.dkmads.ssp.DKMadsInterstitialAd
 import com.dkmads.ssp.DKMadsResponseInfo
@@ -11,11 +13,16 @@ import com.dkmads.ssp.DKMadsRewardedAd
 import com.dkmads.ssp.SSPSDK
 import com.dkmads.ssp.TargetingSignals
 import com.dkmads.ssp.TelemetryManager
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 
 object DKMadsUnityBridge {
   private val pendingInterstitialAds = mutableMapOf<String, Ad>()
+  private val pendingAppOpenAds = mutableMapOf<String, DKMadsAppOpenAd>()
   private val pendingRewardedAds = mutableMapOf<String, DKMadsRewardedAd>()
 
   @JvmStatic
@@ -38,6 +45,7 @@ object DKMadsUnityBridge {
       "video" -> AdFormat.VIDEO
       "rewarded" -> AdFormat.REWARDED
       "audio" -> AdFormat.AUDIO
+      "splash" -> AdFormat.SPLASH
       else -> AdFormat.BANNER
     }
     val sizes = mutableListOf<Pair<Int, Int>>()
@@ -166,6 +174,41 @@ object DKMadsUnityBridge {
   }
 
   @JvmStatic
+  fun loadAppOpen(activity: Activity, adUnitId: String): String = runBlocking {
+    val deferred = CompletableDeferred<JSONObject>()
+    val appOpen = DKMadsAppOpenAd(adUnitId).apply {
+      listener = object : DKMadsAppOpenAd.Listener {
+        override fun onAdLoaded(appOpen: DKMadsAppOpenAd, ad: Ad, responseInfo: DKMadsResponseInfo) {
+          pendingAppOpenAds[adUnitId] = appOpen
+          val payload = JSONObject()
+          payload.putFromAd(ad)
+          deferred.complete(payload)
+        }
+        override fun onAdFailed(appOpen: DKMadsAppOpenAd, message: String, responseInfo: DKMadsResponseInfo?) {
+          deferred.complete(
+            JSONObject().apply {
+              put("success", false)
+              put("reason", message)
+            },
+          )
+        }
+      }
+    }
+    appOpen.load(activity.applicationContext)
+    deferred.await().toString()
+  }
+
+  @JvmStatic
+  fun showAppOpen(activity: Activity, adUnitId: String) {
+    pendingAppOpenAds[adUnitId]?.show(activity)
+  }
+
+  @JvmStatic
+  fun presentAdInspector(activity: Activity) {
+    DKMadsAdInspector.present(activity)
+  }
+
+  @JvmStatic
   fun loadRewarded(activity: Activity, adUnitId: String, width: Int, height: Int): String =
     runBlocking {
       val rewarded = DKMadsRewardedAd(adUnitId).apply {
@@ -210,9 +253,10 @@ object DKMadsUnityBridge {
         "video" -> AdFormat.VIDEO
         "rewarded" -> AdFormat.REWARDED
         "audio" -> AdFormat.AUDIO
+        "splash" -> AdFormat.SPLASH
         else -> AdFormat.BANNER
       }
-      val sizes = if (formatEnum == AdFormat.INTERSTITIAL) {
+      val sizes = if (formatEnum == AdFormat.INTERSTITIAL || formatEnum == AdFormat.SPLASH) {
         DKMadsInterstitialAd.bidSizes(adUnitId, width, height)
       } else {
         listOf(width to height)
@@ -233,6 +277,13 @@ object DKMadsUnityBridge {
         },
       )
       payload.toString()
+    }
+  }
+
+  @JvmStatic
+  fun syncFirstPartyProfile(activity: Activity, appBundle: String?) {
+    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+      SSPSDK.syncFirstPartyProfile(activity.applicationContext, appBundle)
     }
   }
 

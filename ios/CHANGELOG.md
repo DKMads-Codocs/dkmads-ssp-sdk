@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.1
+
+- `DKMadsNativeAd` + `DKMadsNativeAdAssets` (`Ad.nativeAssets`); `DKMadsAdCachePolicy` fullscreen expiry.
+- `DKMadsAppOpenAd` (splash), Ad Inspector v2, `DKMadsAdError.adExpired`.
+- Flutter `loadNative` bridge returns native asset fields from bid payload.
+
+## 0.5.0
+
+- Ad Inspector, `DKMadsAdSize` adaptive helpers, iOS native/audio views, unified fullscreen delegate.
+- ObjC bridges for `loadAd`, consent, targeting, FPD; bid `refresh_interval_sec` on banners.
+- Flutter/Unity 0.5.0: banner PlatformView, Unity video events + FPD sync.
+
 ## 0.4.2
 
 - Version aligned with Android `0.4.2` for unified publisher releases (`sdk-0.4.2`).

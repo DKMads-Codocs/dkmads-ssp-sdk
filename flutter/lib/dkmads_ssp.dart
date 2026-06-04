@@ -37,6 +37,11 @@ class DkmadsAdResult {
     this.skipAfterSec,
     this.unitFormat,
     this.placementContext,
+    this.headline,
+    this.body,
+    this.callToAction,
+    this.advertiser,
+    this.iconUrl,
   });
 
   final bool success;
@@ -65,6 +70,11 @@ class DkmadsAdResult {
   final double? skipAfterSec;
   final String? unitFormat;
   final String? placementContext;
+  final String? headline;
+  final String? body;
+  final String? callToAction;
+  final String? advertiser;
+  final String? iconUrl;
 
   bool get hasFill => success;
 
@@ -97,6 +107,11 @@ class DkmadsAdResult {
       skipAfterSec: (map['skipAfterSec'] as num?)?.toDouble(),
       unitFormat: map['unitFormat'] as String?,
       placementContext: map['placementContext'] as String?,
+      headline: map['headline'] as String?,
+      body: map['body'] as String?,
+      callToAction: map['callToAction'] as String?,
+      advertiser: map['advertiser'] as String?,
+      iconUrl: map['iconUrl'] as String?,
     );
   }
 }
@@ -210,6 +225,24 @@ class DkmadsSsp {
   }
 
   /// Loads a banner via native SDK (`/api/public/v1/bid`).
+  /// Loads native format; use returned fields or build custom UI from headline/imageUrl/cta.
+  static Future<DkmadsAdResult> loadNative({
+    required String adUnitId,
+    int width = 320,
+    int height = 50,
+    String? placementCode,
+    String? placementContext,
+  }) async {
+    final raw = await _channel.invokeMethod<dynamic>('loadNative', {
+      'adUnitId': adUnitId,
+      'width': width,
+      'height': height,
+      'placementCode': placementCode,
+      'placementContext': placementContext,
+    });
+    return DkmadsAdResult.fromMap(raw as Map<dynamic, dynamic>?);
+  }
+
   static Future<DkmadsAdResult> loadBanner({
     required String adUnitId,
     int width = 300,
@@ -248,6 +281,30 @@ class DkmadsSsp {
   /// Presents a loaded interstitial using native fullscreen UI (call after [loadInterstitial] success).
   static Future<void> showInterstitial({required String adUnitId}) async {
     await _channel.invokeMethod('showInterstitial', {'adUnitId': adUnitId});
+  }
+
+  /// Loads app open / splash (dashboard format **splash**).
+  static Future<DkmadsAdResult> loadAppOpen({
+    required String adUnitId,
+    String? placementCode,
+    String? placementContext,
+  }) async {
+    final raw = await _channel.invokeMethod<dynamic>('loadAppOpen', {
+      'adUnitId': adUnitId,
+      'placementCode': placementCode,
+      'placementContext': placementContext,
+    });
+    return DkmadsAdResult.fromMap(raw as Map<dynamic, dynamic>?);
+  }
+
+  /// Presents a loaded app open ad (call after [loadAppOpen] success).
+  static Future<void> showAppOpen({required String adUnitId}) async {
+    await _channel.invokeMethod('showAppOpen', {'adUnitId': adUnitId});
+  }
+
+  /// Full-screen Ad Inspector (last bid diagnostics).
+  static Future<void> presentAdInspector() async {
+    await _channel.invokeMethod('presentAdInspector');
   }
 
   static Future<DkmadsAdResult> loadRewarded({
@@ -346,6 +403,47 @@ class DkmadsSsp {
 }
 
 /// Native instream ad overlay (Android/iOS [DKMadsInstreamAdsLoader]).
+/// Embedded native banner with automatic viewability (iOS/Android PlatformView).
+class DkmadsBannerAd extends StatelessWidget {
+  const DkmadsBannerAd({
+    super.key,
+    required this.adUnitId,
+    this.width = 300,
+    this.height = 250,
+    this.autoLoad = true,
+  });
+
+  final String adUnitId;
+  final int width;
+  final int height;
+  final bool autoLoad;
+
+  @override
+  Widget build(BuildContext context) {
+    final params = <String, dynamic>{
+      'adUnitId': adUnitId,
+      'width': width,
+      'height': height,
+      'autoLoad': autoLoad,
+    };
+    if (!kIsWeb && Platform.isAndroid) {
+      return AndroidView(
+        viewType: 'dkmads_banner',
+        creationParams: params,
+        creationParamsCodec: const StandardMessageCodec(),
+      );
+    }
+    if (!kIsWeb && Platform.isIOS) {
+      return UiKitView(
+        viewType: 'dkmads_banner',
+        creationParams: params,
+        creationParamsCodec: const StandardMessageCodec(),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
 class DkmadsInstreamAd extends StatefulWidget {
   const DkmadsInstreamAd({
     super.key,

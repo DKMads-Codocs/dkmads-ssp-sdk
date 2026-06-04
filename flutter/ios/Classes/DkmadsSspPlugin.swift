@@ -4,6 +4,7 @@ import UIKit
 public class DkmadsSspPlugin: NSObject, FlutterPlugin {
   private var activeVideoUnits = Set<String>()
   private var interstitials: [String: DKMadsInterstitialAd] = [:]
+  private var appOpenAds: [String: DKMadsAppOpenAd] = [:]
   private var rewardedAds: [String: DKMadsRewardedAd] = [:]
   private var channel: FlutterMethodChannel?
 
@@ -55,6 +56,10 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
       instance.sendInstreamEvent(viewId: viewId, event: event, payload: payload)
     }
     registrar.register(factory, withId: "dkmads_instream")
+    registrar.register(
+      DkmadsBannerViewFactory(),
+      withId: "dkmads_banner"
+    )
   }
 
   private func sendInstreamEvent(viewId: Int64, event: String, payload: [String: Any]) {
@@ -175,6 +180,43 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
       }
       SSPSDK.shared.registerAdUnit(code: adUnitId, format: format, sizes: sizes)
       result(nil)
+    case "loadNative":
+      guard
+        let args = call.arguments as? [String: Any],
+        let adUnitId = args["adUnitId"] as? String,
+        !adUnitId.isEmpty
+      else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "adUnitId is required", details: nil))
+        return
+      }
+      let width = (args["width"] as? NSNumber)?.doubleValue ?? 320
+      let height = (args["height"] as? NSNumber)?.doubleValue ?? 50
+      SSPSDK.shared.loadAd(
+        code: adUnitId,
+        format: .native,
+        sizes: [CGSize(width: width, height: height)],
+        placementCode: args["placementCode"] as? String,
+        placementContext: args["placementContext"] as? String
+      ) { [weak self] loadResult in
+        guard let self else { return }
+        switch loadResult {
+        case .success(let response):
+          if let ad = response.ad {
+            var payload = self.adPayload(from: ad, success: response.success, reason: response.reason, requestId: response.requestId, dsp: response.dsp, price: response.price?.doubleValue)
+            let assets = ad.nativeAssets
+            payload["headline"] = assets.headline as Any
+            payload["body"] = assets.body as Any
+            payload["callToAction"] = assets.callToAction as Any
+            payload["advertiser"] = assets.advertiser as Any
+            payload["iconUrl"] = assets.iconUrl as Any
+            result(payload)
+          } else {
+            result(["success": response.success, "reason": response.reason as Any])
+          }
+        case .failure(let error):
+          result(["success": false, "reason": error.localizedDescription])
+        }
+      }
     case "loadBanner":
       guard
         let args = call.arguments as? [String: Any],
@@ -282,6 +324,64 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
         return
       }
       interstitial.present(from: root)
+      result(nil)
+    case "loadAppOpen":
+      guard
+        let args = call.arguments as? [String: Any],
+        let adUnitId = args["adUnitId"] as? String,
+        !adUnitId.isEmpty
+      else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "adUnitId is required", details: nil))
+        return
+      }
+      var request = DKMadsAdRequest()
+      request.placementCode = args["placementCode"] as? String
+      request.placementContext = args["placementContext"] as? String
+      DKMadsAppOpenAd.load(adUnitID: adUnitId, request: request) { [weak self] appOpen, error in
+        guard let self else { return }
+        if let error {
+          result(["success": false, "reason": error.localizedDescription])
+          return
+        }
+        guard let appOpen, let ad = appOpen.loadedAd else {
+          result(["success": false, "reason": "no_fill"])
+          return
+        }
+        self.appOpenAds[adUnitId] = appOpen
+        result(self.adPayload(
+          from: ad,
+          success: ad.hasFill,
+          reason: "won",
+          requestId: appOpen.responseInfo?.requestId,
+          dsp: appOpen.responseInfo?.dsp,
+          price: appOpen.responseInfo?.price?.doubleValue
+        ))
+      }
+    case "showAppOpen":
+      guard
+        let args = call.arguments as? [String: Any],
+        let adUnitId = args["adUnitId"] as? String,
+        !adUnitId.isEmpty
+      else {
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "adUnitId is required", details: nil))
+        return
+      }
+      guard let appOpen = appOpenAds[adUnitId], appOpen.loadedAd != nil else {
+        result(FlutterError(code: "NOT_LOADED", message: "Call loadAppOpen first", details: nil))
+        return
+      }
+      guard let root = topViewController() else {
+        result(FlutterError(code: "NO_ROOT_VC", message: "No root view controller", details: nil))
+        return
+      }
+      appOpen.present(from: root)
+      result(nil)
+    case "presentAdInspector":
+      guard let root = topViewController() else {
+        result(FlutterError(code: "NO_ROOT_VC", message: "No root view controller", details: nil))
+        return
+      }
+      DKMadsMobileAds.shared.presentAdInspector(from: root)
       result(nil)
     case "loadRewarded":
       guard

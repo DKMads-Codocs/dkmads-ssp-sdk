@@ -14,6 +14,7 @@ import Foundation
     @objc public var impressionRecorded = false
     @objc public let html5EntryUrl: String?
     @objc public let videoUrl: String?
+    @objc public let audioUrl: String?
     @objc public let deliveryType: String?
     @objc public let creativeType: String?
     @objc public let videoTemplate: String?
@@ -26,7 +27,10 @@ import Foundation
     @objc public let unitFormat: String?
     @objc public let placementContext: String?
 
+    private let bidPayload: [String: Any]
+
     public init(from dictionary: [String: Any]) {
+        self.bidPayload = dictionary
         let meta = dictionary["meta"] as? [String: Any]
         self.adm = dictionary["adm"] as? String
         self.deliveryType = (dictionary["delivery_type"] as? String)?
@@ -36,6 +40,8 @@ import Foundation
         self.html5EntryUrl = (dictionary["html5_entry_url"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         self.videoUrl = (dictionary["video_url"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        self.audioUrl = (dictionary["audio_url"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         self.creativeUrl = Ad.resolveCreativeUrl(from: dictionary, meta: meta)
         var resolvedId = (dictionary["id"] as? String)
@@ -83,11 +89,25 @@ import Foundation
         self.placementContext = context.isEmpty ? nil : context
     }
 
+    @objc public var nativeAssets: DKMadsNativeAdAssets {
+        DKMadsNativeAdAssets.from(dictionary: bidPayload)
+    }
+
     @objc public var hasFill: Bool {
         isHTML5
             || isVideo
+            || (isAudio && (!(audioUrl ?? "").isEmpty || !(adm?.isEmpty ?? true)))
             || !(adm?.isEmpty ?? true)
             || !creativeUrl.isEmpty
+    }
+
+    @objc public var isAudio: Bool {
+        if isHTML5 || isVideo { return false }
+        let dt = (deliveryType ?? creativeType ?? unitFormat ?? "").lowercased()
+        if dt == "audio" { return true }
+        if let audioUrl, !audioUrl.isEmpty { return true }
+        if let adm, adm.lowercased().contains("<audio") { return true }
+        return false
     }
 
     @objc public var isHTML5: Bool {

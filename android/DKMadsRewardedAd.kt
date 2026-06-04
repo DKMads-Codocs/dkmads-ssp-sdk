@@ -12,9 +12,9 @@ import kotlinx.coroutines.launch
  * Rewards are granted only when video playback completes without skip/close.
  */
 class DKMadsRewardedAd(
-    val adUnitId: String,
+    override val adUnitId: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob()),
-) {
+) : DKMadsFullScreenPresenting {
     interface Listener {
         fun onAdLoaded(rewarded: DKMadsRewardedAd, ad: Ad, responseInfo: DKMadsResponseInfo) {}
         fun onAdFailed(rewarded: DKMadsRewardedAd, message: String, responseInfo: DKMadsResponseInfo?) {}
@@ -24,9 +24,11 @@ class DKMadsRewardedAd(
     }
 
     var listener: Listener? = null
+    var fullScreenContentCallback: DKMadsFullScreenContentCallback? = null
     var loadedAd: Ad? = null
         private set
-    var responseInfo: DKMadsResponseInfo? = null
+    private var loadedAt: java.util.Date? = null
+    override var responseInfo: DKMadsResponseInfo? = null
         private set
 
     var adWidth: Int = 0
@@ -62,6 +64,7 @@ class DKMadsRewardedAd(
                         return@fold
                     }
                     loadedAd = ad
+                    loadedAt = java.util.Date()
                     listener?.onAdLoaded(this@DKMadsRewardedAd, ad, info)
                 },
                 onFailure = { err ->
@@ -77,14 +80,28 @@ class DKMadsRewardedAd(
             listener?.onAdFailed(this, "no_fill", responseInfo)
             return
         }
+        if (DKMadsAdCachePolicy.isExpired(loadedAt, AdFormat.REWARDED)) {
+            listener?.onAdFailed(this, "ad_expired", responseInfo)
+            fullScreenContentCallback?.onAdFailedToShowFullScreenContent("ad_expired")
+            return
+        }
         DKMadsInterstitialActivity.present(
             context = context,
             adUnitId = adUnitId,
             ad = ad,
             callbacks = DKMadsInterstitialActivity.Callbacks(
-                onPresented = { listener?.onAdPresented(this@DKMadsRewardedAd) },
-                onDismissed = { listener?.onAdDismissed(this@DKMadsRewardedAd) },
-                onRenderFailed = { msg -> listener?.onAdFailed(this@DKMadsRewardedAd, msg, responseInfo) },
+                onPresented = {
+                    listener?.onAdPresented(this@DKMadsRewardedAd)
+                    fullScreenContentCallback?.onAdShowedFullScreenContent()
+                },
+                onDismissed = {
+                    listener?.onAdDismissed(this@DKMadsRewardedAd)
+                    fullScreenContentCallback?.onAdDismissedFullScreenContent()
+                },
+                onRenderFailed = { msg ->
+                    listener?.onAdFailed(this@DKMadsRewardedAd, msg, responseInfo)
+                    fullScreenContentCallback?.onAdFailedToShowFullScreenContent(msg)
+                },
                 onCompleted = { skipped ->
                     if (!skipped) listener?.onUserEarnedReward(this@DKMadsRewardedAd)
                 },

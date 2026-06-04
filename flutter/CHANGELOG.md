@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.1
+
+- `loadNative` + `DkmadsAdResult` headline/body/callToAction/iconUrl fields.
+- `loadAppOpen`, `showAppOpen`, `presentAdInspector` (native bridges).
+- Tracks native SDK 0.5.1.
+
+## 0.5.0
+
+- `DkmadsBannerAd` embedded banner PlatformView (auto viewability).
+- Tracks native SDK 0.5.0.
+
 ## 0.2.0
 
 - Added `loadInterstitial`, `showInterstitial`, and `registerAdUnit` (native `DKMadsInterstitialAd` on iOS/Android).

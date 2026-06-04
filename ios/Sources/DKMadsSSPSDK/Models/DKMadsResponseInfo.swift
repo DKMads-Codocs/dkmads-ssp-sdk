@@ -51,6 +51,7 @@ import Foundation
     @objc public let price: NSNumber?
     @objc public let responseInfo: DKMadsResponseInfo
     public let latencyMs: Int?
+    @objc public let refreshIntervalSec: NSNumber?
 
     public init(
         success: Bool,
@@ -59,7 +60,8 @@ import Foundation
         requestId: String? = nil,
         dsp: String? = nil,
         price: Double? = nil,
-        latencyMs: Int? = nil
+        latencyMs: Int? = nil,
+        refreshIntervalSec: Int? = nil
     ) {
         self.success = success
         self.ad = ad
@@ -68,6 +70,7 @@ import Foundation
         self.dsp = dsp
         self.price = price.map { NSNumber(value: $0) }
         self.latencyMs = latencyMs
+        self.refreshIntervalSec = refreshIntervalSec.map { NSNumber(value: $0) }
         self.responseInfo = DKMadsResponseInfo(
             reason: reason,
             requestId: requestId,

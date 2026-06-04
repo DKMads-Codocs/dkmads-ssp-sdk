@@ -11,11 +11,13 @@ import UIKit
 
 /// Production rewarded presenter: reward is granted only on full completion (not skip/close).
 @objc(DKMadsRewardedAd)
-public final class DKMadsRewardedAd: NSObject {
+public final class DKMadsRewardedAd: NSObject, DKMadsFullScreenPresenting {
     @objc public weak var delegate: DKMadsRewardedAdDelegate?
+    @objc public weak var fullScreenContentDelegate: DKMadsFullScreenContentDelegate?
     @objc public let adUnitID: String
     @objc public private(set) var responseInfo: DKMadsResponseInfo?
     @objc public private(set) var loadedAd: Ad?
+    private var loadedAt: Date?
 
     private var presenter: DKMadsRewardedPresenter?
 
@@ -55,6 +57,7 @@ public final class DKMadsRewardedAd: NSObject {
                     return
                 }
                 self.loadedAd = ad
+                self.loadedAt = Date()
                 self.delegate?.rewardedAdDidReceiveAd?(self)
                 completion?(self, nil)
             case .failure(let error):
@@ -69,22 +72,31 @@ public final class DKMadsRewardedAd: NSObject {
             delegate?.rewardedAd?(self, didFailToReceiveAdWithError: DKMadsAdError.noFill.nsError())
             return
         }
+        if DKMadsAdCachePolicy.isExpired(loadedAt: loadedAt, format: .rewarded) {
+            let err = DKMadsAdError.adExpired.nsError()
+            delegate?.rewardedAd?(self, didFailToReceiveAdWithError: err)
+            fullScreenContentDelegate?.ad?(self, didFailToPresentFullScreenContentWithError: err)
+            return
+        }
         let vc = DKMadsRewardedPresenter(adUnitID: adUnitID, ad: loadedAd)
         vc.onDismiss = { [weak self] in
             guard let self else { return }
             self.presenter = nil
             self.delegate?.rewardedAdDidDismiss?(self)
+            self.fullScreenContentDelegate?.adDidDismissFullScreenContent?(self)
         }
         vc.onFailed = { [weak self] error in
             guard let self else { return }
             self.presenter = nil
             self.delegate?.rewardedAd?(self, didFailToReceiveAdWithError: error)
+            self.fullScreenContentDelegate?.ad?(self, didFailToPresentFullScreenContentWithError: error)
         }
         vc.onReward = { [weak self] in
             guard let self else { return }
             self.delegate?.rewardedAdDidEarnReward?(self)
         }
         presenter = vc
+        fullScreenContentDelegate?.adWillPresentFullScreenContent?(self)
         rootViewController.present(vc, animated: true) { [weak self] in
             guard let self else { return }
             self.delegate?.rewardedAdDidPresent?(self)

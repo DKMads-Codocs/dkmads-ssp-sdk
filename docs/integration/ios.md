@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| **Version** | `0.4.2` |
-| **Release tag** | `sdk-0.4.2` |
+| |**Version** | `0.5.1` |
+| **Release tag** | `sdk-0.5.1` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.4.2',
+    :tag => 'sdk-0.5.1',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -145,6 +145,25 @@ Delegate callback to grant reward: `rewardedAdDidEarnReward`.
 Delegate: `interstitialAdDidReceiveAd`, `interstitialAdDidPresent`, `interstitialAdDidDismiss`, `interstitialAd(_:didFailToReceiveAdWithError:)`.
 
 ObjC: `+[DKMadsInterstitialAd loadInterstitialWithAdUnitID:request:completion:]` then `presentFromRootViewController:`.
+
+## 2e) App open (splash)
+
+Create an ad unit with dashboard format **splash**, then:
+
+```swift
+DKMadsAppOpenAd.load(adUnitID: "YOUR_SPLASH_AD_UNIT_UUID") { ad, error in
+  guard let ad = ad else { return }
+  ad.present(from: self) // on cold start or resume
+}
+```
+
+## Ad Inspector
+
+```swift
+DKMadsMobileAds.shared.presentAdInspector(from: self)
+```
+
+Shows the last bid (request id, reason, latency) and troubleshooting hints in a full-screen sheet.
 
 ## 3) Manual load API (advanced)
 

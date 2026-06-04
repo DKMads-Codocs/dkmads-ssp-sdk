@@ -1,4 +1,4 @@
-# DKMads SSP iOS SDK (v0.4.2)
+# DKMads SSP iOS SDK (v0.5.1)
 
 Production-oriented iOS SDK kit for DKMads SSP integration.
 
@@ -78,7 +78,7 @@ See [docs/TARGETING_SIGNALS.md](../../docs/TARGETING_SIGNALS.md).
 ## Video / instream (drop-in)
 
 ```swift
-// Option A — AdMob-style view (recommended)
+// Option A — DKMads view class (recommended)
 let videoView = DKMadsVideoAdView(adUnitID: videoUnitUUID, frame: adFrame)
 videoView.delegate = self
 parentView.addSubview(videoView)

@@ -15,9 +15,9 @@ import kotlinx.coroutines.launch
  * Bid sizes use explicit `adWidth`×`adHeight`, then [SSPSDK.registeredSizes], then **320×480** (not display pixels).
  */
 class DKMadsInterstitialAd(
-    val adUnitId: String,
+    override val adUnitId: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob()),
-) {
+) : DKMadsFullScreenPresenting {
     interface Listener {
         fun onAdLoaded(interstitial: DKMadsInterstitialAd, ad: Ad, responseInfo: DKMadsResponseInfo) {}
         fun onAdFailed(interstitial: DKMadsInterstitialAd, message: String, responseInfo: DKMadsResponseInfo?) {}
@@ -26,9 +26,11 @@ class DKMadsInterstitialAd(
     }
 
     var listener: Listener? = null
+    var fullScreenContentCallback: DKMadsFullScreenContentCallback? = null
     var loadedAd: Ad? = null
         private set
-    var responseInfo: DKMadsResponseInfo? = null
+    private var loadedAt: java.util.Date? = null
+    override var responseInfo: DKMadsResponseInfo? = null
         private set
 
     var adWidth: Int = 0
@@ -65,6 +67,7 @@ class DKMadsInterstitialAd(
                         return@fold
                     }
                     loadedAd = ad
+                    loadedAt = java.util.Date()
                     listener?.onAdLoaded(this@DKMadsInterstitialAd, ad, info)
                 },
                 onFailure = { err ->
@@ -81,14 +84,28 @@ class DKMadsInterstitialAd(
             listener?.onAdFailed(this, "no_fill", responseInfo)
             return
         }
+        if (DKMadsAdCachePolicy.isExpired(loadedAt, AdFormat.INTERSTITIAL)) {
+            listener?.onAdFailed(this, "ad_expired", responseInfo)
+            fullScreenContentCallback?.onAdFailedToShowFullScreenContent("ad_expired")
+            return
+        }
         DKMadsInterstitialActivity.present(
             context = context,
             adUnitId = adUnitId,
             ad = ad,
             callbacks = DKMadsInterstitialActivity.Callbacks(
-                onPresented = { listener?.onAdPresented(this@DKMadsInterstitialAd) },
-                onDismissed = { listener?.onAdDismissed(this@DKMadsInterstitialAd) },
-                onRenderFailed = { msg -> listener?.onAdFailed(this@DKMadsInterstitialAd, msg, responseInfo) },
+                onPresented = {
+                    listener?.onAdPresented(this@DKMadsInterstitialAd)
+                    fullScreenContentCallback?.onAdShowedFullScreenContent()
+                },
+                onDismissed = {
+                    listener?.onAdDismissed(this@DKMadsInterstitialAd)
+                    fullScreenContentCallback?.onAdDismissedFullScreenContent()
+                },
+                onRenderFailed = { msg ->
+                    listener?.onAdFailed(this@DKMadsInterstitialAd, msg, responseInfo)
+                    fullScreenContentCallback?.onAdFailedToShowFullScreenContent(msg)
+                },
             ),
         )
     }

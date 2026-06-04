@@ -17,8 +17,50 @@ Add the Android library **`com.dkmads.ssp:ssp-android`** to your Gradle project.
 
 | | |
 |---|---|
-| **Coordinates** | `com.dkmads.ssp:ssp-android:0.4.2` |
+| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.1` |
 | **Repository** | [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) |
+
+### Install from GitHub Packages (recommended)
+
+DKMads publishes release AARs to **GitHub Packages**. Use a [classic PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) with `read:packages`.
+
+**`settings.gradle.kts`**:
+
+```kotlin
+dependencyResolutionManagement {
+  repositories {
+    google()
+    mavenCentral()
+    maven {
+      url = uri("https://maven.pkg.github.com/DKMads-Codocs/dkmads-ssp-sdk")
+      credentials {
+        username = providers.gradleProperty("gpr.user").get()
+        password = providers.gradleProperty("gpr.key").get()
+      }
+    }
+  }
+}
+```
+
+**`gradle.properties`** (do not commit tokens):
+
+```properties
+gpr.user=YOUR_GITHUB_USERNAME
+gpr.key=YOUR_GITHUB_PAT
+```
+
+**`app/build.gradle.kts`**:
+
+```kotlin
+dependencies {
+  implementation("com.dkmads.ssp:ssp-android:0.5.1")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+}
+```
+
+**Publish a new release** (maintainers): from `sdk/android-module`, set `GITHUB_ACTOR` and `GITHUB_TOKEN`, then run `scripts/publish-android-sdk-github.sh`.
+
+**Quickstart sample:** copy [`sdk/android/sample/MainActivity.kt`](../../sdk/android/sample/MainActivity.kt) into your app.
 
 ### Build from source (Maven local repository)
 
@@ -48,7 +90,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.4.2")
+  implementation("com.dkmads.ssp:ssp-android:0.5.1")
 }
 ```
 
@@ -65,11 +107,11 @@ Point the `maven { url = … }` repository at `vendor/dkmads-ssp-sdk/android-mod
 
 ### Prebuilt AAR (enterprise distribution)
 
-When DKMads provides `ssp-android-0.4.2.aar`, add it under `app/libs/`:
+When DKMads provides `ssp-android-0.5.1.aar`, add it under `app/libs/`:
 
 ```kotlin
 dependencies {
-  implementation(files("libs/ssp-android-0.4.2.aar"))
+  implementation(files("libs/ssp-android-0.5.1.aar"))
 }
 ```
 
@@ -230,6 +272,29 @@ val rewarded = DKMadsRewardedAd("YOUR_REWARDED_AD_UNIT_UUID").apply {
 }
 rewarded.load(this)
 ```
+
+## App open (splash)
+
+Create an ad unit with dashboard format **splash**, then:
+
+```kotlin
+val appOpen = DKMadsAppOpenAd("YOUR_SPLASH_AD_UNIT_UUID").apply {
+  listener = object : DKMadsAppOpenAd.Listener {
+    override fun onAdLoaded(appOpen: DKMadsAppOpenAd, ad: Ad, responseInfo: DKMadsResponseInfo) {
+      appOpen.show(this@MainActivity)
+    }
+  }
+}
+appOpen.load(this)
+```
+
+## Ad Inspector
+
+```kotlin
+DKMadsAdInspector.present(this)
+```
+
+Full-screen view of `SSPSDK.lastBidDiagnostics` (request id, reason, latency) plus troubleshooting hints.
 
 ### Manual load API
 

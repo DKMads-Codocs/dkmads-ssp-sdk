@@ -24,6 +24,7 @@ import AVFoundation
 
     private var viewabilityObservers: [String: ViewabilityObserver] = [:]
     private var videoTrackers: [String: VideoTracker] = [:]
+    private var audioTrackers: [String: AudioTracker] = [:]
 
     private override init() {
         super.init()
@@ -200,6 +201,43 @@ import AVFoundation
 
     public func markVideoUserSkipped(adUnitId: String) {
         videoTrackers[adUnitId]?.markUserSkipped()
+    }
+
+    // MARK: - Built-in Audio
+
+    public func trackAudioAd(
+        adUnitId: String,
+        campaignId: String?,
+        creativeId: String?,
+        player: AVPlayer,
+        eventListener: ((String, [String: Any]) -> Void)? = nil
+    ) {
+        stopAudioTracking(adUnitId: adUnitId)
+        let tracker = AudioTracker(
+            adUnitId: adUnitId,
+            campaignId: campaignId,
+            creativeId: creativeId,
+            player: player
+        )
+        tracker.onAudioStart = { [weak self] meta in
+            self?.trackEvent(type: "audio_start", data: meta)
+            eventListener?("audio_start", meta)
+        }
+        tracker.onQuartileReached = { [weak self] q, meta in
+            self?.trackEvent(type: "audio_\(q)", data: meta)
+            eventListener?("audio_\(q)", meta)
+        }
+        tracker.onAudioComplete = { [weak self] meta in
+            self?.trackEvent(type: "audio_100", data: meta)
+            eventListener?("audio_100", meta)
+        }
+        audioTrackers[adUnitId] = tracker
+        tracker.start()
+    }
+
+    public func stopAudioTracking(adUnitId: String) {
+        audioTrackers[adUnitId]?.stop()
+        audioTrackers.removeValue(forKey: adUnitId)
     }
 
     // MARK: - Built-in Fraud detection
@@ -565,6 +603,78 @@ public final class VideoTracker {
             }
         } else {
             videoRunStart = 0
+        }
+    }
+}
+
+// MARK: - Audio quartile tracker
+
+private final class AudioTracker {
+    let adUnitId: String
+    let campaignId: String?
+    let creativeId: String?
+    weak var player: AVPlayer?
+    var onAudioStart: (([String: Any]) -> Void)?
+    var onQuartileReached: ((Int, [String: Any]) -> Void)?
+    var onAudioComplete: (([String: Any]) -> Void)?
+
+    private var timer: Timer?
+    private var started = false
+    private var completed = false
+    private var reached = Set<Int>()
+
+    init(adUnitId: String, campaignId: String?, creativeId: String?, player: AVPlayer) {
+        self.adUnitId = adUnitId
+        self.campaignId = campaignId
+        self.creativeId = creativeId
+        self.player = player
+    }
+
+    func start() {
+        stop()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func baseMeta() -> [String: Any] {
+        let item = player?.currentItem
+        let dur = CMTimeGetSeconds(item?.duration ?? .zero)
+        let pos = CMTimeGetSeconds(item?.currentTime() ?? .zero)
+        return [
+            "ad_unit_id": adUnitId,
+            "campaign_id": campaignId as Any,
+            "creative_id": creativeId as Any,
+            "metadata": [
+                "audio_duration_ms": Int(max(0, dur) * 1000),
+                "audio_current_time_ms": Int(max(0, pos) * 1000),
+            ],
+        ]
+    }
+
+    private func tick() {
+        guard let player else { return }
+        let dur = CMTimeGetSeconds(player.currentItem?.duration ?? .zero)
+        guard dur > 0 else { return }
+        let pos = CMTimeGetSeconds(player.currentTime())
+        let pct = pos / dur
+        let playing = player.rate > 0
+        if !started && playing {
+            started = true
+            onAudioStart?(baseMeta())
+        }
+        for q in [25, 50, 75] where !reached.contains(q) && pct >= Double(q) / 100.0 {
+            reached.insert(q)
+            onQuartileReached?(q, baseMeta())
+        }
+        if !completed && pct >= 0.99 {
+            completed = true
+            onAudioComplete?(baseMeta())
         }
     }
 }

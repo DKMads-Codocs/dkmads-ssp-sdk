@@ -3,6 +3,7 @@ import UIKit
 
 private var pendingInterstitialAds: [String: Ad] = [:]
 private var pendingInterstitialInstances: [String: DKMadsInterstitialAd] = [:]
+private var pendingAppOpenInstances: [String: DKMadsAppOpenAd] = [:]
 private var pendingRewardedAds: [String: DKMadsRewardedAd] = [:]
 
 @_cdecl("dkmads_initialize")
@@ -125,6 +126,7 @@ public func dkmads_load_ad(_ adUnitIdPtr: UnsafePointer<CChar>?,
     case "video": return .video
     case "rewarded": return .rewarded
     case "audio": return .audio
+    case "splash": return .splash
     default: return .banner
     }
   }()
@@ -194,6 +196,46 @@ public func dkmads_show_interstitial(_ adUnitIdPtr: UnsafePointer<CChar>?) {
   DispatchQueue.main.async {
     guard let root = topViewController() else { return }
     interstitial.present(from: root)
+  }
+}
+
+@_cdecl("dkmads_load_app_open")
+public func dkmads_load_app_open(_ adUnitIdPtr: UnsafePointer<CChar>?) -> UnsafeMutablePointer<CChar>? {
+  guard let adUnitIdPtr else { return strdup("{\"success\":false,\"reason\":\"invalid_args\"}") }
+  let adUnitId = String(cString: adUnitIdPtr)
+  var jsonOut = "{\"success\":false,\"reason\":\"pending\"}"
+  let sem = DispatchSemaphore(value: 0)
+  DKMadsAppOpenAd.load(adUnitID: adUnitId) { appOpen, error in
+    if let error {
+      jsonOut = "{\"success\":false,\"reason\":\"\(error.localizedDescription.replacingOccurrences(of: "\"", with: "'"))\"}"
+    } else if let appOpen, let ad = appOpen.loadedAd, ad.hasFill {
+      pendingAppOpenInstances[adUnitId] = appOpen
+      jsonOut = adToJson(ad, responseInfo: appOpen.responseInfo)
+    } else {
+      jsonOut = "{\"success\":false,\"reason\":\"no_fill\"}"
+    }
+    sem.signal()
+  }
+  _ = sem.wait(timeout: .now() + 30)
+  return strdup(jsonOut)
+}
+
+@_cdecl("dkmads_show_app_open")
+public func dkmads_show_app_open(_ adUnitIdPtr: UnsafePointer<CChar>?) {
+  guard let adUnitIdPtr else { return }
+  let adUnitId = String(cString: adUnitIdPtr)
+  guard let appOpen = pendingAppOpenInstances[adUnitId] else { return }
+  DispatchQueue.main.async {
+    guard let root = topViewController() else { return }
+    appOpen.present(from: root)
+  }
+}
+
+@_cdecl("dkmads_present_ad_inspector")
+public func dkmads_present_ad_inspector() {
+  DispatchQueue.main.async {
+    guard let root = topViewController() else { return }
+    DKMadsMobileAds.shared.presentAdInspector(from: root)
   }
 }
 
@@ -287,6 +329,25 @@ private func escapeJson(_ value: String) -> String {
     .replacingOccurrences(of: "\\", with: "\\\\")
     .replacingOccurrences(of: "\"", with: "\\\"")
     .replacingOccurrences(of: "\n", with: "\\n")
+}
+
+@_cdecl("dkmads_emit_video_event")
+public func dkmads_emit_video_event(
+  _ adUnitIdPtr: UnsafePointer<CChar>?,
+  _ eventNamePtr: UnsafePointer<CChar>?,
+  _ jsonPayloadPtr: UnsafePointer<CChar>?
+) {
+  let adUnitId = adUnitIdPtr.map { String(cString: $0) } ?? ""
+  let eventName = eventNamePtr.map { String(cString: $0) } ?? "video_start"
+  var data = parseJsonDictionary(jsonPayloadPtr)
+  data["ad_unit_id"] = adUnitId
+  SSPSDK.shared.trackEvent(name: eventName, data: data)
+}
+
+@_cdecl("dkmads_sync_first_party_profile")
+public func dkmads_sync_first_party_profile(_ appBundlePtr: UnsafePointer<CChar>?) {
+  let bundle = appBundlePtr.map { String(cString: $0) }
+  SSPSDK.shared.syncFirstPartyProfile(appBundle: bundle) { _ in }
 }
 
 @_cdecl("dkmads_free_string")

@@ -29,6 +29,9 @@ Official integration guides for monetizing web and app inventory with the DKMads
 | [Targeting signals](./TARGETING_SIGNALS.md) | Bid payload and campaign targeting |
 | [Ad formats](./AD_FORMATS_MATRIX.md) | Banner, video, audio across platforms |
 | [Platform parity](./PLATFORM_ALIGNMENT.md) | Feature availability by platform |
+| [Publisher API map](./SDK_PUBLISHER_API_MAP.md) | DKMads SDK tasks and entry points |
+| [Native ad SDK](./NATIVE_AD_SDK.md) | `DKMadsNativeAd` and asset fields |
+| [Capability gap matrix](./SDK_CAPABILITY_GAP_MATRIX.md) | Parity vs remaining SDK gaps |
 
 ---
 

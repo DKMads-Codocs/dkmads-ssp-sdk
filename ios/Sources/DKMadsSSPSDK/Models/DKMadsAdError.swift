@@ -1,6 +1,6 @@
 import Foundation
 
-/// AdMob-style error codes for all load / playback paths.
+/// Standard error codes for all load / playback paths.
 @objc public enum DKMadsAdError: Int, Error, LocalizedError {
     case notInitialized = 1
     case noFill = 2
@@ -9,6 +9,8 @@ import Foundation
     case playbackFailed = 5
     case network = 6
     case invalidConfig = 7
+    case adExpired = 8
+    case consentRequired = 9
 
     public var errorDescription: String? {
         switch self {
@@ -19,6 +21,8 @@ import Foundation
         case .playbackFailed: return "Video playback failed."
         case .network: return "Network request failed."
         case .invalidConfig: return "Invalid SDK configuration."
+        case .adExpired: return "Loaded ad expired. Call load again before show."
+        case .consentRequired: return "Consent required before requesting ads."
         }
     }
 
@@ -38,6 +42,7 @@ import Foundation
             case .noFill: return .noFill
             case .invalidConfig: return .invalidConfig
             case .networkError: return .network
+            case .consentRequired: return .consentRequired
             }
         }
         let code = (error as NSError).code

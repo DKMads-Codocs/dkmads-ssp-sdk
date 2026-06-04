@@ -4,7 +4,10 @@ import android.content.Context
 import com.dkmads.ssp.Ad
 import com.dkmads.ssp.AdFormat
 import com.dkmads.ssp.Config
+import com.dkmads.ssp.DKMadsAdInspector
+import com.dkmads.ssp.DKMadsAppOpenAd
 import com.dkmads.ssp.DKMadsInterstitialAd
+import com.dkmads.ssp.DKMadsNativeAdAssets
 import com.dkmads.ssp.DKMadsResponseInfo
 import com.dkmads.ssp.DKMadsRewardedAd
 import com.dkmads.ssp.SSPSDK
@@ -53,6 +56,7 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
   private lateinit var appContext: Context
   private val activeVideoUnits = linkedSetOf<String>()
   private val interstitials = mutableMapOf<String, DKMadsInterstitialAd>()
+  private val appOpenAds = mutableMapOf<String, DKMadsAppOpenAd>()
   private val rewardedAds = mutableMapOf<String, DKMadsRewardedAd>()
   private fun sendVideoEvent(adUnitId: String, eventName: String, payload: Map<String, Any?>) {
     val args = mapOf(
@@ -81,6 +85,10 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
       DkmadsInstreamViewFactory(binding.binaryMessenger) { viewId, event, extra ->
         sendInstreamEvent(viewId, event, extra)
       },
+    )
+    binding.platformViewRegistry.registerViewFactory(
+      "dkmads_banner",
+      DkmadsBannerViewFactory(),
     )
   }
 
@@ -171,6 +179,7 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
           "video" -> AdFormat.VIDEO
           "rewarded" -> AdFormat.REWARDED
           "audio" -> AdFormat.AUDIO
+          "splash" -> AdFormat.SPLASH
           else -> AdFormat.BANNER
         }
         @Suppress("UNCHECKED_CAST")
@@ -182,6 +191,47 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
         }
         SSPSDK.registerAdUnit(adUnitId, format, sizes)
         result.success(null)
+      }
+      "loadNative" -> {
+        val adUnitId = call.argument<String>("adUnitId")
+        if (adUnitId.isNullOrBlank()) {
+          result.error("INVALID_ARGUMENT", "adUnitId is required", null)
+          return
+        }
+        val width = call.argument<Int>("width") ?: 320
+        val height = call.argument<Int>("height") ?: 50
+        Thread {
+          try {
+            val loadResult = runBlocking {
+              SSPSDK.loadAd(
+                context = appContext,
+                adUnitCode = adUnitId,
+                format = AdFormat.NATIVE,
+                sizes = listOf(width to height),
+                placementCode = call.argument<String>("placementCode"),
+                placementContext = call.argument<String>("placementContext"),
+              )
+            }
+            val payload = loadResult.fold(
+              onSuccess = { ad ->
+                val map = adToMap(ad).toMutableMap()
+                val assets = DKMadsNativeAdAssets.from(ad)
+                map["headline"] = assets.headline
+                map["body"] = assets.body
+                map["callToAction"] = assets.callToAction
+                map["advertiser"] = assets.advertiser
+                map["iconUrl"] = assets.iconUrl
+                map
+              },
+              onFailure = { err ->
+                mapOf("success" to false, "reason" to "network_error", "error" to (err.message ?: "unknown"))
+              },
+            )
+            result.success(payload)
+          } catch (err: Throwable) {
+            result.error("LOAD_FAILED", err.message, null)
+          }
+        }.start()
       }
       "loadBanner" -> {
         val adUnitId = call.argument<String>("adUnitId")
@@ -267,6 +317,45 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
           return
         }
         interstitial.show(appContext)
+        result.success(null)
+      }
+      "loadAppOpen" -> {
+        val adUnitId = call.argument<String>("adUnitId")
+        if (adUnitId.isNullOrBlank()) {
+          result.error("INVALID_ARGUMENT", "adUnitId is required", null)
+          return
+        }
+        val placementCode = call.argument<String>("placementCode")
+        val placementContext = call.argument<String>("placementContext")
+        val appOpen = DKMadsAppOpenAd(adUnitId).apply {
+          listener = object : DKMadsAppOpenAd.Listener {
+            override fun onAdLoaded(appOpen: DKMadsAppOpenAd, ad: Ad, responseInfo: DKMadsResponseInfo) {
+              appOpenAds[adUnitId] = appOpen
+              result.success(adToMap(ad))
+            }
+            override fun onAdFailed(appOpen: DKMadsAppOpenAd, message: String, responseInfo: DKMadsResponseInfo?) {
+              result.success(mapOf("success" to false, "reason" to message))
+            }
+          }
+        }
+        appOpen.load(appContext, placementCode = placementCode, placementContext = placementContext)
+      }
+      "showAppOpen" -> {
+        val adUnitId = call.argument<String>("adUnitId")
+        if (adUnitId.isNullOrBlank()) {
+          result.error("INVALID_ARGUMENT", "adUnitId is required", null)
+          return
+        }
+        val appOpen = appOpenAds[adUnitId]
+        if (appOpen == null || appOpen.loadedAd == null) {
+          result.error("NOT_LOADED", "Call loadAppOpen first", null)
+          return
+        }
+        appOpen.show(appContext)
+        result.success(null)
+      }
+      "presentAdInspector" -> {
+        DKMadsAdInspector.present(appContext)
         result.success(null)
       }
       "loadRewarded" -> {

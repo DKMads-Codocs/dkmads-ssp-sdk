@@ -18,6 +18,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.os.Handler
+import android.os.Looper
 import java.net.URL
 
 /**
@@ -47,6 +49,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         private set
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val refreshHandler = Handler(Looper.getMainLooper())
+    private var refreshRunnable: Runnable? = null
     private val webView: WebView
     private val imageView: ImageView
     private var viewabilityStarted = false
@@ -119,6 +123,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                     listener?.onAdLoaded(this@DKMadsBannerAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsBannerAdView)
                     post { startViewability() }
+                    scheduleRefresh(ad.refreshIntervalSec)
                 },
                 onFailure = { err ->
                     listener?.onAdFailed(this@DKMadsBannerAdView, err.message ?: "load failed", null)
@@ -223,8 +228,23 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
+        cancelRefresh()
         stopViewability()
         super.onDetachedFromWindow()
+    }
+
+    private fun scheduleRefresh(intervalSec: Int?) {
+        cancelRefresh()
+        val sec = intervalSec ?: return
+        if (sec < 30) return
+        refreshRunnable = Runnable { load() }.also {
+            refreshHandler.postDelayed(it, sec * 1000L)
+        }
+    }
+
+    private fun cancelRefresh() {
+        refreshRunnable?.let { refreshHandler.removeCallbacks(it) }
+        refreshRunnable = null
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -233,6 +253,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     }
 
     fun destroy() {
+        cancelRefresh()
         stopViewability()
         scope.cancel()
         clearCreative()

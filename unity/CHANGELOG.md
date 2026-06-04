@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.1
+
+- `LoadNative`, `LoadAppOpen`, `ShowAppOpen`, `PresentAdInspector`.
+- Quickstart sample: banner JSON + inspector context menu.
+- Tracks native SDK 0.5.1.
+
+## 0.5.0
+
+- `TrackVideoLifecycle` forwards to native telemetry; `SyncFirstPartyProfile` bridge.
+- Tracks native SDK 0.5.0.
+
 ## 0.2.0
 
 - Added `LoadInterstitial` + `ShowInterstitial` (Android + iOS native fullscreen).

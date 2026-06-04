@@ -1,6 +1,6 @@
 name: dkmads_ssp
 description: DKMads SSP Flutter wrapper over native iOS/Android SDKs.
-version: 0.2.0
+version: 0.5.1
 homepage: https://github.com/DKMads-Codocs/dkmads-ssp-sdk
 
 environment:

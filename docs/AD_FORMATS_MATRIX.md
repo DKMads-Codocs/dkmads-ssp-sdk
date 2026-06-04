@@ -10,10 +10,10 @@ Supported creative formats across the dashboard, bid API, and SDKs.
 |--------|-------------------|----------------|---------|-----|---------|
 | **Banner** | `banner` | Image, tag, HTML5 | `SSP.bind` | `DKMadsBannerAdView` | `DKMadsBannerAdView` |
 | **Interstitial** | `interstitial` | Image, tag, HTML5, video | `SSP.displayInterstitial` | `DKMadsInterstitialAd` | `DKMadsInterstitialAd` |
-| **Native** | `native` | Image, tag | Fluid slot | `loadAd(.native)` | `loadAd` |
+| **Native** | `native` | Image, tag | `SSP.bind` / fluid slot (`native_assets` from bid `meta`) | `DKMadsNativeAd` / `DKMadsNativeAdView` | `DKMadsNativeAd` |
 | **Video** | `video` | MP4 upload | `SSP.bindVideo()` | `DKMadsVideoAdController` | `DKMadsVideoAdController` |
 | **Rewarded** | `rewarded` | Video creative | `bindVideo` + app logic | Video APIs | Video APIs |
-| **Splash** | `splash` | Video / image | Slot | `loadAd` | `loadAd` |
+| **Splash** | `splash` | Video / image | Slot | `DKMadsAppOpenAd` | `DKMadsAppOpenAd` |
 | **Audio** | `audio` | MP3/M4A | `SSP.bindAudio()` | `loadAd(.audio)` | `loadAd` |
 
 ## Bid response (all formats)
@@ -49,10 +49,12 @@ Successful fills return JSON from `POST /api/public/v1/bid`:
 
 | API | Use for |
 |-----|---------|
-| `SSP.bind(el)` | Banner / display |
+| `SSP.bind(el)` | Banner / display / native (auto card when `unit_format` is `native`) |
 | `SSP.bindVideo(videoEl, opts)` | Instream / outstream video |
 | `SSP.bindAudio(audioEl, opts)` | Audio units |
 | `SSP.createInstreamLoader(...)` | Pause content during ad breaks |
+| `SSP.displayInterstitial` / `SSP.displaySplash` | Fullscreen interstitial / splash |
+| `SSP.canRequestAds` / `SSP.lastBidDiagnostics` | Consent gate / bid QA (parity with mobile inspector lite) |
 
 See [integration/web.md](./integration/web.md).
 

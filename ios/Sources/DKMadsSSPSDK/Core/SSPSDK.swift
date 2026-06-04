@@ -12,6 +12,7 @@ import AVFoundation
     private var consentConfigured = false
     private var adUnits: [String: AdUnit] = [:]
     private var sdkInitialized = false
+    @objc public private(set) var lastBidDiagnostics: DKMadsBidDiagnostics?
 
     private override init() {
         super.init()
@@ -108,6 +109,7 @@ import AVFoundation
             ]
         )
 
+        let started = Date()
         APIClient.shared.request(
             endpoint: PublicAPIPaths.bidURL(baseURL: config.baseURL),
             method: .post,
@@ -119,10 +121,12 @@ import AVFoundation
             let deliver: (Result<AdResponse, Error>) -> Void = { outcome in
                 DispatchQueue.main.async { completion(outcome) }
             }
+            let latency = Int(Date().timeIntervalSince(started) * 1000)
             switch result {
             case .success(let http):
                 let reason = http.json["reason"] as? String
                 let requestId = http.json["request_id"] as? String
+                let refreshSec = http.json["refresh_interval_sec"] as? Int
                 if let adData = http.json["winner"] as? [String: Any], !adData.isEmpty {
                     let parsedAd = Ad(from: adData)
                     let dsp = adData["dsp"] as? String
@@ -133,15 +137,44 @@ import AVFoundation
                         reason: reason ?? "won",
                         requestId: requestId,
                         dsp: dsp,
-                        price: price
+                        price: price,
+                        latencyMs: latency,
+                        refreshIntervalSec: refreshSec
                     )
-                    // Served impressions are recorded when the creative is shown (banner/video views), not on bid response.
+                    self?.recordBidDiagnostics(
+                        adUnitId: code,
+                        format: format.apiValue,
+                        response: response,
+                        latencyMs: latency,
+                        refreshIntervalSec: refreshSec
+                    )
                     deliver(.success(response))
                 } else {
-                    deliver(.success(AdResponse(success: false, reason: reason, requestId: requestId)))
+                    let response = AdResponse(
+                        success: false,
+                        reason: reason,
+                        requestId: requestId,
+                        latencyMs: latency,
+                        refreshIntervalSec: refreshSec
+                    )
+                    self?.recordBidDiagnostics(
+                        adUnitId: code,
+                        format: format.apiValue,
+                        response: response,
+                        latencyMs: latency,
+                        refreshIntervalSec: refreshSec
+                    )
+                    deliver(.success(response))
                 }
             case .failure(let error):
                 self?.trackError(event: "ad_request", error: error)
+                self?.recordBidDiagnostics(
+                    adUnitId: code,
+                    format: format.apiValue,
+                    response: nil,
+                    latencyMs: latency,
+                    errorMessage: error.localizedDescription
+                )
                 deliver(.failure(error))
             }
         }
@@ -182,6 +215,48 @@ import AVFoundation
 
     public func stopVideoLifecycleTracking(adUnitId: String) {
         TelemetryManager.shared.stopVideoTracking(adUnitId: adUnitId)
+    }
+
+    public func trackAudioLifecycle(
+        adUnitId: String,
+        campaignId: String? = nil,
+        creativeId: String? = nil,
+        player: AVPlayer,
+        eventListener: ((String, [String: Any]) -> Void)? = nil
+    ) {
+        TelemetryManager.shared.trackAudioAd(
+            adUnitId: adUnitId,
+            campaignId: campaignId,
+            creativeId: creativeId,
+            player: player,
+            eventListener: eventListener
+        )
+    }
+
+    public func stopAudioLifecycleTracking(adUnitId: String) {
+        TelemetryManager.shared.stopAudioTracking(adUnitId: adUnitId)
+    }
+
+    private func recordBidDiagnostics(
+        adUnitId: String,
+        format: String,
+        response: AdResponse?,
+        latencyMs: Int,
+        refreshIntervalSec: Int? = nil,
+        errorMessage: String? = nil
+    ) {
+        lastBidDiagnostics = DKMadsBidDiagnostics(
+            adUnitId: adUnitId,
+            format: format,
+            reason: response?.reason,
+            requestId: response?.requestId,
+            dsp: response?.dsp,
+            price: response?.price?.doubleValue,
+            latencyMs: latencyMs,
+            refreshIntervalSec: refreshIntervalSec ?? response?.refreshIntervalSec?.intValue,
+            loaded: response?.success ?? false,
+            errorMessage: errorMessage
+        )
     }
 
     /// IAB viewability helper (default 50% visible for >=1s).

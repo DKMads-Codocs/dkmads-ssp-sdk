@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.1
+
+- `DKMadsNativeAd` + `DKMadsNativeAdAssets` for custom in-feed layouts.
+- Fullscreen cache expiry (4h TTL); show returns `ad_expired` when stale.
+- `DKMadsAppOpenAd`, Ad Inspector, splash `SPLASH` format (carried from 0.5.0 line).
+- GitHub Packages Maven publish on release when `GITHUB_TOKEN` is set.
+
+## 0.5.0
+
+- `canRequestAds()` / `requireConsentBeforeAds`; Ad Inspector; `DKMadsAdSize`; unified fullscreen callback.
+- Bid diagnostics + banner auto-refresh from `refresh_interval_sec`.
+
 ## 0.4.2
 
 - Fixed Kotlin compile errors: `MediaPlayer.duration` (Int) uses `coerceAtLeast(0).toLong()` in `DKMadsInterstitialActivity` and `DKMadsVideoAdView` (not `coerceAtLeast(0L)`).

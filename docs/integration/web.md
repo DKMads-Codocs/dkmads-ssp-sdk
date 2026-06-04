@@ -8,6 +8,8 @@ Integrate display, video, and audio ads on any modern website using a single hos
 
 **Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md)
 
+**Version:** aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android `0.5.x` releases). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
+
 ---
 
 ## 1. Add the SDK script
@@ -101,18 +103,28 @@ Content pauses before the bid; it resumes after the ad completes, is skipped, or
 
 ---
 
-## 4. Render a reward/interstitial (imperative)
+## 4. Fullscreen, splash, and native
 
-For full-page or interstitial formats, request imperatively:
+**Interstitial** (codeless overlay):
 
 ```js
-SSP.requestAd({
-  adUnitId: 'AD_UNIT_UUID',
-  integrationKey: 'INTEGRATION_KEY',
-  format: 'interstitial', // or 'rewarded'
-  onClose: () => console.log('ad closed'),
-  onReward: (payload) => console.log('rewarded', payload),
+SSP.displayInterstitial('INTERSTITIAL_UUID', {
+  trigger: 'page_load', // or 'exit_intent' | 'manual'
+  sizes: ['320x480', '300x600'],
+  skipAfterSec: 5,
 });
+```
+
+**Splash** (dashboard format `splash` — same overlay API as mobile app open):
+
+```js
+SSP.displaySplash('SPLASH_UUID', { trigger: 'page_load' });
+```
+
+**Native** (in-feed): use a slot with `data-ssp-ad-unit` on a **native** ad unit. The SDK renders a default card from bid `meta` (`headline`, `body`, `cta_label`, `image_url`). For custom layouts, call `SSP.requestAd` and read `winner.native_assets` after fill.
+
+```html
+<div data-ssp-ad-unit="NATIVE_UUID" data-ssp-size="320x50"></div>
 ```
 
 ---
@@ -173,7 +185,15 @@ matches iOS/Android/Flutter/Unity lifecycle telemetry:
 Run in the browser console on a page with the SDK loaded:
 
 ```js
-SSP.diagnostics(); // { initialized, endpoint, integration_key_preview, consent, device }
+SSP.diagnostics(); // includes can_request_ads, last_bid
+SSP.lastBidDiagnostics(); // { reason, request_id, dsp, price } — parity with mobile Ad Inspector lite
+```
+
+Optional consent gate before bids (mobile `requireConsentBeforeAds` parity):
+
+```js
+SSP.init({ integrationKey: '...', requireConsentBeforeAds: true });
+if (!SSP.canRequestAds()) return; // wait for CMP / SSP.setConsent
 ```
 
 On the dashboard, confirm:

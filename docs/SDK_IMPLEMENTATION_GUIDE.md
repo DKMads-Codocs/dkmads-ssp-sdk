@@ -6,6 +6,17 @@ The central reference for integrating DKMads across **web, iOS, Android, Flutter
 **Outcome:** a verified property, successful bid, rendered creative, and compliant telemetry  
 **Fast path:** [60-minute quickstart](./integration/QUICKSTART.md) · **In dashboard:** Developer → SDK guide
 
+## Reference samples (copy-paste)
+
+| Platform | Sample |
+|----------|--------|
+| iOS | `sdk/ios/Sample/` — banner, interstitial, Ad Inspector |
+| Android | `sdk/android/sample/MainActivity.kt` |
+| Flutter | `sdk/flutter/example/` |
+| Unity | `sdk/unity/Samples~/QuickstartSample/` |
+
+Android install: [GitHub Packages](./integration/android.md#install-from-github-packages-recommended) (one-line Gradle dependency after PAT setup).
+
 ---
 
 ## 1. Prerequisites

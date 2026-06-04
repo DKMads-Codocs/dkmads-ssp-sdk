@@ -5,5 +5,10 @@
       android:exported="false"
       android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
       android:configChanges="orientation|screenSize|keyboardHidden" />
+    <activity
+      android:name="com.dkmads.ssp.DKMadsAdInspectorActivity"
+      android:exported="false"
+      android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar"
+      android:configChanges="orientation|screenSize|keyboardHidden" />
   </application>
 </manifest>
