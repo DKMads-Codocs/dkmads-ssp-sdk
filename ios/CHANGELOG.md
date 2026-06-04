@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3
+
+- Restore `SSPSDK.registeredSizes(for:)` for interstitial / app open IAB bid tokens (used by `DKMadsInterstitialAd.bidSizes`).
+
 ## 0.5.2
 
 - Fix Xcode compile: `SDKError.consentRequired` / `adExpired` for `DKMadsAdError.from(_:)`.

@@ -290,6 +290,11 @@ import AVFoundation
         adUnits[code] = AdUnit(code: code, format: format, sizes: sizes)
     }
 
+    /// Sizes from `registerAdUnit` used when load calls omit explicit dimensions (e.g. interstitial IAB tokens).
+    public func registeredSizes(for adUnitCode: String) -> [CGSize] {
+        adUnits[adUnitCode]?.sizes ?? []
+    }
+
     public func setUserData(_ data: UserData) {
         userData = data
     }
