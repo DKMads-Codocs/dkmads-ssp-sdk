@@ -22,7 +22,7 @@ enum DKMadsClickThroughCta {
         let urlString = clickUrl?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !urlString.isEmpty, let url = URL(string: urlString) else { return nil }
 
-        let button = UIButton(type: .system)
+        let button = ClickThroughButton(type: .system)
         let title = label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Learn more" : label
         button.setTitle(title, for: .normal)
         button.setTitleColor(.white, for: .normal)
@@ -49,11 +49,7 @@ enum DKMadsClickThroughCta {
         if style == .endCard {
             button.backgroundColor = UIColor(red: 0.1, green: 0.45, blue: 0.91, alpha: 0.92)
         }
-        button.addAction(UIAction { _ in
-            onClickThrough()
-            guard let presenter else { return }
-            presenter.present(SFSafariViewController(url: url), animated: true)
-        }, for: .touchUpInside)
+        button.configureClickThrough(url: url, presenter: presenter, onClickThrough: onClickThrough)
 
         parent.addSubview(button)
         switch style {
@@ -107,6 +103,27 @@ enum DKMadsClickThroughCta {
             return .barBelow
         default: return styleForTemplate(template)
         }
+    }
+}
+
+private final class ClickThroughButton: UIButton {
+    private var onTap: (() -> Void)?
+
+    func configureClickThrough(
+        url: URL,
+        presenter: UIViewController?,
+        onClickThrough: @escaping () -> Void
+    ) {
+        onTap = {
+            onClickThrough()
+            guard let presenter else { return }
+            presenter.present(SFSafariViewController(url: url), animated: true)
+        }
+        addTarget(self, action: #selector(tapped), for: .touchUpInside)
+    }
+
+    @objc private func tapped() {
+        onTap?()
     }
 }
 
