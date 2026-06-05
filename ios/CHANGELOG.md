@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.10
+
+- Interstitial HTML: always re-wrap full `<html>` adm, use `object-fit:cover` + device viewport (fixes top-half creative + white bottom).
+- Defer static interstitial render until layout bounds are known; opaque black WebView background.
+- Interstitial `load()`: default `placementCode` / `placementContext` when omitted (same as banner).
+
 ## 0.5.9
 
 - Interstitial presenter: constraint-based fullscreen layout, responsive HTML/image scaling, `prefersAspectFill` video.

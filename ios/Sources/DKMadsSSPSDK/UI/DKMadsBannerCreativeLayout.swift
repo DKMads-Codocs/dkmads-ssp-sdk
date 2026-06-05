@@ -9,34 +9,60 @@ enum DKMadsBannerCreativeLayout {
     }
 
     static func htmlForBanner(adm: String, slotSize: CGSize) -> String {
-        htmlForSlot(adm: adm, slotSize: slotSize, objectFit: "contain")
-    }
-
-    /// Fullscreen interstitial / app open — scale creative to fill the device slot.
-    static func htmlForFullscreen(adm: String, slotSize: CGSize) -> String {
-        htmlForSlot(adm: adm, slotSize: slotSize, objectFit: "cover")
-    }
-
-    private static func htmlForSlot(adm: String, slotSize: CGSize, objectFit: String) -> String {
         if adm.lowercased().contains("<html") { return adm }
+        return htmlForSlot(adm: adm, slotSize: slotSize, objectFit: "contain", fullscreen: false)
+    }
+
+    /// Fullscreen interstitial / app open — always re-wrap (even full HTML documents) and scale to cover the device.
+    static func htmlForFullscreen(adm: String, slotSize: CGSize) -> String {
+        let fragment = extractRenderableFragment(from: adm)
+        return htmlForSlot(adm: fragment, slotSize: slotSize, objectFit: "cover", fullscreen: true)
+    }
+
+    private static func extractRenderableFragment(from adm: String) -> String {
+        let trimmed = adm.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = trimmed.lowercased()
+        guard lower.contains("<html") || lower.contains("<!doctype") else { return trimmed }
+        if let body = firstCapture(in: trimmed, pattern: "(?is)<body[^>]*>(.*)</body>") {
+            return body.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return trimmed
+    }
+
+    private static func firstCapture(in text: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let match = regex.firstMatch(in: text, range: range), match.numberOfRanges > 1,
+              let capture = Range(match.range(at: 1), in: text) else { return nil }
+        return String(text[capture])
+    }
+
+    private static func htmlForSlot(adm: String, slotSize: CGSize, objectFit: String, fullscreen: Bool) -> String {
         let w = max(1, Int(slotSize.width.rounded()))
         let h = max(1, Int(slotSize.height.rounded()))
+        let viewport = fullscreen
+            ? "width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+            : "width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        let rootStyle = fullscreen
+            ? "#dkmads-root{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;box-sizing:border-box;background:#000}"
+            : "#dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box}"
         return """
         <!DOCTYPE html>
         <html><head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <meta name="viewport" content="\(viewport)">
         <style>
-        html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;-webkit-text-size-adjust:100%}
-        #dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box}
-        #dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root svg,#dkmads-root canvas{
-          display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:\(objectFit);border:0
+        html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#000;-webkit-text-size-adjust:100%}
+        \(rootStyle)
+        #dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root svg,#dkmads-root canvas,#dkmads-root a{
+          display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:\(objectFit);border:0;margin:0;padding:0
         }
         </style>
         </head><body><div id="dkmads-root">\(adm)</div></body></html>
         """
     }
 
+    /// Banner slots — letterbox with contain.
     static let viewportInjectionScript = """
     (function(){
       var meta = document.querySelector('meta[name=viewport]');
@@ -50,6 +76,24 @@ enum DKMadsBannerCreativeLayout {
         imgs[i].style.maxHeight = '100%';
         imgs[i].style.objectFit = 'contain';
       }
+    })();
+    """
+
+    /// Fullscreen interstitial — cover the slot, black letterbox fill.
+    static let fullscreenViewportInjectionScript = """
+    (function(){
+      var meta = document.querySelector('meta[name=viewport]');
+      if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
+      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+      var fill = 'margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#000';
+      if (document.documentElement) { document.documentElement.style.cssText = fill; }
+      if (document.body) { document.body.style.cssText = fill; }
+      var media = document.querySelectorAll('img,iframe,video,canvas,svg');
+      for (var i = 0; i < media.length; i++) {
+        media[i].style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;border:0;margin:0;padding:0';
+      }
+      var root = document.getElementById('dkmads-root') || document.body.firstElementChild;
+      if (root) { root.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;overflow:hidden;background:#000'; }
     })();
     """
 }

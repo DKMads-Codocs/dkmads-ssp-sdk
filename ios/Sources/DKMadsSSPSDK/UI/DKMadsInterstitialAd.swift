@@ -63,8 +63,8 @@ public final class DKMadsInterstitialAd: NSObject, DKMadsFullScreenPresenting {
         request: DKMadsAdRequest? = nil,
         completion: @escaping (DKMadsInterstitialAd?, Error?) -> Void
     ) {
-        if let request { lastAdRequest = request }
-        let effectiveRequest = request ?? lastAdRequest
+        let effectiveRequest = Self.normalizedRequest(request ?? lastAdRequest, adUnitID: adUnitID)
+        lastAdRequest = effectiveRequest
         guard SSPSDK.shared.isSDKInitialized else {
             completion(nil, DKMadsAdError.notInitialized.nsError())
             return
@@ -74,9 +74,9 @@ public final class DKMadsInterstitialAd: NSObject, DKMadsFullScreenPresenting {
             code: adUnitID,
             format: .interstitial,
             sizes: bidSizes,
-            placementCode: effectiveRequest?.placementCode,
-            placementContext: effectiveRequest?.placementContext,
-            keyValues: effectiveRequest?.keyValues ?? [:]
+            placementCode: effectiveRequest.placementCode,
+            placementContext: effectiveRequest.placementContext,
+            keyValues: effectiveRequest.keyValues
         ) { [weak self] result in
             guard let self else { return }
             switch result {
@@ -99,6 +99,17 @@ public final class DKMadsInterstitialAd: NSObject, DKMadsFullScreenPresenting {
                 completion(nil, error)
             }
         }
+    }
+
+    private static func normalizedRequest(_ request: DKMadsAdRequest?, adUnitID: String) -> DKMadsAdRequest {
+        let req = request ?? DKMadsAdRequest()
+        if (req.placementCode ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            req.placementCode = adUnitID
+        }
+        if (req.placementContext ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            req.placementContext = "interstitial"
+        }
+        return req
     }
 
     /// IAB interstitial tokens for bid matching — not raw UIScreen pixel dimensions.

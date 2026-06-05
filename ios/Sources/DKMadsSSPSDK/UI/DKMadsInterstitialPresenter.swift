@@ -18,6 +18,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
     private let closeButton: UIButton
     private var viewabilityActive = false
     private var videoConstraints: [NSLayoutConstraint] = []
+    private var didPresentStaticContent = false
 
     init(adUnitID: String, ad: Ad) {
         self.adUnitID = adUnitID
@@ -43,9 +44,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
         setupChrome()
         if ad.isVideo {
             presentVideo()
-        } else if canRenderStatic() {
-            presentStatic()
-        } else {
+        } else if !canRenderStatic() {
             failAndDismiss(DKMadsAdError.noFill.nsError(userInfo: [
                 NSLocalizedDescriptionKey: "Interstitial creative is not video, image, or HTML5",
             ]))
@@ -61,6 +60,9 @@ final class DKMadsInterstitialPresenter: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         bringChromeToFront()
+        if !ad.isVideo, canRenderStatic(), !didPresentStaticContent, view.bounds.width > 0, view.bounds.height > 0 {
+            presentStatic()
+        }
         if videoView == nil, canRenderStatic(), !viewabilityActive {
             startViewabilityIfNeeded()
         }
@@ -107,7 +109,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
         view.addSubview(chromeOverlay)
         chromeOverlay.addSubview(closeButton)
 
-        webView.isOpaque = false
+        webView.isOpaque = true
         webView.backgroundColor = .black
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
@@ -180,6 +182,8 @@ final class DKMadsInterstitialPresenter: UIViewController {
     }
 
     private func presentStatic() {
+        guard !didPresentStaticContent else { return }
+        didPresentStaticContent = true
         let slotSize = view.bounds.size
         if ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             webView.isHidden = false
@@ -292,7 +296,7 @@ extension DKMadsInterstitialPresenter: DKMadsVideoAdViewDelegate {
 
 extension DKMadsInterstitialPresenter: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        webView.evaluateJavaScript(DKMadsBannerCreativeLayout.viewportInjectionScript, completionHandler: nil)
+        webView.evaluateJavaScript(DKMadsBannerCreativeLayout.fullscreenViewportInjectionScript, completionHandler: nil)
         startViewabilityIfNeeded()
         bringChromeToFront()
     }
