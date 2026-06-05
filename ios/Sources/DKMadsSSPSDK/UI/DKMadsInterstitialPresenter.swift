@@ -120,7 +120,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.isHidden = true
 
-        imageView.contentMode = .scaleAspectFill
+        imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
         imageView.isUserInteractionEnabled = true
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -165,7 +165,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
         video.rootViewController = self
         video.delegate = self
         video.isSkippable = false
-        video.prefersAspectFill = true
+        video.prefersAspectFill = false
         video.wrapsWebMarkupForFullscreen = true
         contentContainer.insertSubview(video, at: 0)
         videoView = video

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.11
+
+- Interstitial HTML: fullscreen re-wrap + `object-fit:contain` (fit on screen, black letterbox).
+- Post-load viewport injection for interstitial WebView.
+
 ## 0.5.7
 
 - Banner: default `placementCode` / `placementContext`; bid JSON omits null placement fields.

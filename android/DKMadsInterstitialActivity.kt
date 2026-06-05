@@ -153,6 +153,7 @@ class DKMadsInterstitialActivity : Activity() {
         webView.visibility = View.VISIBLE
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
+                view?.evaluateJavascript(DKMadsBannerCreativeLayout.FULLSCREEN_VIEWPORT_INJECTION_SCRIPT, null)
                 startViewability()
             }
 
@@ -167,7 +168,7 @@ class DKMadsInterstitialActivity : Activity() {
         if (ad.adm.isNotBlank()) {
             webView.loadDataWithBaseURL(
                 "https://ssp.dkmads.com",
-                ad.adm,
+                DKMadsBannerCreativeLayout.htmlForFullscreen(ad.adm),
                 "text/html",
                 "UTF-8",
                 null,

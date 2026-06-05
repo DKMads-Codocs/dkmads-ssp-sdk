@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.11
+
+- Interstitial fullscreen: switch from `object-fit:cover` to `contain` — creative fits on screen without horizontal clipping; black letterbox on mismatch.
+- Image/video interstitial use aspect-fit (not aspect-fill).
+
 ## 0.5.10
 
 - Interstitial HTML: always re-wrap full `<html>` adm, use `object-fit:cover` + device viewport (fixes top-half creative + white bottom).

@@ -39,7 +39,7 @@ dependencies:
     git:
       url: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
       path: flutter
-      ref: sdk-0.5.10   # release tag (sdk-<semver>)
+      ref: sdk-0.5.11   # release tag (sdk-<semver>)
 ```
 
 ```bash
@@ -53,7 +53,7 @@ In `ios/Podfile` (see [iOS install](./ios.md)):
 ```ruby
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.10',
+    :tag => 'sdk-0.5.11',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -61,7 +61,7 @@ Then `cd ios && pod install`.
 
 ### 3. Android native SDK
 
-Add `com.dkmads.ssp:ssp-android:0.5.10` per [Android Installation](./android.md).
+Add `com.dkmads.ssp:ssp-android:0.5.11` per [Android Installation](./android.md).
 
 ### Example app
 

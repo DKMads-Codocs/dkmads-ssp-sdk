@@ -13,10 +13,10 @@ enum DKMadsBannerCreativeLayout {
         return htmlForSlot(adm: adm, slotSize: slotSize, objectFit: "contain", fullscreen: false)
     }
 
-    /// Fullscreen interstitial / app open — always re-wrap (even full HTML documents) and scale to cover the device.
+    /// Fullscreen interstitial / app open — always re-wrap (even full HTML documents) and letterbox to fit the device.
     static func htmlForFullscreen(adm: String, slotSize: CGSize) -> String {
         let fragment = extractRenderableFragment(from: adm)
-        return htmlForSlot(adm: fragment, slotSize: slotSize, objectFit: "cover", fullscreen: true)
+        return htmlForSlot(adm: fragment, slotSize: slotSize, objectFit: "contain", fullscreen: true)
     }
 
     private static func extractRenderableFragment(from adm: String) -> String {
@@ -43,19 +43,21 @@ enum DKMadsBannerCreativeLayout {
         let viewport = fullscreen
             ? "width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
             : "width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-        let rootStyle = fullscreen
-            ? "#dkmads-root{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;box-sizing:border-box;background:#000}"
-            : "#dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box}"
+        let rootStyle = "#dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;background:\(fullscreen ? "#000" : "transparent")}"
+        let mediaStyle = fullscreen
+            ? "display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:\(objectFit);border:0;margin:0;padding:0"
+            : "display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:\(objectFit);border:0;margin:0;padding:0"
         return """
         <!DOCTYPE html>
         <html><head>
         <meta charset="utf-8">
         <meta name="viewport" content="\(viewport)">
         <style>
-        html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#000;-webkit-text-size-adjust:100%}
+        html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:\(fullscreen ? "#000" : "transparent");-webkit-text-size-adjust:100%}
         \(rootStyle)
+        #dkmads-root > *{max-width:100%;max-height:100%;box-sizing:border-box}
         #dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root svg,#dkmads-root canvas,#dkmads-root a{
-          display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:\(objectFit);border:0;margin:0;padding:0
+          \(mediaStyle)
         }
         </style>
         </head><body><div id="dkmads-root">\(adm)</div></body></html>
@@ -79,7 +81,7 @@ enum DKMadsBannerCreativeLayout {
     })();
     """
 
-    /// Fullscreen interstitial — cover the slot, black letterbox fill.
+    /// Fullscreen interstitial — fit creative inside the slot, black letterbox fill.
     static let fullscreenViewportInjectionScript = """
     (function(){
       var meta = document.querySelector('meta[name=viewport]');
@@ -88,12 +90,20 @@ enum DKMadsBannerCreativeLayout {
       var fill = 'margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#000';
       if (document.documentElement) { document.documentElement.style.cssText = fill; }
       if (document.body) { document.body.style.cssText = fill; }
-      var media = document.querySelectorAll('img,iframe,video,canvas,svg');
-      for (var i = 0; i < media.length; i++) {
-        media[i].style.cssText = 'display:block;width:100%;height:100%;object-fit:cover;border:0;margin:0;padding:0';
+      var root = document.getElementById('dkmads-root');
+      if (root) {
+        root.style.cssText = 'margin:0;padding:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000;box-sizing:border-box';
+        var kids = root.children;
+        for (var k = 0; k < kids.length; k++) {
+          kids[k].style.maxWidth = '100%';
+          kids[k].style.maxHeight = '100%';
+          kids[k].style.boxSizing = 'border-box';
+        }
       }
-      var root = document.getElementById('dkmads-root') || document.body.firstElementChild;
-      if (root) { root.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;overflow:hidden;background:#000'; }
+      var media = document.querySelectorAll('#dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root canvas,#dkmads-root svg,img,iframe,video,canvas,svg');
+      for (var i = 0; i < media.length; i++) {
+        media[i].style.cssText = 'display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0';
+      }
     })();
     """
 }
