@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.9
+
+- Interstitial presenter: constraint-based fullscreen layout, responsive HTML/image scaling, `prefersAspectFill` video.
+- Close (✕) lives in a dedicated chrome overlay always brought to front (fixes disappearing under WebView/video).
+- Interstitial video uses presenter close only (`isSkippable = false`); no competing skip control.
+
 ## 0.5.8
 
 - Fix compile: `load()` uses non-optional `effectiveRequest` after `normalizedRequest()` (remove erroneous `?.`).

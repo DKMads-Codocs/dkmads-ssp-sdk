@@ -9,6 +9,15 @@ enum DKMadsBannerCreativeLayout {
     }
 
     static func htmlForBanner(adm: String, slotSize: CGSize) -> String {
+        htmlForSlot(adm: adm, slotSize: slotSize, objectFit: "contain")
+    }
+
+    /// Fullscreen interstitial / app open — scale creative to fill the device slot.
+    static func htmlForFullscreen(adm: String, slotSize: CGSize) -> String {
+        htmlForSlot(adm: adm, slotSize: slotSize, objectFit: "cover")
+    }
+
+    private static func htmlForSlot(adm: String, slotSize: CGSize, objectFit: String) -> String {
         if adm.lowercased().contains("<html") { return adm }
         let w = max(1, Int(slotSize.width.rounded()))
         let h = max(1, Int(slotSize.height.rounded()))
@@ -18,10 +27,10 @@ enum DKMadsBannerCreativeLayout {
         <meta charset="utf-8">
         <meta name="viewport" content="width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <style>
-        html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent;-webkit-text-size-adjust:100%}
+        html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;-webkit-text-size-adjust:100%}
         #dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box}
         #dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root svg,#dkmads-root canvas{
-          display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;border:0
+          display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:\(objectFit);border:0
         }
         </style>
         </head><body><div id="dkmads-root">\(adm)</div></body></html>

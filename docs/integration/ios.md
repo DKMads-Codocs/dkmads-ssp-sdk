@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| **Version** | `0.5.8` |
-| **Release tag** | `sdk-0.5.8` |
+| |**Version** | `0.5.9` |
+| **Release tag** | `sdk-0.5.9` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.8',
+    :tag => 'sdk-0.5.9',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -144,9 +144,11 @@ DKMadsInterstitialAd.load(
 ) { ad, error in
   guard let ad = ad else { return }
   ad.delegate = self
-  ad.present(from: self) // top UIViewController
+  ad.present(from: self) // top UIViewController — built-in ✕ close stays above creative
 }
 ```
+
+Fullscreen presentation scales video/image/HTML to the device; use the top-trailing **✕** to dismiss (video interstitials do not show a separate skip chip).
 
 ## 2d) Rewarded (fullscreen with reward callback)
 

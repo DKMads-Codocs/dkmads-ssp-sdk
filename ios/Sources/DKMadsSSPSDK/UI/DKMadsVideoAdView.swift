@@ -27,6 +27,10 @@ import WebKit
     /// When true, shows a Skip control after `skipOffsetSeconds` (instream / interstitial chrome).
     @objc public var isSkippable = true
     @objc public var skipOffsetSeconds: TimeInterval = 5
+    /// Fullscreen interstitial: scale native video to fill bounds (`.resizeAspectFill`).
+    @objc public var prefersAspectFill = false
+    /// Wrap HTML `adm` in a fullscreen viewport shell (interstitial / app open).
+    @objc public var wrapsWebMarkupForFullscreen = false
     @objc public private(set) var responseInfo: DKMadsResponseInfo?
     @objc public private(set) var loadedAd: Ad?
 
@@ -151,6 +155,7 @@ import WebKit
     public override func layoutSubviews() {
         super.layoutSubviews()
         playerLayer?.frame = playerView.bounds
+        playerLayer?.videoGravity = prefersAspectFill ? .resizeAspectFill : .resizeAspect
         if loadedAd != nil, window != nil {
             startViewabilityIfNeeded()
         }
@@ -250,7 +255,17 @@ import WebKit
             playerView.isHidden = true
             webView.isHidden = false
             scheduleSkipIfNeeded()
-            AdVideoPlayback.loadWebMarkup(ad: ad, in: webView, autoplay: autoplay)
+            if wrapsWebMarkupForFullscreen, let adm = ad.adm, !adm.isEmpty {
+                let slot = bounds.width > 0 && bounds.height > 0
+                    ? bounds.size
+                    : CGSize(width: 320, height: 480)
+                webView.loadHTMLString(
+                    DKMadsBannerCreativeLayout.htmlForFullscreen(adm: adm, slotSize: slot),
+                    baseURL: AdVideoPlayback.baseURL
+                )
+            } else {
+                AdVideoPlayback.loadWebMarkup(ad: ad, in: webView, autoplay: autoplay)
+            }
         }
     }
 
