@@ -131,15 +131,25 @@ import Foundation
     }
 
     @objc public var preferredPlaybackURL: String? {
-        if let videoUrl, !videoUrl.isEmpty, AdMediaParsing.isVideoStreamUrl(videoUrl) {
+        playableVideoURL
+    }
+
+    /// Native player URL — includes hosted creative-assets paths without file extensions.
+    @objc public var playableVideoURL: String? {
+        if let videoUrl, !videoUrl.isEmpty {
+            if AdMediaParsing.isHostedCreativeVideoUrl(videoUrl, isVideoCreative: isVideo) {
+                return videoUrl
+            }
+        }
+        if let fromAdm = AdMediaParsing.videoSrcFromAdm(adm, isVideoCreative: isVideo) { return fromAdm }
+        if isVideo, let videoUrl, !videoUrl.isEmpty, !AdMediaParsing.isHtml5AssetUrl(videoUrl) {
             return videoUrl
         }
-        if let fromAdm = AdMediaParsing.videoSrcFromAdm(adm) { return fromAdm }
         return nil
     }
 
     public var preferredRenderer: DKMadsCreativeRenderer {
-        if let url = preferredPlaybackURL, !url.isEmpty { return .nativeMP4 }
+        if let url = playableVideoURL, !url.isEmpty { return .nativeMP4 }
         if isHTML5 || (adm?.lowercased().contains("<iframe") == true) { return .webMarkup }
         if let adm, !adm.isEmpty { return .webMarkup }
         return .webMarkup
@@ -149,9 +159,15 @@ import Foundation
         let dt = (winner["delivery_type"] as? String) ?? (winner["creative_type"] as? String) ?? ""
         if dt.lowercased() == "html5" { return "" }
         if dt.lowercased() == "video" { return "" }
-        if let direct = winner["creativeUrl"] as? String, !direct.isEmpty, AdMediaParsing.isRasterImageUrl(direct) { return direct }
-        if let image = winner["image_url"] as? String, !image.isEmpty, AdMediaParsing.isRasterImageUrl(image) { return image }
-        if let metaImage = meta?["image_url"] as? String, !metaImage.isEmpty, AdMediaParsing.isRasterImageUrl(metaImage) { return metaImage }
+        if let direct = winner["creativeUrl"] as? String, !direct.isEmpty,
+           AdMediaParsing.isRasterImageUrl(direct) || AdMediaParsing.isHostedCreativeImageUrl(direct) { return direct }
+        if let image = winner["image_url"] as? String, !image.isEmpty,
+           AdMediaParsing.isRasterImageUrl(image) || AdMediaParsing.isHostedCreativeImageUrl(image) { return image }
+        if let metaImage = meta?["image_url"] as? String, !metaImage.isEmpty,
+           AdMediaParsing.isRasterImageUrl(metaImage) || AdMediaParsing.isHostedCreativeImageUrl(metaImage) { return metaImage }
+        if dt.lowercased() != "video", dt.lowercased() != "rewarded", dt.lowercased() != "splash",
+           let preview = winner["preview_url"] as? String, !preview.isEmpty,
+           AdMediaParsing.isHostedCreativeImageUrl(preview) { return preview }
         if let adm = winner["adm"] as? String, !adm.isEmpty {
             let lower = adm.lowercased()
             if lower.contains("<iframe") || adm.contains("/html5/") { return "" }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.6
+
+- Banner view reports `intrinsicContentSize` / `setAdSize(_:)` for Auto Layout; bid + render use laid-out bounds when available.
+- Banner HTML/image creatives scale to the slot (responsive viewport wrapper + `scaleAspectFill` images).
+
+## 0.5.5
+
+- Interstitial/video: accept hosted `/api/public/creative-assets/` URLs without file extensions (`playableVideoURL` — matches server + Android).
+- Image interstitials: resolve hosted creative-assets paths in `creativeUrl`.
+- Interstitial reload preserves last `DKMadsAdRequest`; ObjC `loadInterstitialWithAdUnitID:adWidth:adHeight:request:completion:`.
+
 ## 0.5.4
 
 - Banner auto-refresh reuses the last `DKMadsAdRequest` (placement + `keyValues` including `test_mode`).

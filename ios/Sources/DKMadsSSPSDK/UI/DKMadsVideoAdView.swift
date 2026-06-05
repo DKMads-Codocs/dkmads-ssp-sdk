@@ -74,7 +74,7 @@ import WebKit
     /// Renders an ad already returned from `SSPSDK.loadAd` (e.g. interstitial preload).
     @objc public func display(_ ad: Ad) {
         stopPlayback()
-        guard ad.isVideo, ad.preferredPlaybackURL != nil || !(ad.adm?.isEmpty ?? true) else {
+        guard ad.isVideo, ad.playableVideoURL != nil || !(ad.adm?.isEmpty ?? true) else {
             delegate?.videoAdView?(self, didFailToReceiveAdWithError: DKMadsAdError.missingVideoURL.nsError())
             return
         }
@@ -124,7 +124,7 @@ import WebKit
                     self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: err)
                     return
                 }
-                guard ad.isVideo, ad.preferredPlaybackURL != nil || !(ad.adm?.isEmpty ?? true) else {
+                guard ad.isVideo, ad.playableVideoURL != nil || !(ad.adm?.isEmpty ?? true) else {
                     let err = DKMadsAdError.missingVideoURL.nsError()
                     self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: err)
                     return

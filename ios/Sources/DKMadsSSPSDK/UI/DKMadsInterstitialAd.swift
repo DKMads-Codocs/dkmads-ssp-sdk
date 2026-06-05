@@ -20,6 +20,8 @@ public final class DKMadsInterstitialAd: NSObject, DKMadsFullScreenPresenting {
 
     private var presenter: DKMadsInterstitialPresenter?
 
+    private var lastAdRequest: DKMadsAdRequest?
+
     @objc public init(adUnitID: String) {
         self.adUnitID = adUnitID
     }
@@ -44,11 +46,25 @@ public final class DKMadsInterstitialAd: NSObject, DKMadsFullScreenPresenting {
         load(adUnitID: adUnitID, adSize: nil, request: request, completion: completion)
     }
 
+    @objc(loadInterstitialWithAdUnitID:adWidth:adHeight:request:completion:)
+    public static func loadInterstitial(
+        adUnitID: String,
+        adWidth: CGFloat,
+        adHeight: CGFloat,
+        request: DKMadsAdRequest?,
+        completion: @escaping (DKMadsInterstitialAd?, Error?) -> Void
+    ) {
+        let size = (adWidth > 0 && adHeight > 0) ? CGSize(width: adWidth, height: adHeight) : nil
+        load(adUnitID: adUnitID, adSize: size, request: request, completion: completion)
+    }
+
     public func load(
         adSize: CGSize? = nil,
         request: DKMadsAdRequest? = nil,
         completion: @escaping (DKMadsInterstitialAd?, Error?) -> Void
     ) {
+        if let request { lastAdRequest = request }
+        let effectiveRequest = request ?? lastAdRequest
         guard SSPSDK.shared.isSDKInitialized else {
             completion(nil, DKMadsAdError.notInitialized.nsError())
             return
@@ -58,9 +74,9 @@ public final class DKMadsInterstitialAd: NSObject, DKMadsFullScreenPresenting {
             code: adUnitID,
             format: .interstitial,
             sizes: bidSizes,
-            placementCode: request?.placementCode,
-            placementContext: request?.placementContext,
-            keyValues: request?.keyValues ?? [:]
+            placementCode: effectiveRequest?.placementCode,
+            placementContext: effectiveRequest?.placementContext,
+            keyValues: effectiveRequest?.keyValues ?? [:]
         ) { [weak self] result in
             guard let self else { return }
             switch result {

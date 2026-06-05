@@ -18,7 +18,12 @@ import SafariServices
     @objc public weak var rootViewController: UIViewController?
 
     @objc public var adUnitID: String
-    @objc public var adSize: CGSize
+    @objc public var adSize: CGSize {
+        didSet {
+            guard adSize.width > 0, adSize.height > 0 else { return }
+            invalidateIntrinsicContentSize()
+        }
+    }
     @objc public private(set) var responseInfo: DKMadsResponseInfo?
     @objc public private(set) var loadedAd: Ad?
 
@@ -49,6 +54,15 @@ import SafariServices
         setupViews()
     }
 
+    @objc public func setAdSize(_ size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+        adSize = size
+    }
+
+    public override var intrinsicContentSize: CGSize {
+        adSize.width > 0 && adSize.height > 0 ? adSize : CGSize(width: 300, height: 250)
+    }
+
     @objc public func load(_ request: DKMadsAdRequest? = nil) {
         guard !isLoading else { return }
         if let request { lastAdRequest = request }
@@ -61,10 +75,15 @@ import SafariServices
         isLoading = true
         clearCreative()
 
+        let slotSize = DKMadsBannerCreativeLayout.effectiveSlotSize(adSize: adSize, bounds: bounds.size)
+        if bounds.width > 0, bounds.height > 0, slotSize != adSize {
+            adSize = slotSize
+        }
+
         SSPSDK.shared.loadAd(
             code: adUnitID,
             format: .banner,
-            sizes: [adSize],
+            sizes: [slotSize],
             placementCode: effectiveRequest?.placementCode,
             placementContext: effectiveRequest?.placementContext,
             keyValues: effectiveRequest?.keyValues ?? [:]
@@ -138,11 +157,16 @@ import SafariServices
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.scrollView.isScrollEnabled = false
+        webView.scrollView.bounces = false
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.scrollView.minimumZoomScale = 1
+        webView.scrollView.maximumZoomScale = 1
         webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.isHidden = true
 
-        imageView.contentMode = .scaleAspectFit
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
         imageView.isUserInteractionEnabled = true
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isHidden = true
@@ -180,12 +204,13 @@ import SafariServices
     }
 
     private func render(ad: Ad) {
+        let slotSize = DKMadsBannerCreativeLayout.effectiveSlotSize(adSize: adSize, bounds: bounds.size)
         if ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             webView.isHidden = false
             imageView.isHidden = true
             let base = URL(string: "https://ssp.dkmads.com")
             if let adm = ad.adm, !adm.isEmpty {
-                webView.loadHTMLString(adm, baseURL: base)
+                webView.loadHTMLString(DKMadsBannerCreativeLayout.htmlForBanner(adm: adm, slotSize: slotSize), baseURL: base)
             } else if let entry = ad.html5EntryUrl, let entryURL = URL(string: entry) {
                 webView.load(URLRequest(url: entryURL))
             }
@@ -242,6 +267,7 @@ import SafariServices
 
 extension DKMadsBannerAdView: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webView.evaluateJavaScript(DKMadsBannerCreativeLayout.viewportInjectionScript, completionHandler: nil)
         startViewabilityIfNeeded()
     }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-public let SDK_VERSION = "0.5.4"
+public let SDK_VERSION = "0.5.6"
 
 public enum SDKError: Error, LocalizedError {
     case notInitialized

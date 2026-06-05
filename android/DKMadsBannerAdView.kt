@@ -70,7 +70,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         }
         imageView = ImageView(context).apply {
             adjustViewBounds = true
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.CENTER_CROP
             visibility = GONE
             setOnClickListener { onBannerClicked() }
         }
@@ -104,12 +104,17 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         lastLoadParams = resolved
         stopViewability()
         clearCreative()
+        val slot = DKMadsBannerCreativeLayout.effectiveSlotSize(adWidth, adHeight, width, height)
+        if (width > 0 && height > 0 && (slot.first != adWidth || slot.second != adHeight)) {
+            adWidth = slot.first
+            adHeight = slot.second
+        }
         scope.launch {
             val result = SSPSDK.loadAd(
                 context = context,
                 adUnitCode = adUnitId,
                 format = AdFormat.BANNER,
-                sizes = listOf(adWidth to adHeight),
+                sizes = listOf(slot),
                 placementCode = resolved.placementCode,
                 placementContext = resolved.placementContext,
                 keyValues = resolved.keyValues,
@@ -145,6 +150,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     }
 
     private fun render(ad: Ad) {
+        val slot = DKMadsBannerCreativeLayout.effectiveSlotSize(adWidth, adHeight, width, height)
         if (ad.isHtml5 || ad.adm.isNotBlank()) {
             webView.visibility = VISIBLE
             imageView.visibility = GONE
@@ -152,6 +158,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             webView.settings.javaScriptEnabled = true
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
+                    view?.evaluateJavascript(DKMadsBannerCreativeLayout.VIEWPORT_INJECTION_SCRIPT, null)
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -164,7 +171,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             if (ad.adm.isNotBlank()) {
                 webView.loadDataWithBaseURL(
                     "https://ssp.dkmads.com",
-                    ad.adm,
+                    DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, slot.first, slot.second),
                     "text/html",
                     "UTF-8",
                     null,

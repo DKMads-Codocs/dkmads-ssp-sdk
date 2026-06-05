@@ -68,7 +68,7 @@ enum AdVideoPlayback {
         onBuffering: ((Bool) -> Void)? = nil,
         onStallFailed: ((Error) -> Void)? = nil
     ) -> AdNativePlaybackHandle? {
-        guard let urlString = ad.preferredPlaybackURL, let url = URL(string: urlString) else {
+        guard let urlString = ad.playableVideoURL, let url = URL(string: urlString) else {
             onReady(DKMadsAdError.missingVideoURL.nsError())
             return nil
         }
