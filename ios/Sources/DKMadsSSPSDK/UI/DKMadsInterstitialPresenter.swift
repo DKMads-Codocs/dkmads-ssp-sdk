@@ -11,7 +11,6 @@ final class DKMadsInterstitialPresenter: UIViewController {
     var onRenderFailed: ((Error) -> Void)?
 
     private let contentContainer = UIView()
-    private let chromeOverlay = UIView()
     private var videoView: DKMadsVideoAdView?
     private let webView: WKWebView
     private let imageView: UIImageView
@@ -19,6 +18,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
     private var viewabilityActive = false
     private var videoConstraints: [NSLayoutConstraint] = []
     private var didPresentStaticContent = false
+    private var webContentReady = false
 
     init(adUnitID: String, ad: Ad) {
         self.adUnitID = adUnitID
@@ -102,12 +102,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
             closeButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
         }
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-
-        chromeOverlay.translatesAutoresizingMaskIntoConstraints = false
-        chromeOverlay.backgroundColor = .clear
-        chromeOverlay.isUserInteractionEnabled = true
-        view.addSubview(chromeOverlay)
-        chromeOverlay.addSubview(closeButton)
+        view.addSubview(closeButton)
 
         webView.isOpaque = true
         webView.backgroundColor = .black
@@ -135,12 +130,8 @@ final class DKMadsInterstitialPresenter: UIViewController {
             contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            chromeOverlay.topAnchor.constraint(equalTo: view.topAnchor),
-            chromeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            chromeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            chromeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            closeButton.topAnchor.constraint(equalTo: chromeOverlay.safeAreaLayoutGuide.topAnchor, constant: 12),
-            closeButton.trailingAnchor.constraint(equalTo: chromeOverlay.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            closeButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
             closeButton.widthAnchor.constraint(equalToConstant: 36),
             closeButton.heightAnchor.constraint(equalToConstant: 36),
             webView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
@@ -155,8 +146,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
     }
 
     private func bringChromeToFront() {
-        view.bringSubviewToFront(chromeOverlay)
-        chromeOverlay.bringSubviewToFront(closeButton)
+        view.bringSubviewToFront(closeButton)
     }
 
     private func presentVideo() {
@@ -184,6 +174,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
     private func presentStatic() {
         guard !didPresentStaticContent else { return }
         didPresentStaticContent = true
+        webContentReady = false
         let slotSize = view.bounds.size
         if ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             webView.isHidden = false
@@ -296,21 +287,39 @@ extension DKMadsInterstitialPresenter: DKMadsVideoAdViewDelegate {
 
 extension DKMadsInterstitialPresenter: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webContentReady = true
         webView.evaluateJavaScript(DKMadsBannerCreativeLayout.fullscreenViewportInjectionScript, completionHandler: nil)
+        if let script = DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(clickUrl: ad.clickUrl) {
+            webView.evaluateJavaScript(script, completionHandler: nil)
+        }
         startViewabilityIfNeeded()
         bringChromeToFront()
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        if navigationAction.navigationType == .linkActivated,
-           let url = navigationAction.request.url,
-           ClickThroughNavigation.matches(clickUrl: ad.clickUrl, navigationUrl: url.absoluteString) {
-            recordClick()
-            present(SFSafariViewController(url: url), animated: true)
-            decisionHandler(.cancel)
+        guard let url = navigationAction.request.url,
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            decisionHandler(.allow)
             return
         }
-        decisionHandler(.allow)
+        if navigationAction.targetFrame?.isMainFrame == false {
+            decisionHandler(.allow)
+            return
+        }
+        let isUserClick = navigationAction.navigationType == .linkActivated
+            || (webContentReady && navigationAction.navigationType == .other)
+        guard isUserClick else {
+            decisionHandler(.allow)
+            return
+        }
+        if url.host == "ssp.dkmads.com" {
+            decisionHandler(.allow)
+            return
+        }
+        recordClick()
+        present(SFSafariViewController(url: url), animated: true)
+        decisionHandler(.cancel)
     }
 }

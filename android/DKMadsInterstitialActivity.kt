@@ -55,6 +55,7 @@ class DKMadsInterstitialActivity : Activity() {
     private var skipButton: Button? = null
     private var skipRunnable: Runnable? = null
     private var completionSignaled = false
+    private var webContentReady = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -150,19 +151,24 @@ class DKMadsInterstitialActivity : Activity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun presentWeb() {
+        webContentReady = false
         webView.visibility = View.VISIBLE
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
+                webContentReady = true
                 view?.evaluateJavascript(DKMadsBannerCreativeLayout.FULLSCREEN_VIEWPORT_INJECTION_SCRIPT, null)
+                DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(ad.clickUrl)
+                    ?.let { view?.evaluateJavascript(it, null) }
                 startViewability()
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val uri = request?.url ?: return false
-                if (!ClickThroughNavigation.matches(ad.clickUrl, uri.toString())) return false
-                recordClick()
-                startActivity(Intent(Intent.ACTION_VIEW, uri))
-                return true
+                return handleWebClickThrough(request?.url, request?.isForMainFrame == true)
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                return handleWebClickThrough(url?.let { Uri.parse(it) }, true)
             }
         }
         if (ad.adm.isNotBlank()) {
@@ -289,6 +295,16 @@ class DKMadsInterstitialActivity : Activity() {
                 "metadata" to metadata,
             ),
         )
+    }
+
+    private fun handleWebClickThrough(uri: Uri?, isMainFrame: Boolean): Boolean {
+        if (!webContentReady || !isMainFrame || uri == null) return false
+        val scheme = uri.scheme?.lowercase() ?: return false
+        if (scheme != "http" && scheme != "https") return false
+        if (uri.host == "ssp.dkmads.com") return false
+        recordClick()
+        startActivity(Intent(Intent.ACTION_VIEW, uri))
+        return true
     }
 
     private fun onStaticClicked() {

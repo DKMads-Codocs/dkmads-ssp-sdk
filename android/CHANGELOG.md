@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.12
+
+- Interstitial WebView: fix click-through (any http(s) landing URL + tap-to-click fallback for non-linked creatives).
+
 ## 0.5.11
 
 - Interstitial HTML: fullscreen re-wrap + `object-fit:contain` (fit on screen, black letterbox).

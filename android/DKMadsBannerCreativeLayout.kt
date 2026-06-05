@@ -54,6 +54,23 @@ internal object DKMadsBannerCreativeLayout {
         """.trimIndent()
     }
 
+    fun fullscreenClickThroughInjectionScript(clickUrl: String): String? {
+        val trimmed = clickUrl.trim()
+        if (trimmed.isBlank()) return null
+        val escaped = trimmed.replace("\\", "\\\\").replace("'", "\\'")
+        return """
+            (function(){
+              var url = '$escaped';
+              var root = document.getElementById('dkmads-root') || document.body;
+              if (!root) return;
+              root.addEventListener('click', function(e) {
+                if (e.target && e.target.closest && e.target.closest('a[href]')) return;
+                window.location.href = url;
+              }, false);
+            })();
+        """.trimIndent()
+    }
+
     const val FULLSCREEN_VIEWPORT_INJECTION_SCRIPT = """
         (function(){
           var meta = document.querySelector('meta[name=viewport]');

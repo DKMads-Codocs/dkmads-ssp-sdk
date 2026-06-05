@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.12
+
+- Fix interstitial clicks: remove full-screen chrome overlay that blocked WebView/image taps; close (✕) only captures its own hit area.
+- HTML interstitial: open any landing-page link (not only exact `click_url` match); tap-to-click fallback when creative has no embedded link.
+
 ## 0.5.11
 
 - Interstitial fullscreen: switch from `object-fit:cover` to `contain` — creative fits on screen without horizontal clipping; black letterbox on mismatch.

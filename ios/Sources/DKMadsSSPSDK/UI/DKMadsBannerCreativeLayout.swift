@@ -81,6 +81,26 @@ enum DKMadsBannerCreativeLayout {
     })();
     """
 
+    /// Tap anywhere on the creative (when no embedded link) opens the bid `click_url`.
+    static func fullscreenClickThroughInjectionScript(clickUrl: String) -> String? {
+        let trimmed = clickUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, URL(string: trimmed) != nil else { return nil }
+        let escaped = trimmed
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+        return """
+        (function(){
+          var url = '\(escaped)';
+          var root = document.getElementById('dkmads-root') || document.body;
+          if (!root) return;
+          root.addEventListener('click', function(e) {
+            if (e.target && e.target.closest && e.target.closest('a[href]')) return;
+            window.location.href = url;
+          }, false);
+        })();
+        """
+    }
+
     /// Fullscreen interstitial — fit creative inside the slot, black letterbox fill.
     static let fullscreenViewportInjectionScript = """
     (function(){
