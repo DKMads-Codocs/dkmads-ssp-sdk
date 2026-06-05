@@ -91,7 +91,11 @@ final class ViewController: UIViewController,
             banner.heightAnchor.constraint(equalToConstant: 250),
         ])
         bannerView = banner
-        banner.load()
+        view.layoutIfNeeded()
+        let request = DKMadsAdRequest()
+        request.placementCode = bannerAdUnitID
+        request.placementContext = "banner"
+        banner.load(request)
         log("Loading banner \(bannerAdUnitID)…")
     }
 

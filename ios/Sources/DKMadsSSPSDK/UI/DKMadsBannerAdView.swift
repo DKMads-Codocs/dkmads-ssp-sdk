@@ -54,7 +54,9 @@ import SafariServices
         setupViews()
     }
 
-    @objc public func setAdSize(_ size: CGSize) {
+    /// Updates slot size after layout (ObjC: `updateAdSize:` — not `setAdSize:` to avoid clashing with the `adSize` property setter).
+    @objc(updateAdSize:)
+    public func updateAdSize(_ size: CGSize) {
         guard size.width > 0, size.height > 0 else { return }
         adSize = size
     }
@@ -65,8 +67,8 @@ import SafariServices
 
     @objc public func load(_ request: DKMadsAdRequest? = nil) {
         guard !isLoading else { return }
-        if let request { lastAdRequest = request }
-        let effectiveRequest = request ?? lastAdRequest
+        let effectiveRequest = Self.normalizedRequest(request ?? lastAdRequest, adUnitID: adUnitID)
+        lastAdRequest = effectiveRequest
         guard SSPSDK.shared.isSDKInitialized else {
             delegate?.bannerAdView?(self, didFailToReceiveAdWithError: SDKError.notInitialized)
             return
@@ -140,6 +142,18 @@ import SafariServices
     deinit {
         refreshTimer?.invalidate()
         stopViewability()
+    }
+
+    /// Fills `placementCode` / `placementContext` when omitted (server rejects explicit null).
+    private static func normalizedRequest(_ request: DKMadsAdRequest?, adUnitID: String) -> DKMadsAdRequest {
+        let req = request ?? DKMadsAdRequest()
+        if (req.placementCode ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            req.placementCode = adUnitID
+        }
+        if (req.placementContext ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            req.placementContext = "banner"
+        }
+        return req
     }
 
     private func scheduleRefreshIfNeeded(_ intervalSec: Int?) {

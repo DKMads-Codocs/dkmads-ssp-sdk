@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| ||||||**Version** | `0.5.6` |
-| **Release tag** | `sdk-0.5.6` |
+| **Version** | `0.5.7` |
+| **Release tag** | `sdk-0.5.7` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.6',
+    :tag => 'sdk-0.5.7',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -74,22 +74,41 @@ DKMadsMobileAds.shared.start(with: config)
 
 Drop-in banner view. **Automatically tracks** served + IAB viewable impressions.
 
+**Required before `load()`:** SDK init (§1), `rootViewController`, `delegate`, and a `DKMadsAdRequest` with `placementCode` (server rejects explicit `"placement_code": null`). The SDK defaults `placementCode` → ad unit UUID and `placementContext` → `"banner"` when omitted, but setting them explicitly is recommended.
+
 ```swift
+// After DKMadsMobileAds.shared.start(with: config) in AppDelegate / scene
+
 let banner = DKMadsBannerAdView(
   adUnitID: "YOUR_AD_UNIT_UUID",
   adSize: CGSize(width: 300, height: 250)
 )
-banner.rootViewController = self
+banner.rootViewController = self   // Safari click-through on tap
 banner.delegate = self
+banner.translatesAutoresizingMaskIntoConstraints = false
 view.addSubview(banner)
-banner.load()
+NSLayoutConstraint.activate([
+  banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+  banner.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+  banner.widthAnchor.constraint(equalToConstant: 300),
+  banner.heightAnchor.constraint(equalToConstant: 250),
+])
+view.layoutIfNeeded()
+
+let request = DKMadsAdRequest()
+request.placementCode = "YOUR_AD_UNIT_UUID"
+request.placementContext = "banner"
+request.keyValues = ["test_mode": true]  // optional, SDK-only / QA
+banner.load(request)
 ```
+
+After layout changes, call `banner.updateAdSize(_:)` (Swift) / `updateAdSize:` (ObjC) — not `setAdSize:` (that selector is reserved for the `adSize` property).
 
 Delegate callbacks:
 
-- `bannerAdViewDidReceiveAd`
+- `bannerAdViewDidReceiveAd` — hide loading UI
+- `bannerAdView(_:didFailToReceiveAdWithError:)` — show error / retry
 - `bannerAdViewDidRecordViewableImpression` (50% visible ≥1s)
-- `bannerAdView(_:didFailToReceiveAdWithError:)`
 
 ## 2b) Video ads (your player required)
 

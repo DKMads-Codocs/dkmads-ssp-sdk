@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.7
+
+- Banner: default `placementCode` / `placementContext`; bid JSON omits null placement fields.
+
 ## 0.5.6
 
 - Banner bid/render use measured view size; responsive HTML wrapper + `CENTER_CROP` images fill the slot.

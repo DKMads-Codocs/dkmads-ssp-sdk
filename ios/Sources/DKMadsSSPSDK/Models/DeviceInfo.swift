@@ -78,15 +78,18 @@ public struct AdRequest {
             req["w"] = Int(sizes[0].width)
             req["h"] = Int(sizes[0].height)
         }
-        return [
+        var payload: [String: Any] = [
             "ad_unit_id": adUnitId,
-            "placement_code": placementCode as Any,
-            "placement_context": placementContext as Any,
             "key_values": keyValues,
             "request": req,
             "signals": signals,
             "debug": debug,
         ]
+        let code = placementCode?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !code.isEmpty { payload["placement_code"] = code }
+        let context = placementContext?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !context.isEmpty { payload["placement_context"] = context }
+        return payload
     }
 }
 

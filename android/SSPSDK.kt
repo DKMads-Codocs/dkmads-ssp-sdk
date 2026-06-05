@@ -507,8 +507,8 @@ object SSPSDK {
 
         return JSONObject().apply {
             put("ad_unit_id", adUnitCode)
-            put("placement_code", placementCode)
-            put("placement_context", placementContext)
+            placementCode?.trim()?.takeIf { it.isNotEmpty() }?.let { put("placement_code", it) }
+            placementContext?.trim()?.takeIf { it.isNotEmpty() }?.let { put("placement_context", it) }
             put("key_values", JSONObject(keyValues))
             put("request", JSONObject().apply {
                 put("id", UUID.randomUUID().toString())
@@ -779,4 +779,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.6"
+const val SDK_VERSION = "0.5.7"

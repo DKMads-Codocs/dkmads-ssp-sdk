@@ -14,7 +14,7 @@ final class DkmadsBannerPlatformView: NSObject, FlutterPlatformView {
     banner.translatesAutoresizingMaskIntoConstraints = false
     super.init()
     if frame.width > 0, frame.height > 0 {
-      banner.setAdSize(frame.size)
+      banner.updateAdSize(frame.size)
     }
     if let auto = args?["autoLoad"] as? Bool, auto {
       banner.load()

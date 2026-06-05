@@ -96,10 +96,12 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             listener?.onAdFailed(this, "adUnitId is required", null)
             return
         }
-        val resolved = BannerLoadParams(
-            placementCode = placementCode ?: lastLoadParams?.placementCode,
-            placementContext = placementContext ?: lastLoadParams?.placementContext,
-            keyValues = keyValues ?: lastLoadParams?.keyValues ?: emptyMap(),
+        val resolved = normalizeLoadParams(
+            BannerLoadParams(
+                placementCode = placementCode ?: lastLoadParams?.placementCode,
+                placementContext = placementContext ?: lastLoadParams?.placementContext,
+                keyValues = keyValues ?: lastLoadParams?.keyValues ?: emptyMap(),
+            ),
         )
         lastLoadParams = resolved
         stopViewability()
@@ -250,6 +252,12 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         cancelRefresh()
         stopViewability()
         super.onDetachedFromWindow()
+    }
+
+    private fun normalizeLoadParams(params: BannerLoadParams): BannerLoadParams {
+        val code = params.placementCode?.trim().orEmpty().ifBlank { adUnitId }
+        val context = params.placementContext?.trim().orEmpty().ifBlank { "banner" }
+        return params.copy(placementCode = code, placementContext = context)
     }
 
     private fun scheduleRefresh(intervalSec: Int?) {

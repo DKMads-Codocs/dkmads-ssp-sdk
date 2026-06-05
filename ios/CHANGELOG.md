@@ -1,8 +1,14 @@
 # Changelog
 
+## 0.5.7
+
+- Fix compile: rename banner `setAdSize(_:)` → `updateAdSize(_:)` (`@objc(updateAdSize:)`) — avoids ObjC selector clash with `adSize` property setter.
+- Banner: default `placementCode` / `placementContext` when omitted; bid JSON omits null placement fields.
+- iOS integration guide + sample updated with required `DKMadsAdRequest`, delegate, and `rootViewController`.
+
 ## 0.5.6
 
-- Banner view reports `intrinsicContentSize` / `setAdSize(_:)` for Auto Layout; bid + render use laid-out bounds when available.
+- Banner view reports `intrinsicContentSize` for Auto Layout; bid + render use laid-out bounds when available. (Use `updateAdSize(_:)` in 0.5.7+ — 0.5.6 `setAdSize(_:)` did not compile.)
 - Banner HTML/image creatives scale to the slot (responsive viewport wrapper + `scaleAspectFill` images).
 
 ## 0.5.5
