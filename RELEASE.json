@@ -1,18 +1,18 @@
 {
-  "release": "sdk-0.5.7",
-  "version": "0.5.7",
-  "released_at": "2026-06-05T06:04:11Z",
+  "release": "sdk-0.5.8",
+  "version": "0.5.8",
+  "released_at": "2026-06-05T06:11:58Z",
   "source_repo": "ssp-platform",
   "platform_versions": {
-    "web": "0.5.7",
-    "ios": "0.5.7",
-    "android": "0.5.7",
-    "flutter": "0.5.7",
-    "unity": "0.5.7"
+    "web": "0.5.8",
+    "ios": "0.5.8",
+    "android": "0.5.8",
+    "flutter": "0.5.8",
+    "unity": "0.5.8"
   },
   "install": {
     "ios_pod": "DKMadsSSPSDK",
-    "android_maven": "com.dkmads.ssp:ssp-android:0.5.7",
+    "android_maven": "com.dkmads.ssp:ssp-android:0.5.8",
     "flutter_package": "dkmads_ssp",
     "unity_upm": "com.dkmads.ssp"
   },

@@ -86,9 +86,9 @@ import SafariServices
             code: adUnitID,
             format: .banner,
             sizes: [slotSize],
-            placementCode: effectiveRequest?.placementCode,
-            placementContext: effectiveRequest?.placementContext,
-            keyValues: effectiveRequest?.keyValues ?? [:]
+            placementCode: effectiveRequest.placementCode,
+            placementContext: effectiveRequest.placementContext,
+            keyValues: effectiveRequest.keyValues
         ) { [weak self] result in
             guard let self else { return }
             self.isLoading = false

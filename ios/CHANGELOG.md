@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.8
+
+- Fix compile: `load()` uses non-optional `effectiveRequest` after `normalizedRequest()` (remove erroneous `?.`).
+
 ## 0.5.7
 
 - Fix compile: rename banner `setAdSize(_:)` → `updateAdSize(_:)` (`@objc(updateAdSize:)`) — avoids ObjC selector clash with `adSize` property setter.
