@@ -36,6 +36,13 @@ class DKMadsInterstitialAd(
     var adWidth: Int = 0
     var adHeight: Int = 0
 
+    private data class InterstitialLoadParams(
+        val placementCode: String? = null,
+        val placementContext: String? = null,
+        val keyValues: Map<String, Any> = emptyMap(),
+    )
+    private var lastLoadParams: InterstitialLoadParams? = null
+
     fun load(
         context: Context,
         placementCode: String? = null,
@@ -46,6 +53,14 @@ class DKMadsInterstitialAd(
             listener?.onAdFailed(this, "adUnitId is required", null)
             return
         }
+        val resolved = normalizeLoadParams(
+            InterstitialLoadParams(
+                placementCode = placementCode ?: lastLoadParams?.placementCode,
+                placementContext = placementContext ?: lastLoadParams?.placementContext,
+                keyValues = keyValues.ifEmpty { lastLoadParams?.keyValues ?: emptyMap() },
+            ),
+        )
+        lastLoadParams = resolved
         scope.launch {
             val sizes = bidSizes(adUnitId, adWidth, adHeight)
             val result = SSPSDK.loadAd(
@@ -53,9 +68,9 @@ class DKMadsInterstitialAd(
                 adUnitCode = adUnitId,
                 format = AdFormat.INTERSTITIAL,
                 sizes = sizes,
-                placementCode = placementCode,
-                placementContext = placementContext,
-                keyValues = keyValues,
+                placementCode = resolved.placementCode,
+                placementContext = resolved.placementContext,
+                keyValues = resolved.keyValues,
             )
             result.fold(
                 onSuccess = { ad ->
@@ -114,6 +129,13 @@ class DKMadsInterstitialAd(
         scope.cancel()
         loadedAd = null
         responseInfo = null
+        lastLoadParams = null
+    }
+
+    private fun normalizeLoadParams(params: InterstitialLoadParams): InterstitialLoadParams {
+        val code = params.placementCode?.trim().orEmpty().ifBlank { adUnitId }
+        val context = params.placementContext?.trim().orEmpty().ifBlank { "interstitial" }
+        return params.copy(placementCode = code, placementContext = context)
     }
 
     companion object {

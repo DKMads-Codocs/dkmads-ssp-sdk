@@ -60,6 +60,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     private val webView: WebView
     private val imageView: ImageView
     private var viewabilityStarted = false
+    private var webContentReady = false
 
     init {
         webView = WebView(context).apply {
@@ -160,16 +161,24 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             webView.settings.javaScriptEnabled = true
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
+                    webContentReady = true
                     view?.evaluateJavascript(DKMadsBannerCreativeLayout.VIEWPORT_INJECTION_SCRIPT, null)
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                    val uri = request?.url ?: return false
-                    if (!ClickThroughNavigation.matches(ad.clickUrl, uri.toString())) return false
-                    onBannerClicked(uri)
+                    if (!ClickThroughNavigation.shouldOpenLandingUri(
+                            request?.url,
+                            request?.isForMainFrame == true,
+                            webContentReady,
+                        )
+                    ) {
+                        return false
+                    }
+                    onBannerClicked(request?.url)
                     return true
                 }
             }
+            webContentReady = false
             if (ad.adm.isNotBlank()) {
                 webView.loadDataWithBaseURL(
                     "https://ssp.dkmads.com",

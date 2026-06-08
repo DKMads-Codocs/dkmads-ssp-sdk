@@ -144,7 +144,7 @@ private final class DKMadsRewardedPresenter: UIViewController, DKMadsVideoAdView
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
+        view.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
         let video = DKMadsVideoAdView(adUnitID: adUnitID, frame: view.bounds)
         video.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         video.rootViewController = self

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.14
+
+- Fullscreen letterbox / interstitial chrome uses **90% opaque black** (`rgba(0,0,0,0.9)`) instead of solid `#000`.
+
+## 0.5.13
+
+- Platform parity release (Android interstitial placement defaults, web interstitial fit + click-through). See Android / web changelogs.
+
 ## 0.5.12
 
 - Fix interstitial clicks: remove full-screen chrome overlay that blocked WebView/image taps; close (✕) only captures its own hit area.

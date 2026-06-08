@@ -73,6 +73,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private var progressRunnable: Runnable? = null
     private var videoTracker: VideoTracker? = null
     private var viewabilityStarted = false
+    private var webContentReady = false
     private var playbackCompleted = false
     private var isPrepared = false
     private var prepareTimeoutRunnable: Runnable? = null
@@ -84,7 +85,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     }
 
     init {
-        setBackgroundColor(Color.BLACK)
+        setBackgroundColor(DKMadsCreativeChrome.letterboxBgColor)
         videoView = VideoView(context).apply { visibility = GONE }
         webView = WebView(context).apply {
             settings.javaScriptEnabled = true
@@ -266,19 +267,27 @@ class DKMadsVideoAdView @JvmOverloads constructor(
             webView.visibility = VISIBLE
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
+                    webContentReady = true
                     listener?.onPlaybackStarted(this@DKMadsVideoAdView)
                     attachVideoChrome(ad)
                     attachVideoClickOverlay(ad)
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                    val uri = request?.url ?: return false
-                    if (!ClickThroughNavigation.matches(ad.clickUrl, uri.toString())) return false
+                    if (!ClickThroughNavigation.shouldOpenLandingUri(
+                            request?.url,
+                            request?.isForMainFrame == true,
+                            webContentReady,
+                        )
+                    ) {
+                        return false
+                    }
                     recordClick()
-                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    context.startActivity(Intent(Intent.ACTION_VIEW, request?.url))
                     return true
                 }
             }
+            webContentReady = false
             if (ad.adm.isNotBlank()) {
                 webView.loadDataWithBaseURL("https://ssp.dkmads.com", ad.adm, "text/html", "UTF-8", null)
             } else if (ad.html5EntryUrl.isNotBlank()) {

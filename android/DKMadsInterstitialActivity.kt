@@ -60,8 +60,8 @@ class DKMadsInterstitialActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.statusBarColor = Color.BLACK
-            window.navigationBarColor = Color.BLACK
+            window.statusBarColor = DKMadsCreativeChrome.letterboxBgColor
+            window.navigationBarColor = DKMadsCreativeChrome.letterboxBgColor
         }
         adUnitId = intent.getStringExtra(EXTRA_AD_UNIT_ID).orEmpty()
         val payload = pendingPayload
@@ -74,7 +74,7 @@ class DKMadsInterstitialActivity : Activity() {
         pendingPayload = null
 
         root = FrameLayout(this).apply {
-            setBackgroundColor(Color.BLACK)
+            setBackgroundColor(DKMadsCreativeChrome.letterboxBgColor)
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -298,10 +298,7 @@ class DKMadsInterstitialActivity : Activity() {
     }
 
     private fun handleWebClickThrough(uri: Uri?, isMainFrame: Boolean): Boolean {
-        if (!webContentReady || !isMainFrame || uri == null) return false
-        val scheme = uri.scheme?.lowercase() ?: return false
-        if (scheme != "http" && scheme != "https") return false
-        if (uri.host == "ssp.dkmads.com") return false
+        if (!ClickThroughNavigation.shouldOpenLandingUri(uri, isMainFrame, webContentReady)) return false
         recordClick()
         startActivity(Intent(Intent.ACTION_VIEW, uri))
         return true

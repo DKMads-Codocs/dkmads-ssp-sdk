@@ -1,4 +1,4 @@
-# DKMads SSP Android SDK (v0.5.12)
+# DKMads SSP Android SDK (v0.5.14)
 
 Kotlin sources in this folder are packaged via `sdk/android-module` as AAR `com.dkmads.ssp:ssp-android`.
 

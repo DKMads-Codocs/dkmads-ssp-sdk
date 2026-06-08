@@ -40,7 +40,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
+        view.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
         setupChrome()
         if ad.isVideo {
             presentVideo()
@@ -84,7 +84,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
 
     private func setupChrome() {
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.backgroundColor = .black
+        contentContainer.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
         view.addSubview(contentContainer)
 
         closeButton.translatesAutoresizingMaskIntoConstraints = false
@@ -104,8 +104,8 @@ final class DKMadsInterstitialPresenter: UIViewController {
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         view.addSubview(closeButton)
 
-        webView.isOpaque = true
-        webView.backgroundColor = .black
+        webView.isOpaque = false
+        webView.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
         if #available(iOS 11.0, *) {

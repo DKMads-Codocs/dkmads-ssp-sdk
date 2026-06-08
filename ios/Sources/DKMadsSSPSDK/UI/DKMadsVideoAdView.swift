@@ -174,16 +174,16 @@ import WebKit
     }
 
     private func setupViews() {
-        backgroundColor = .black
+        backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
         clipsToBounds = true
 
         webView.isOpaque = false
-        webView.backgroundColor = .black
+        webView.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
         webView.isHidden = true
         webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
 
-        playerView.backgroundColor = .black
+        playerView.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
         playerView.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(playerView)

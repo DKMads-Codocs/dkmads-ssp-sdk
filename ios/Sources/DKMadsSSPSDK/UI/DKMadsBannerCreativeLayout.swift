@@ -43,7 +43,8 @@ enum DKMadsBannerCreativeLayout {
         let viewport = fullscreen
             ? "width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
             : "width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-        let rootStyle = "#dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;background:\(fullscreen ? "#000" : "transparent")}"
+        let letterbox = DKMadsCreativeChrome.letterboxBackgroundCss
+        let rootStyle = "#dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;background:\(fullscreen ? letterbox : "transparent")}"
         let mediaStyle = fullscreen
             ? "display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:\(objectFit);border:0;margin:0;padding:0"
             : "display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:\(objectFit);border:0;margin:0;padding:0"
@@ -53,7 +54,7 @@ enum DKMadsBannerCreativeLayout {
         <meta charset="utf-8">
         <meta name="viewport" content="\(viewport)">
         <style>
-        html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:\(fullscreen ? "#000" : "transparent");-webkit-text-size-adjust:100%}
+        html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:\(fullscreen ? letterbox : "transparent");-webkit-text-size-adjust:100%}
         \(rootStyle)
         #dkmads-root > *{max-width:100%;max-height:100%;box-sizing:border-box}
         #dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root svg,#dkmads-root canvas,#dkmads-root a{
@@ -101,18 +102,18 @@ enum DKMadsBannerCreativeLayout {
         """
     }
 
-    /// Fullscreen interstitial — fit creative inside the slot, black letterbox fill.
+    /// Fullscreen interstitial — fit creative inside the slot, 90% letterbox fill.
     static let fullscreenViewportInjectionScript = """
     (function(){
       var meta = document.querySelector('meta[name=viewport]');
       if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
       meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-      var fill = 'margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#000';
+      var fill = 'margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:rgba(0,0,0,0.9)';
       if (document.documentElement) { document.documentElement.style.cssText = fill; }
       if (document.body) { document.body.style.cssText = fill; }
       var root = document.getElementById('dkmads-root');
       if (root) {
-        root.style.cssText = 'margin:0;padding:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000;box-sizing:border-box';
+        root.style.cssText = 'margin:0;padding:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(0,0,0,0.9);box-sizing:border-box';
         var kids = root.children;
         for (var k = 0; k < kids.length; k++) {
           kids[k].style.maxWidth = '100%';

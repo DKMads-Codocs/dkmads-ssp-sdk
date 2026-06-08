@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.14
+
+- Tracks native SDK **0.5.14** (90% opaque letterbox backgrounds).
+
+## 0.5.13
+
+- Tracks native SDK **0.5.13** (interstitial fit + click-through parity on iOS/Android).
+
 ## 0.5.1
 
 - `LoadNative`, `LoadAppOpen`, `ShowAppOpen`, `PresentAdInspector`.

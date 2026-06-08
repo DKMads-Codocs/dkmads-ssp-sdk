@@ -9,14 +9,15 @@ internal object DKMadsBannerCreativeLayout {
 
     fun htmlForFullscreen(adm: String): String {
         val fragment = extractRenderableFragment(adm)
+        val bg = DKMadsCreativeChrome.LETTERBOX_BG_CSS
         return """
             <!DOCTYPE html>
             <html><head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
-            html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#000;-webkit-text-size-adjust:100%}
-            #dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;background:#000}
+            html,body{margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:$bg;-webkit-text-size-adjust:100%}
+            #dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;background:$bg}
             #dkmads-root > *{max-width:100%;max-height:100%;box-sizing:border-box}
             #dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root svg,#dkmads-root canvas{
               display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0
@@ -76,12 +77,12 @@ internal object DKMadsBannerCreativeLayout {
           var meta = document.querySelector('meta[name=viewport]');
           if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
           meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-          var fill = 'margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#000';
+          var fill = 'margin:0;padding:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:rgba(0,0,0,0.9)';
           if (document.documentElement) { document.documentElement.style.cssText = fill; }
           if (document.body) { document.body.style.cssText = fill; }
           var root = document.getElementById('dkmads-root');
           if (root) {
-            root.style.cssText = 'margin:0;padding:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000;box-sizing:border-box';
+            root.style.cssText = 'margin:0;padding:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(0,0,0,0.9);box-sizing:border-box';
             var kids = root.children;
             for (var k = 0; k < kids.length; k++) {
               kids[k].style.maxWidth = '100%';

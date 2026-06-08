@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.14
+
+- Fullscreen letterbox / interstitial chrome uses **90% opaque black** (`rgba(0,0,0,0.9)`) instead of solid `#000`.
+
+## 0.5.13
+
+- Interstitial `load()`: default `placementCode` / `placementContext` when omitted (matches iOS).
+- Banner + video WebView: open any http(s) landing URL after load (not only exact `click_url` prefix match).
+- Shared `ClickThroughNavigation.shouldOpenLandingUri` helper.
+
 ## 0.5.12
 
 - Interstitial WebView: fix click-through (any http(s) landing URL + tap-to-click fallback for non-linked creatives).
