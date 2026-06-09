@@ -331,6 +331,8 @@ lifecycleScope.launch {
 
 **0.5.15+:** `DKMadsVideoAdView` and video interstitials use **Media3 ExoPlayer** for MP4 and HLS (`.m3u8`, `/hls/`). Use `ad.playableVideoUrl` (not raw `videoUrl` alone) when wiring a custom player. `load()` validates `hasFill` separately from `isVideo` — a winning bid with `reason: "won"` is no longer treated as failure.
 
+**Instream audio:** placements whose context contains `instream` (e.g. `instream_preroll` from `load(placementContext = …)` or the bid’s `placement_context`) start **unmuted**. Outstream / rewarded stay muted by default for autoplay policy.
+
 ### Option A — `DKMadsVideoAdView` (recommended)
 
 ```kotlin

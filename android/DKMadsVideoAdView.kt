@@ -76,6 +76,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private var isPrepared = false
     private var isLoading = false
     private var loadGeneration = 0L
+    private var lastRequestedPlacementContext: String? = null
     private var prepareTimeoutRunnable: Runnable? = null
     private var bufferTimeoutRunnable: Runnable? = null
 
@@ -135,6 +136,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         if (isLoading) return
         val generation = ++loadGeneration
         isLoading = true
+        lastRequestedPlacementContext = placementContext
         stopPlayback()
         scope.launch {
             val result = SSPSDK.loadAd(
@@ -523,6 +525,9 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp)
         listener?.onAdClicked(this)
     }
+
+    private fun effectivePlacementContext(ad: Ad): String? =
+        ad.placementContext?.takeIf { it.isNotBlank() } ?: lastRequestedPlacementContext
 
     private fun applySkipConfig(ad: Ad) {
         ad.skippable?.let { isSkippable = it }

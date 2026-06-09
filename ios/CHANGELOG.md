@@ -2,6 +2,7 @@
 
 ## 0.5.15
 
+- **Instream unmute:** `DKMadsVideoChrome.isInstreamPlacement` treats `placementContext` values like `instream_preroll` as instream (`contains("instream")`); falls back to the `load()` placement when the bid omits `placement_context`.
 - Load-generation tokens on `DKMadsVideoAdView` and `DKMadsBannerAdView` (ignore stale bid callbacks after `display()` / new `load()`).
 
 ## 0.5.14

@@ -200,7 +200,11 @@ class DKMadsInterstitialActivity : Activity() {
     private fun presentVideo() {
         val url = ad.playableVideoUrl ?: return failAndFinish("Video fill missing video_url")
         videoContainer.visibility = View.VISIBLE
-        val muted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
+        val muted = DKMadsVideoChrome.defaultPlaybackMuted(
+            ad.unitFormat,
+            ad.placementContext,
+            ad.videoTemplate,
+        )
         nativeVideo = DKMadsNativeVideoSurface(this, videoContainer).also { surface ->
             surface.play(
                 url = url,

@@ -46,6 +46,6 @@ DKMadsInterstitialAd.load(context, "INTERSTITIAL_UNIT", adWidth = 320, adHeight 
 }
 ```
 
-`Ad` exposes `videoUrl`, `playableVideoUrl` (MP4 + HLS), `preferredRenderer`, `isVideo`, `isHtml5`, `hasFill`, `creativeUrl`, and `adm`.
+`Ad` exposes `videoUrl`, `playableVideoUrl` (MP4 + HLS), `preferredRenderer`, `isVideo`, `isHtml5`, `hasFill`, `creativeUrl`, and `adm`. Instream placements (`instream_preroll`, etc.) default to **unmuted** playback.
 
 See [docs/integration/android.md](../../docs/integration/android.md) and [docs/TARGETING_SIGNALS.md](../../docs/TARGETING_SIGNALS.md).

@@ -12,11 +12,18 @@ enum DKMadsVideoChrome {
 
     /// Instream replaces playing content — default sound on; outstream stays muted for autoplay policy.
     static func defaultPlaybackMuted(unitFormat: String?, placementContext: String?, videoTemplate: String?) -> Bool {
+        !isInstreamPlacement(unitFormat: unitFormat, placementContext: placementContext, videoTemplate: videoTemplate)
+    }
+
+    /// `instream_preroll`, `instream_midroll`, etc. — any context containing `instream`.
+    static func isInstreamPlacement(unitFormat: String?, placementContext: String?, videoTemplate: String?) -> Bool {
         let template = (videoTemplate ?? "").lowercased()
         let format = (unitFormat ?? "").lowercased()
         let ctx = (placementContext ?? "").lowercased()
-        if template == "video_instream" || format == "video_instream" || ctx == "instream" { return false }
-        return true
+        if template == "video_instream" { return true }
+        if format == "video_instream" || format.contains("instream") { return true }
+        if ctx.contains("instream") { return true }
+        return false
     }
 
     static func showsProgress(template: String?) -> Bool { true }

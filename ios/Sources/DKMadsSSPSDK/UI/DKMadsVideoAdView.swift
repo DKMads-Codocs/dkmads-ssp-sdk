@@ -48,6 +48,7 @@ import WebKit
     private var isPlaybackMuted = true
     private var isLoading = false
     private var loadGeneration: UInt = 0
+    private var lastRequestedPlacementContext: String?
     private var viewabilityActive = false
     private var videoEventsAttached = false
     private var webPlaybackStarted = false
@@ -112,6 +113,7 @@ import WebKit
         let generation = loadGeneration &+ 1
         loadGeneration = generation
         isLoading = true
+        lastRequestedPlacementContext = request?.placementContext
 
         SSPSDK.shared.loadAd(
             code: adUnitID,
@@ -233,7 +235,7 @@ import WebKit
                     }
                     let muted = DKMadsVideoChrome.defaultPlaybackMuted(
                         unitFormat: ad.unitFormat,
-                        placementContext: ad.placementContext,
+                        placementContext: self.effectivePlacementContext(for: ad),
                         videoTemplate: ad.videoTemplate
                     )
                     self.player.isMuted = muted
@@ -523,6 +525,13 @@ extension DKMadsVideoAdView: WKNavigationDelegate {
             dspSource: ad.dsp
         )
         delegate?.videoAdViewDidRecordClick?(self)
+    }
+
+    private func effectivePlacementContext(for ad: Ad) -> String? {
+        let fromAd = ad.placementContext?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !fromAd.isEmpty { return fromAd }
+        let fromRequest = lastRequestedPlacementContext?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return fromRequest.isEmpty ? nil : fromRequest
     }
 
     private func applySkipConfig(from ad: Ad) {

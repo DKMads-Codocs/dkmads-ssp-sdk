@@ -2,6 +2,7 @@
 
 ## 0.5.15
 
+- **Instream unmute:** `DKMadsVideoChrome.isInstreamPlacement` treats `placementContext` values like `instream_preroll` as instream (`contains("instream")`); falls back to the `load()` placement when the bid omits `placement_context`.
 - **Video parity with iOS:** ExoPlayer (Media3) for MP4 + HLS (`.m3u8`, `/hls/`) in `DKMadsVideoAdView` and video interstitials.
 - `Ad.playableVideoUrl`, `Ad.preferredRenderer`, and `AdMediaParsing` (hosted creative URLs, adm `<video>` extraction).
 - `DKMadsVideoAdView.load()` no longer treats `reason: "won"` as failure; validates `hasFill` + playable URL / adm separately.

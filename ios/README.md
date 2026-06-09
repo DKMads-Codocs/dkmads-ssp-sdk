@@ -83,7 +83,7 @@ let videoView = DKMadsVideoAdView(adUnitID: videoUnitUUID, frame: adFrame)
 videoView.delegate = self
 parentView.addSubview(videoView)
 let req = DKMadsAdRequest()
-req.placementContext = "pre_roll"
+req.placementContext = "instream_preroll"
 videoView.load(req)
 
 // Option B — IMA-style coordinator (pause content → ad → resume)
@@ -91,7 +91,7 @@ let loader = DKMadsInstreamAdsLoader(contentPlayer: contentPlayer, adContainer: 
 loader.delegate = self
 loader.pauseContentAutomatically = true
 loader.resumeContentAfterAd = true
-loader.requestAds(adUnitID: videoUnitUUID, contentPosition: "pre_roll")
+loader.requestAds(adUnitID: videoUnitUUID, contentPosition: "instream_preroll")
 
 // Option C — bring your own AVPlayer (telemetry + play helper)
 let controller = DKMadsVideoAdController(adUnitID: videoUnitUUID)
@@ -111,6 +111,8 @@ Errors use `DKMadsAdError` (`noFill`, `missingVideoURL`, `playbackFailed`, etc.)
 Set `SSPSDKConfig.useTestAds = true` for verbose bid logging (`debug: true` on requests). Use dashboard test creatives / known MP4 ad units for predictable fills.
 
 **WebView video:** `videoAdViewDidComplete` fires via HTML5 `ended` hooks. Quartile telemetry (`video_25` … `video_100`) is emitted on the **native MP4** path only; WebView/HTML5 ads report start + complete.
+
+**Instream audio:** contexts containing `instream` (e.g. `instream_preroll`) or `video_template == video_instream` start **unmuted**; outstream stays muted for autoplay policy.
 
 **Skip:** `DKMadsVideoAdView.isSkippable` and `skipOffsetSeconds` (default 5s).
 
