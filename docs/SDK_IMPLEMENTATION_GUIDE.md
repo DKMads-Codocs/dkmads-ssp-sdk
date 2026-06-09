@@ -6,6 +6,8 @@ The central reference for integrating DKMads across **web, iOS, Android, Flutter
 **Outcome:** a verified property, successful bid, rendered creative, and compliant telemetry  
 **Fast path:** [60-minute quickstart](./integration/QUICKSTART.md) · **In dashboard:** Developer → SDK guide
 
+**Current release:** **0.5.15** (`sdk-0.5.15`) — interstitial fit + click-through (0.5.12+), 90% letterbox backgrounds (0.5.14), Android video parity with iOS — HLS/ExoPlayer, `playableVideoUrl`, load guards (0.5.15). Pin this tag for native iOS/Android; web uses the same semver in `SDK_VERSION`.
+
 ## Reference samples (copy-paste)
 
 | Platform | Sample |

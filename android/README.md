@@ -1,4 +1,4 @@
-# DKMads SSP Android SDK (v0.5.14)
+# DKMads SSP Android SDK (v0.5.15)
 
 Kotlin sources in this folder are packaged via `sdk/android-module` as AAR `com.dkmads.ssp:ssp-android`.
 
@@ -46,6 +46,6 @@ DKMadsInterstitialAd.load(context, "INTERSTITIAL_UNIT", adWidth = 320, adHeight 
 }
 ```
 
-`Ad` exposes `videoUrl`, `isVideo`, `isHtml5`, `hasFill`, `creativeUrl`, and `adm`.
+`Ad` exposes `videoUrl`, `playableVideoUrl` (MP4 + HLS), `preferredRenderer`, `isVideo`, `isHtml5`, `hasFill`, `creativeUrl`, and `adm`.
 
 See [docs/integration/android.md](../../docs/integration/android.md) and [docs/TARGETING_SIGNALS.md](../../docs/TARGETING_SIGNALS.md).

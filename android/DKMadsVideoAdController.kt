@@ -28,6 +28,8 @@ class DKMadsVideoAdController(
         private set
 
     private var tracker: VideoTracker? = null
+    private var isLoading = false
+    private var loadGeneration = 0L
 
     fun load(
         context: android.content.Context,
@@ -37,6 +39,9 @@ class DKMadsVideoAdController(
         placementContext: String? = null,
         keyValues: Map<String, Any> = emptyMap(),
     ) {
+        if (isLoading) return
+        val generation = ++loadGeneration
+        isLoading = true
         detach()
         scope.launch {
             val result = SSPSDK.loadAd(
@@ -48,19 +53,18 @@ class DKMadsVideoAdController(
                 placementContext = placementContext,
                 keyValues = keyValues,
             )
+            if (generation != loadGeneration) return@launch
+            isLoading = false
             result.fold(
                 onSuccess = { ad ->
                     val info = DKMadsResponseInfo.from(ad)
                     responseInfo = info
-                    if (!ad.hasFill || (ad.videoUrl.isBlank() && ad.adm.isBlank())) {
-                        listener?.onAdFailed(
-                            if (ad.videoUrl.isBlank() && ad.adm.isBlank() && ad.hasFill) {
-                                "Video fill missing video_url (MP4 or HLS)."
-                            } else {
-                                ad.reason ?: "no_fill"
-                            },
-                            info,
-                        )
+                    if (!ad.hasFill) {
+                        listener?.onAdFailed(ad.reason ?: "no_fill", info)
+                        return@fold
+                    }
+                    if (!ad.isVideo || (ad.playableVideoUrl.isNullOrBlank() && ad.adm.isBlank())) {
+                        listener?.onAdFailed("Video fill missing video_url or adm", info)
                         return@fold
                     }
                     loadedAd = ad
@@ -73,8 +77,8 @@ class DKMadsVideoAdController(
         }
     }
 
-    /** HTTPS MP4 / HLS URL for ExoPlayer, MediaPlayer, or VideoView. */
-    fun playbackUri(): Uri? = loadedAd?.videoUrl?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+    /** HTTPS MP4 / HLS URL for ExoPlayer or custom players (parity with iOS `playableVideoURL`). */
+    fun playbackUri(): Uri? = loadedAd?.playableVideoUrl?.let { Uri.parse(it) }
 
     fun attach(
         containerView: View,
@@ -108,6 +112,8 @@ class DKMadsVideoAdController(
     }
 
     fun destroy() {
+        ++loadGeneration
+        isLoading = false
         detach()
         scope.cancel()
         loadedAd = null

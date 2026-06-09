@@ -47,6 +47,7 @@ import WebKit
     private var skipTimer: Timer?
     private var isPlaybackMuted = true
     private var isLoading = false
+    private var loadGeneration: UInt = 0
     private var viewabilityActive = false
     private var videoEventsAttached = false
     private var webPlaybackStarted = false
@@ -77,6 +78,8 @@ import WebKit
 
     /// Renders an ad already returned from `SSPSDK.loadAd` (e.g. interstitial preload).
     @objc public func display(_ ad: Ad) {
+        loadGeneration &+= 1
+        isLoading = false
         stopPlayback()
         guard ad.isVideo, ad.playableVideoURL != nil || !(ad.adm?.isEmpty ?? true) else {
             delegate?.videoAdView?(self, didFailToReceiveAdWithError: DKMadsAdError.missingVideoURL.nsError())
@@ -106,6 +109,8 @@ import WebKit
             return
         }
         stopPlayback()
+        let generation = loadGeneration &+ 1
+        loadGeneration = generation
         isLoading = true
 
         SSPSDK.shared.loadAd(
@@ -117,6 +122,7 @@ import WebKit
             keyValues: request?.keyValues ?? [:]
         ) { [weak self] result in
             guard let self else { return }
+            guard generation == self.loadGeneration else { return }
             self.isLoading = false
             switch result {
             case .success(let response):

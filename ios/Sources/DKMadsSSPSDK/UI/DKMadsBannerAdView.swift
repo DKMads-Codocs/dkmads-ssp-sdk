@@ -30,6 +30,7 @@ import SafariServices
     private let webView: WKWebView
     private let imageView: UIImageView
     private var isLoading = false
+    private var loadGeneration: UInt = 0
     private var viewabilityActive = false
     private var refreshTimer: Timer?
     private var lastAdRequest: DKMadsAdRequest?
@@ -74,6 +75,8 @@ import SafariServices
             return
         }
         stopViewability()
+        let generation = loadGeneration &+ 1
+        loadGeneration = generation
         isLoading = true
         clearCreative()
 
@@ -91,6 +94,7 @@ import SafariServices
             keyValues: effectiveRequest.keyValues
         ) { [weak self] result in
             guard let self else { return }
+            guard generation == self.loadGeneration else { return }
             self.isLoading = false
             switch result {
             case .success(let response):

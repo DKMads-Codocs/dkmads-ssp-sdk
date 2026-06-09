@@ -615,7 +615,18 @@ object SSPSDK {
                 val response = reader.readText()
                 return JSONObject(response)
             } else {
-                throw SDKError.NetworkError
+                val errorBody = runCatching {
+                    connection.errorStream?.bufferedReader()?.readText().orEmpty()
+                }.getOrDefault("")
+                val serverMessage = runCatching {
+                    val json = JSONObject(errorBody)
+                    json.optString("message").takeIf { it.isNotBlank() }
+                        ?: json.optString("error").takeIf { it.isNotBlank() }
+                }.getOrNull()
+                throw SDKError.RequestFailed(
+                    statusCode = responseCode,
+                    serverMessage = serverMessage,
+                )
             }
         } finally {
             connection.disconnect()
@@ -739,12 +750,35 @@ data class Ad(
 
     val isVideo: Boolean
         get() {
-            if (isHtml5 || isAudio) return false
+            if (isHtml5) return false
             val dt = deliveryType?.lowercase().orEmpty()
             if (dt == "video" || dt == "rewarded" || dt == "splash") return true
             if (videoUrl.isNotBlank()) return true
-            if (adm.contains("<video", ignoreCase = true)) return true
+            if (AdMediaParsing.videoSrcFromAdm(adm, isVideoCreative = true) != null) return true
             return false
+        }
+
+    /** Native player URL — hosted creative-assets paths, HLS, and MP4 (parity with iOS `playableVideoURL`). */
+    val playableVideoUrl: String?
+        get() {
+            if (videoUrl.isNotBlank()) {
+                if (AdMediaParsing.isHostedCreativeVideoUrl(videoUrl, isVideoCreative = isVideo)) {
+                    return videoUrl
+                }
+            }
+            AdMediaParsing.videoSrcFromAdm(adm, isVideoCreative = isVideo)?.let { return it }
+            if (isVideo && videoUrl.isNotBlank() && !AdMediaParsing.isHtml5AssetUrl(videoUrl)) {
+                return videoUrl
+            }
+            return null
+        }
+
+    val preferredRenderer: DKMadsCreativeRenderer
+        get() {
+            if (!playableVideoUrl.isNullOrBlank()) return DKMadsCreativeRenderer.NATIVE_MP4
+            if (isHtml5 || adm.contains("<iframe", ignoreCase = true)) return DKMadsCreativeRenderer.WEB_MARKUP
+            if (adm.isNotBlank()) return DKMadsCreativeRenderer.WEB_MARKUP
+            return DKMadsCreativeRenderer.WEB_MARKUP
         }
 
     val isAudio: Boolean
@@ -757,9 +791,9 @@ data class Ad(
 
     /** Fill when renderable markup exists (house winners may omit id/crid). */
     val hasFill: Boolean
-        get() = isVideo
+        get() = isHtml5
+            || isVideo
             || (isAudio && (audioUrl.isNotBlank() || adm.isNotBlank()))
-            || (isHtml5 && (adm.isNotBlank() || html5EntryUrl.isNotBlank()))
             || adm.isNotBlank()
             || creativeUrl.isNotBlank()
 
@@ -776,7 +810,15 @@ sealed class SDKError : Exception() {
     object NoFill : SDKError()
     object ConsentRequired : SDKError()
     object AdExpired : SDKError()
+
+    data class RequestFailed(
+        val statusCode: Int,
+        val serverMessage: String? = null,
+    ) : SDKError() {
+        override val message: String
+            get() = serverMessage?.takeIf { it.isNotBlank() } ?: "Network error ($statusCode)"
+    }
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.14"
+const val SDK_VERSION = "0.5.15"

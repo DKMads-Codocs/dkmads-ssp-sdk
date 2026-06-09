@@ -53,7 +53,7 @@ Successful fills return JSON from `POST /api/public/v1/bid`:
 | `SSP.bindVideo(videoEl, opts)` | Instream / outstream video |
 | `SSP.bindAudio(audioEl, opts)` | Audio units |
 | `SSP.createInstreamLoader(...)` | Pause content during ad breaks |
-| `SSP.displayInterstitial` / `SSP.displaySplash` | Fullscreen interstitial / splash |
+| `SSP.displayInterstitial` / `SSP.displaySplash` | Fullscreen interstitial / splash (fit-to-screen, click-through, 90% letterbox — 0.5.12+) |
 | `SSP.canRequestAds` / `SSP.lastBidDiagnostics` | Consent gate / bid QA (parity with mobile inspector lite) |
 
 See [integration/web.md](./integration/web.md).

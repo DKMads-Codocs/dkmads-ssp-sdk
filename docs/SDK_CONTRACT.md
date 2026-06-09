@@ -2,7 +2,7 @@
 
 Canonical **request, response, and lifecycle** contract for web, iOS, Android, Flutter, and Unity integrations.
 
-All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.1**).
+All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.15**).
 
 **Use with:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · platform integration guides
 

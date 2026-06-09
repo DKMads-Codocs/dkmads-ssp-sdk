@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.15
+
+- Tracks native SDK **0.5.15** (Android video parity: HLS/ExoPlayer, `playableVideoUrl`, load guards).
+
 ## 0.5.14
 
 - Tracks native SDK **0.5.14** (90% opaque letterbox backgrounds).

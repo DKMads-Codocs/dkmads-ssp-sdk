@@ -1,7 +1,7 @@
 # SDK capability gap matrix
 
 Last updated: 2026-05-27  
-**Version:** unified **`sdk/VERSION`** — web, iOS, Android, Flutter, Unity (currently **0.5.1**)
+**Version:** unified **`sdk/VERSION`** — web, iOS, Android, Flutter, Unity (currently **0.5.15**)
 
 Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (large network SDKs and mediation hubs). This is a capability map, not a competitor feature list.
 
@@ -15,7 +15,7 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 |------------|--------|
 | Initialize + integration key | `DKMadsMobileAds.start` / `SSPSDK.initialize` |
 | Banner drop-in + viewability | `DKMadsBannerAdView` |
-| Interstitial / rewarded / app open | Dedicated classes + fullscreen callbacks |
+| Interstitial / rewarded / app open | Dedicated classes + fullscreen callbacks; responsive fit + click-through (0.5.12+); 90% letterbox chrome (0.5.14) |
 | Native load + assets | `DKMadsNativeAd` + `DKMadsNativeAdAssets` (or `DKMadsNativeAdView`) |
 | Adaptive banner sizes | `DKMadsAdSize` helpers |
 | Server refresh interval | `refresh_interval_sec` on bid |
@@ -23,7 +23,7 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 | Targeting + FPD | `setTargetingSignals`, `syncFirstPartyProfile` |
 | Fill diagnostics | `DKMadsResponseInfo`, Ad Inspector, `debug: true` |
 | Fullscreen cache expiry | 4h TTL on show (`AD_EXPIRED` / `ad_expired`) |
-| Video / instream | `DKMadsVideoAdController`, `DKMadsInstreamAdsLoader` |
+| Video / instream | `DKMadsVideoAdView` (ExoPlayer MP4+HLS on Android, AVPlayer on iOS), `DKMadsVideoAdController`, `DKMadsInstreamAdsLoader` |
 | Audio | `DKMadsAudioAdView` (Android), audio events |
 
 ---

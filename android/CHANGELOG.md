@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.15
+
+- **Video parity with iOS:** ExoPlayer (Media3) for MP4 + HLS (`.m3u8`, `/hls/`) in `DKMadsVideoAdView` and video interstitials.
+- `Ad.playableVideoUrl`, `Ad.preferredRenderer`, and `AdMediaParsing` (hosted creative URLs, adm `<video>` extraction).
+- `DKMadsVideoAdView.load()` no longer treats `reason: "won"` as failure; validates `hasFill` + playable URL / adm separately.
+- Load-generation tokens on banner + video views (ignore stale bid callbacks).
+- Bid HTTP errors surface server `message` (e.g. `ad_unit not in integration property`) via `SDKError.RequestFailed`.
+
 ## 0.5.14
 
 - Fullscreen letterbox / interstitial chrome uses **90% opaque black** (`rgba(0,0,0,0.9)`) instead of solid `#000`.

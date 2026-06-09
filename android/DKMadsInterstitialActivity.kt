@@ -19,7 +19,6 @@ import android.widget.FrameLayout
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.VideoView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,7 +47,8 @@ class DKMadsInterstitialActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var webView: WebView
     private lateinit var imageView: ImageView
-    private lateinit var videoView: VideoView
+    private lateinit var videoContainer: FrameLayout
+    private var nativeVideo: DKMadsNativeVideoSurface? = null
     private var videoTracker: VideoTracker? = null
     private var viewabilityStarted = false
     private var ctaButton: Button? = null
@@ -83,7 +83,7 @@ class DKMadsInterstitialActivity : Activity() {
         setContentView(root)
         setupChrome()
         when {
-            ad.isVideo && ad.videoUrl.isNotBlank() -> presentVideo()
+            ad.isVideo && !ad.playableVideoUrl.isNullOrBlank() -> presentVideo()
             ad.isHtml5 || ad.adm.isNotBlank() -> presentWeb()
             ad.creativeUrl.isNotBlank() -> presentImage()
             else -> failAndFinish("Interstitial creative is not video, image, or HTML5")
@@ -97,6 +97,8 @@ class DKMadsInterstitialActivity : Activity() {
         cancelVideoSkip()
         videoTracker?.stop()
         videoTracker = null
+        nativeVideo?.release()
+        nativeVideo = null
         scope.cancel()
         super.onDestroy()
     }
@@ -129,22 +131,14 @@ class DKMadsInterstitialActivity : Activity() {
             visibility = View.GONE
             setOnClickListener { onStaticClicked() }
         }
-        videoView = VideoView(this).apply {
+        videoContainer = FrameLayout(this).apply {
             visibility = View.GONE
-            setOnCompletionListener {
-                signalCompletion(skipped = false)
-                finish()
-            }
-            setOnErrorListener { _, _, _ ->
-                failAndFinish("Video playback failed")
-                true
-            }
         }
         val contentLp = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT,
         )
-        root.addView(videoView, 0, contentLp)
+        root.addView(videoContainer, 0, contentLp)
         root.addView(webView, 0, contentLp)
         root.addView(imageView, 0, contentLp)
     }
@@ -204,24 +198,41 @@ class DKMadsInterstitialActivity : Activity() {
     }
 
     private fun presentVideo() {
-        videoView.visibility = View.VISIBLE
-        val uri = Uri.parse(ad.videoUrl)
-        videoView.setVideoURI(uri)
-        videoView.setOnPreparedListener { mp ->
-            videoTracker = SSPSDK.trackVideoLifecycle(
-                adUnitId = adUnitId,
-                campaignId = ad.campaignId,
-                creativeId = ad.creativeId ?: ad.id,
-                containerView = videoView,
-                durationMsProvider = { mp.duration.coerceAtLeast(0).toLong() },
-                currentPositionMsProvider = { videoView.currentPosition.toLong() },
-                isPlayingProvider = { videoView.isPlaying },
-                skippable = true,
+        val url = ad.playableVideoUrl ?: return failAndFinish("Video fill missing video_url")
+        videoContainer.visibility = View.VISIBLE
+        val muted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
+        nativeVideo = DKMadsNativeVideoSurface(this, videoContainer).also { surface ->
+            surface.play(
+                url = url,
+                autoplay = true,
+                muted = muted,
+                callbacks = object : DKMadsNativeVideoSurface.Callbacks {
+                    override fun onReady(durationMs: Long) {
+                        videoTracker = SSPSDK.trackVideoLifecycle(
+                            adUnitId = adUnitId,
+                            campaignId = ad.campaignId,
+                            creativeId = ad.creativeId ?: ad.id,
+                            containerView = videoContainer,
+                            durationMsProvider = { surface.durationMs() },
+                            currentPositionMsProvider = { surface.currentPositionMs() },
+                            isPlayingProvider = { surface.isPlaying() },
+                            skippable = ad.skippable ?: true,
+                        )
+                        attachVideoClickThroughCta()
+                        scheduleVideoSkip()
+                        startViewability()
+                    }
+
+                    override fun onComplete() {
+                        signalCompletion(skipped = false)
+                        finish()
+                    }
+
+                    override fun onError(message: String) {
+                        failAndFinish(message)
+                    }
+                },
             )
-            videoView.start()
-            attachVideoClickThroughCta()
-            scheduleVideoSkip()
-            startViewability()
         }
     }
 
@@ -254,9 +265,7 @@ class DKMadsInterstitialActivity : Activity() {
                 setBackgroundColor(0x8C000000.toInt())
                 setOnClickListener {
                     videoTracker?.markUserSkipped()
-                    try {
-                        videoView.stopPlayback()
-                    } catch (_: Exception) { /* ignore */ }
+                    nativeVideo?.stop()
                     emitVideoSkip()
                     signalCompletion(skipped = true)
                     finish()

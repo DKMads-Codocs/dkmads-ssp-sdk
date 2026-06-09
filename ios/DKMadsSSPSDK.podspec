@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'DKMadsSSPSDK'
-  s.version          = '0.5.14'
+  s.version          = '0.5.15'
   s.summary          = 'DKMads SSP iOS SDK for publisher app monetization.'
   s.description      = <<-DESC
 DKMadsSSPSDK provides initialization, banner views,

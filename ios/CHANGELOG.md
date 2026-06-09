@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.15
+
+- Load-generation tokens on `DKMadsVideoAdView` and `DKMadsBannerAdView` (ignore stale bid callbacks after `display()` / new `load()`).
+
 ## 0.5.14
 
 - Fullscreen letterbox / interstitial chrome uses **90% opaque black** (`rgba(0,0,0,0.9)`) instead of solid `#000`.

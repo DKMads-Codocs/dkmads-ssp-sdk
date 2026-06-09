@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| **Version** | `0.5.14` |
-| **Release tag** | `sdk-0.5.14` |
+| **Version** | `0.5.15` |
+| **Release tag** | `sdk-0.5.15` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.14',
+    :tag => 'sdk-0.5.15',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -138,9 +138,14 @@ SSPSDK.shared.registerAdUnit(
   sizes: [CGSize(width: 320, height: 480), CGSize(width: 300, height: 600)]
 )
 
+let request = DKMadsAdRequest()
+request.placementCode = "YOUR_INTERSTITIAL_AD_UNIT_UUID"
+request.placementContext = "interstitial"
+
 DKMadsInterstitialAd.load(
   adUnitID: "YOUR_INTERSTITIAL_AD_UNIT_UUID",
-  adSize: CGSize(width: 320, height: 480)
+  adSize: CGSize(width: 320, height: 480),
+  request: request
 ) { ad, error in
   guard let ad = ad else { return }
   ad.delegate = self
@@ -148,7 +153,12 @@ DKMadsInterstitialAd.load(
 }
 ```
 
-Fullscreen presentation scales video/image/HTML to the device; use the top-trailing **✕** to dismiss (video interstitials do not show a separate skip chip).
+**Interstitial behavior (0.5.12+):**
+
+- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.15+).
+- Tap anywhere on the creative or embedded links opens the landing page in Safari.
+- SDK defaults `placementCode` → ad unit UUID and `placementContext` → `"interstitial"` when omitted.
+- Use the top-trailing **✕** to dismiss (video interstitials do not show a separate skip chip).
 
 ## 2d) Rewarded (fullscreen with reward callback)
 

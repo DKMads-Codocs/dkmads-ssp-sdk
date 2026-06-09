@@ -8,7 +8,7 @@ Integrate display, video, and audio ads on any modern website using a single hos
 
 **Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md)
 
-**Version:** aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android `0.5.x` releases). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
+**Version:** **0.5.15** — aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
 
 ---
 
@@ -114,6 +114,13 @@ SSP.displayInterstitial('INTERSTITIAL_UUID', {
   skipAfterSec: 5,
 });
 ```
+
+**Interstitial behavior (0.5.12+):**
+
+- Creative scales to fit the viewport (`object-fit: contain`) — no horizontal clipping.
+- Taps open the landing page (embedded links or whole-ad click-through).
+- Letterbox / overlay chrome uses **90% opaque black** (`rgba(0,0,0,0.9)`) — not solid `#000` (0.5.14+).
+- Bid requests include `placement_code` / `placement_context` automatically for codeless units.
 
 **Splash** (dashboard format `splash` — same overlay API as mobile app open):
 

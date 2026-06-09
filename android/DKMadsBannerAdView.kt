@@ -61,6 +61,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     private val imageView: ImageView
     private var viewabilityStarted = false
     private var webContentReady = false
+    private var isLoading = false
+    private var loadGeneration = 0L
 
     init {
         webView = WebView(context).apply {
@@ -97,6 +99,9 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             listener?.onAdFailed(this, "adUnitId is required", null)
             return
         }
+        if (isLoading) return
+        val generation = ++loadGeneration
+        isLoading = true
         val resolved = normalizeLoadParams(
             BannerLoadParams(
                 placementCode = placementCode ?: lastLoadParams?.placementCode,
@@ -122,6 +127,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 placementContext = resolved.placementContext,
                 keyValues = resolved.keyValues,
             )
+            if (generation != loadGeneration) return@launch
+            isLoading = false
             result.fold(
                 onSuccess = { ad ->
                     val info = DKMadsResponseInfo.from(ad)
@@ -289,6 +296,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     }
 
     fun destroy() {
+        ++loadGeneration
+        isLoading = false
         cancelRefresh()
         stopViewability()
         scope.cancel()

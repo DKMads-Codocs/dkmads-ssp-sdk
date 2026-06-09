@@ -17,7 +17,7 @@ Add the Android library **`com.dkmads.ssp:ssp-android`** to your Gradle project.
 
 | | |
 |---|---|
-| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.14` |
+| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.15` |
 | **Repository** | [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) |
 
 ### Install from GitHub Packages (recommended)
@@ -53,7 +53,7 @@ gpr.key=YOUR_GITHUB_PAT
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.14")
+  implementation("com.dkmads.ssp:ssp-android:0.5.15")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
 ```
@@ -90,7 +90,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.14")
+  implementation("com.dkmads.ssp:ssp-android:0.5.15")
 }
 ```
 
@@ -107,11 +107,11 @@ Point the `maven { url = … }` repository at `vendor/dkmads-ssp-sdk/android-mod
 
 ### Prebuilt AAR (enterprise distribution)
 
-When DKMads provides `ssp-android-0.5.14.aar`, add it under `app/libs/`:
+When DKMads provides `ssp-android-0.5.15.aar`, add it under `app/libs/`:
 
 ```kotlin
 dependencies {
-  implementation(files("libs/ssp-android-0.5.14.aar"))
+  implementation(files("libs/ssp-android-0.5.15.aar"))
 }
 ```
 
@@ -241,8 +241,18 @@ val interstitial = DKMadsInterstitialAd("YOUR_INTERSTITIAL_AD_UNIT_UUID").apply 
     }
   }
 }
-interstitial.load(this)
+interstitial.load(
+  this,
+  placementCode = "YOUR_INTERSTITIAL_AD_UNIT_UUID",
+  placementContext = "interstitial",
+)
 ```
+
+**Interstitial behavior (0.5.12+):**
+
+- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.15+).
+- Tap anywhere on the creative or embedded links opens the landing page in the browser.
+- SDK defaults `placementCode` → ad unit UUID and `placementContext` → `"interstitial"` when omitted.
 
 Or one-shot:
 
@@ -309,7 +319,7 @@ lifecycleScope.launch {
   result.onSuccess { ad ->
     if (!ad.hasFill) return@onSuccess
     when {
-      ad.isVideo -> { /* ExoPlayer / VideoView with ad.videoUrl */ }
+      ad.isVideo -> { /* ExoPlayer with ad.playableVideoUrl (MP4 + HLS) */ }
       ad.isHtml5 || ad.adm.isNotBlank() -> { /* WebView */ }
       ad.creativeUrl.isNotBlank() -> { /* ImageView */ }
     }
@@ -318,6 +328,8 @@ lifecycleScope.launch {
 ```
 
 ## Video / instream (drop-in)
+
+**0.5.15+:** `DKMadsVideoAdView` and video interstitials use **Media3 ExoPlayer** for MP4 and HLS (`.m3u8`, `/hls/`). Use `ad.playableVideoUrl` (not raw `videoUrl` alone) when wiring a custom player. `load()` validates `hasFill` separately from `isVideo` — a winning bid with `reason: "won"` is no longer treated as failure.
 
 ### Option A — `DKMadsVideoAdView` (recommended)
 
