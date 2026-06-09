@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.16
+
+- **Responsive contain layout:** banner images use `scaleAspectFit` (no crop); HTML banners use slot-sized viewport + `object-fit: contain`.
+- Full HTML `adm` re-wrapped for banners; video WebView `adm` uses contain shell + slot viewport injection.
+
 ## 0.5.15
 
 - **Instream unmute:** `DKMadsVideoChrome.isInstreamPlacement` treats `placementContext` values like `instream_preroll` as instream (`contains("instream")`); falls back to the `load()` placement when the bid omits `placement_context`.

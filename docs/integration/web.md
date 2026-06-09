@@ -8,7 +8,7 @@ Integrate display, video, and audio ads on any modern website using a single hos
 
 **Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md)
 
-**Version:** **0.5.15** — aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
+**Version:** **0.5.16** — aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
 
 ---
 

@@ -6,6 +6,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 
 /**
@@ -25,6 +26,7 @@ internal class DKMadsNativeVideoSurface(
 
     private val playerView = PlayerView(context).apply {
         useController = false
+        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,

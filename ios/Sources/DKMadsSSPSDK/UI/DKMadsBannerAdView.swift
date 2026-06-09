@@ -31,6 +31,7 @@ import SafariServices
     private let imageView: UIImageView
     private var isLoading = false
     private var loadGeneration: UInt = 0
+    private var lastBannerSlotSize: CGSize = CGSize(width: 300, height: 250)
     private var viewabilityActive = false
     private var refreshTimer: Timer?
     private var lastAdRequest: DKMadsAdRequest?
@@ -183,7 +184,7 @@ import SafariServices
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.isHidden = true
 
-        imageView.contentMode = .scaleAspectFill
+        imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
         imageView.isUserInteractionEnabled = true
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -223,6 +224,7 @@ import SafariServices
 
     private func render(ad: Ad) {
         let slotSize = DKMadsBannerCreativeLayout.effectiveSlotSize(adSize: adSize, bounds: bounds.size)
+        lastBannerSlotSize = slotSize
         if ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             webView.isHidden = false
             imageView.isHidden = true
@@ -285,7 +287,10 @@ import SafariServices
 
 extension DKMadsBannerAdView: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        webView.evaluateJavaScript(DKMadsBannerCreativeLayout.viewportInjectionScript, completionHandler: nil)
+        webView.evaluateJavaScript(
+            DKMadsBannerCreativeLayout.viewportInjectionScript(slotSize: lastBannerSlotSize),
+            completionHandler: nil
+        )
         startViewabilityIfNeeded()
     }
 

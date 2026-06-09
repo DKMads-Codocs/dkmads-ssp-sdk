@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| **Version** | `0.5.15` |
-| **Release tag** | `sdk-0.5.15` |
+| **Version** | `0.5.16` |
+| **Release tag** | `sdk-0.5.16` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.15',
+    :tag => 'sdk-0.5.16',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -155,7 +155,7 @@ DKMadsInterstitialAd.load(
 
 **Interstitial behavior (0.5.12+):**
 
-- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.15+).
+- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.16+).
 - Tap anywhere on the creative or embedded links opens the landing page in Safari.
 - SDK defaults `placementCode` → ad unit UUID and `placementContext` → `"interstitial"` when omitted.
 - Use the top-trailing **✕** to dismiss (video interstitials do not show a separate skip chip).

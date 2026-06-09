@@ -269,9 +269,14 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         nativeVideo?.release()
         nativeVideo = null
         webView.visibility = VISIBLE
+        val slot = DKMadsBannerCreativeLayout.effectiveSlotSize(ad.width, ad.height, width, height)
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 webContentReady = true
+                view?.evaluateJavascript(
+                    DKMadsBannerCreativeLayout.viewportInjectionScript(slot.first, slot.second),
+                    null,
+                )
                 listener?.onPlaybackStarted(this@DKMadsVideoAdView)
                 attachVideoChrome(ad)
                 attachVideoClickOverlay(ad)
@@ -294,7 +299,13 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         }
         webContentReady = false
         if (ad.adm.isNotBlank()) {
-            webView.loadDataWithBaseURL("https://ssp.dkmads.com", ad.adm, "text/html", "UTF-8", null)
+            webView.loadDataWithBaseURL(
+                "https://ssp.dkmads.com",
+                DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, slot.first, slot.second),
+                "text/html",
+                "UTF-8",
+                null,
+            )
         } else if (ad.html5EntryUrl.isNotBlank()) {
             webView.loadUrl(ad.html5EntryUrl)
         }

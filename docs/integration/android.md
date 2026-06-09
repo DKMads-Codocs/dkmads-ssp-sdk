@@ -17,7 +17,7 @@ Add the Android library **`com.dkmads.ssp:ssp-android`** to your Gradle project.
 
 | | |
 |---|---|
-| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.15` |
+| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.16` |
 | **Repository** | [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) |
 
 ### Install from GitHub Packages (recommended)
@@ -53,7 +53,7 @@ gpr.key=YOUR_GITHUB_PAT
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.15")
+  implementation("com.dkmads.ssp:ssp-android:0.5.16")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
 ```
@@ -90,7 +90,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.15")
+  implementation("com.dkmads.ssp:ssp-android:0.5.16")
 }
 ```
 
@@ -107,11 +107,11 @@ Point the `maven { url = … }` repository at `vendor/dkmads-ssp-sdk/android-mod
 
 ### Prebuilt AAR (enterprise distribution)
 
-When DKMads provides `ssp-android-0.5.15.aar`, add it under `app/libs/`:
+When DKMads provides `ssp-android-0.5.16.aar`, add it under `app/libs/`:
 
 ```kotlin
 dependencies {
-  implementation(files("libs/ssp-android-0.5.15.aar"))
+  implementation(files("libs/ssp-android-0.5.16.aar"))
 }
 ```
 
@@ -145,6 +145,8 @@ val banner = DKMadsBannerAdView(context, adUnitId = "AD_UNIT_UUID").apply {
 parent.addView(banner)
 banner.load()
 ```
+
+**Layout (0.5.16+):** Set `setAdSize(w, h)` to match your dashboard ad unit. Creatives scale with **`contain`** inside that slot — full creative visible, no crop-to-fill. Measured view bounds override declared size when the view is laid out.
 
 ## Manual load API
 
@@ -250,7 +252,7 @@ interstitial.load(
 
 **Interstitial behavior (0.5.12+):**
 
-- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.15+).
+- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.16+).
 - Tap anywhere on the creative or embedded links opens the landing page in the browser.
 - SDK defaults `placementCode` → ad unit UUID and `placementContext` → `"interstitial"` when omitted.
 
@@ -330,6 +332,8 @@ lifecycleScope.launch {
 ## Video / instream (drop-in)
 
 **0.5.15+:** `DKMadsVideoAdView` and video interstitials use **Media3 ExoPlayer** for MP4 and HLS (`.m3u8`, `/hls/`). Use `ad.playableVideoUrl` (not raw `videoUrl` alone) when wiring a custom player. `load()` validates `hasFill` separately from `isVideo` — a winning bid with `reason: "won"` is no longer treated as failure.
+
+**0.5.16+ — responsive fit:** Banner, video, and interstitial creatives use **`object-fit: contain`** inside the publisher ad unit size (measured view bounds or `setAdSize`). Raster banners are not cropped; HTML `adm` uses slot-sized viewport (not `device-width`).
 
 **Instream audio:** placements whose context contains `instream` (e.g. `instream_preroll` from `load(placementContext = …)` or the bid’s `placement_context`) start **unmuted**. Outstream / rewarded stay muted by default for autoplay policy.
 

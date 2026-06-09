@@ -73,7 +73,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         }
         imageView = ImageView(context).apply {
             adjustViewBounds = true
-            scaleType = ImageView.ScaleType.CENTER_CROP
+            scaleType = ImageView.ScaleType.FIT_CENTER
             visibility = GONE
             setOnClickListener { onBannerClicked() }
         }
@@ -169,7 +169,10 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     webContentReady = true
-                    view?.evaluateJavascript(DKMadsBannerCreativeLayout.VIEWPORT_INJECTION_SCRIPT, null)
+                    view?.evaluateJavascript(
+                        DKMadsBannerCreativeLayout.viewportInjectionScript(slot.first, slot.second),
+                        null,
+                    )
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {

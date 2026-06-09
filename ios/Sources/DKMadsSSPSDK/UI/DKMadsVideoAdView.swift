@@ -49,6 +49,7 @@ import WebKit
     private var isLoading = false
     private var loadGeneration: UInt = 0
     private var lastRequestedPlacementContext: String?
+    private var lastVideoSlotSize: CGSize = CGSize(width: 640, height: 360)
     private var viewabilityActive = false
     private var videoEventsAttached = false
     private var webPlaybackStarted = false
@@ -272,7 +273,11 @@ import WebKit
                     baseURL: AdVideoPlayback.baseURL
                 )
             } else {
-                AdVideoPlayback.loadWebMarkup(ad: ad, in: webView, autoplay: autoplay)
+                let slot = bounds.width > 0 && bounds.height > 0
+                    ? bounds.size
+                    : CGSize(width: max(ad.width, 640), height: max(ad.height, 360))
+                lastVideoSlotSize = slot
+                AdVideoPlayback.loadWebMarkup(ad: ad, in: webView, autoplay: autoplay, slotSize: slot)
             }
         }
     }
@@ -488,6 +493,10 @@ import WebKit
 
 extension DKMadsVideoAdView: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webView.evaluateJavaScript(
+            DKMadsBannerCreativeLayout.viewportInjectionScript(slotSize: lastVideoSlotSize),
+            completionHandler: nil
+        )
         AdVideoPlayback.injectVideoEndDetection(in: webView)
         if !webPlaybackStarted {
             webPlaybackStarted = true

@@ -36,7 +36,7 @@ internal object DKMadsBannerCreativeLayout {
     }
 
     fun htmlForBanner(adm: String, slotWidth: Int, slotHeight: Int): String {
-        if (adm.lowercase().contains("<html")) return adm
+        val fragment = extractRenderableFragment(adm)
         val w = slotWidth.coerceAtLeast(1)
         val h = slotHeight.coerceAtLeast(1)
         return """
@@ -47,11 +47,12 @@ internal object DKMadsBannerCreativeLayout {
             <style>
             html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent;-webkit-text-size-adjust:100%}
             #dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box}
+            #dkmads-root > *{max-width:100%;max-height:100%;box-sizing:border-box}
             #dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root svg,#dkmads-root canvas{
-              display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;border:0
+              display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0
             }
             </style>
-            </head><body><div id="dkmads-root">$adm</div></body></html>
+            </head><body><div id="dkmads-root">$fragment</div></body></html>
         """.trimIndent()
     }
 
@@ -97,19 +98,25 @@ internal object DKMadsBannerCreativeLayout {
         })();
     """
 
-    const val VIEWPORT_INJECTION_SCRIPT = """
-        (function(){
-          var meta = document.querySelector('meta[name=viewport]');
-          if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
-          meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-          if (document.documentElement) { document.documentElement.style.margin='0'; document.documentElement.style.width='100%'; document.documentElement.style.height='100%'; document.documentElement.style.overflow='hidden'; }
-          if (document.body) { document.body.style.margin='0'; document.body.style.width='100%'; document.body.style.height='100%'; document.body.style.overflow='hidden'; }
-          var imgs = document.querySelectorAll('img,iframe,video');
-          for (var i = 0; i < imgs.length; i++) {
-            imgs[i].style.maxWidth = '100%';
-            imgs[i].style.maxHeight = '100%';
-            imgs[i].style.objectFit = 'contain';
-          }
-        })();
-    """
+    fun viewportInjectionScript(slotWidth: Int, slotHeight: Int): String {
+        val w = slotWidth.coerceAtLeast(1)
+        val h = slotHeight.coerceAtLeast(1)
+        return """
+            (function(){
+              var meta = document.querySelector('meta[name=viewport]');
+              if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
+              meta.content = 'width=$w, height=$h, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+              if (document.documentElement) { document.documentElement.style.margin='0'; document.documentElement.style.width='100%'; document.documentElement.style.height='100%'; document.documentElement.style.overflow='hidden'; }
+              if (document.body) { document.body.style.margin='0'; document.body.style.width='100%'; document.body.style.height='100%'; document.body.style.overflow='hidden'; }
+              var root = document.getElementById('dkmads-root');
+              if (root) {
+                root.style.cssText = 'margin:0;padding:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box';
+              }
+              var media = document.querySelectorAll('#dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root canvas,#dkmads-root svg,img,iframe,video,canvas,svg');
+              for (var i = 0; i < media.length; i++) {
+                media[i].style.cssText = 'display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0';
+              }
+            })();
+        """.trimIndent()
+    }
 }

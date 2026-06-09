@@ -9,8 +9,8 @@ enum DKMadsBannerCreativeLayout {
     }
 
     static func htmlForBanner(adm: String, slotSize: CGSize) -> String {
-        if adm.lowercased().contains("<html") { return adm }
-        return htmlForSlot(adm: adm, slotSize: slotSize, objectFit: "contain", fullscreen: false)
+        let fragment = extractRenderableFragment(from: adm)
+        return htmlForSlot(adm: fragment, slotSize: slotSize, objectFit: "contain", fullscreen: false)
     }
 
     /// Fullscreen interstitial / app open — always re-wrap (even full HTML documents) and letterbox to fit the device.
@@ -45,9 +45,7 @@ enum DKMadsBannerCreativeLayout {
             : "width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         let letterbox = DKMadsCreativeChrome.letterboxBackgroundCss
         let rootStyle = "#dkmads-root{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;background:\(fullscreen ? letterbox : "transparent")}"
-        let mediaStyle = fullscreen
-            ? "display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:\(objectFit);border:0;margin:0;padding:0"
-            : "display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:\(objectFit);border:0;margin:0;padding:0"
+        let mediaStyle = "display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:\(objectFit);border:0;margin:0;padding:0"
         return """
         <!DOCTYPE html>
         <html><head>
@@ -65,22 +63,28 @@ enum DKMadsBannerCreativeLayout {
         """
     }
 
-    /// Banner slots — letterbox with contain.
-    static let viewportInjectionScript = """
-    (function(){
-      var meta = document.querySelector('meta[name=viewport]');
-      if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
-      meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-      if (document.documentElement) { document.documentElement.style.margin='0'; document.documentElement.style.width='100%'; document.documentElement.style.height='100%'; document.documentElement.style.overflow='hidden'; }
-      if (document.body) { document.body.style.margin='0'; document.body.style.width='100%'; document.body.style.height='100%'; document.body.style.overflow='hidden'; }
-      var imgs = document.querySelectorAll('img,iframe,video');
-      for (var i = 0; i < imgs.length; i++) {
-        imgs[i].style.maxWidth = '100%';
-        imgs[i].style.maxHeight = '100%';
-        imgs[i].style.objectFit = 'contain';
-      }
-    })();
-    """
+    /// Banner slots — slot-sized viewport + contain (no device-width rescale).
+    static func viewportInjectionScript(slotSize: CGSize) -> String {
+        let w = max(1, Int(slotSize.width.rounded()))
+        let h = max(1, Int(slotSize.height.rounded()))
+        return """
+        (function(){
+          var meta = document.querySelector('meta[name=viewport]');
+          if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
+          meta.content = 'width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+          if (document.documentElement) { document.documentElement.style.margin='0'; document.documentElement.style.width='100%'; document.documentElement.style.height='100%'; document.documentElement.style.overflow='hidden'; }
+          if (document.body) { document.body.style.margin='0'; document.body.style.width='100%'; document.body.style.height='100%'; document.body.style.overflow='hidden'; }
+          var root = document.getElementById('dkmads-root');
+          if (root) {
+            root.style.cssText = 'margin:0;padding:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box';
+          }
+          var media = document.querySelectorAll('#dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root canvas,#dkmads-root svg,img,iframe,video,canvas,svg');
+          for (var i = 0; i < media.length; i++) {
+            media[i].style.cssText = 'display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0';
+          }
+        })();
+        """
+    }
 
     /// Tap anywhere on the creative (when no embedded link) opens the bid `click_url`.
     static func fullscreenClickThroughInjectionScript(clickUrl: String) -> String? {

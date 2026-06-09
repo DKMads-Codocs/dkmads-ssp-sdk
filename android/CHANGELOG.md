@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.16
+
+- **Responsive contain layout:** banner raster images use `FIT_CENTER` (no crop); HTML banners use slot-sized viewport + `object-fit: contain` (fixes device-width rescale).
+- Full HTML `adm` documents are re-wrapped for banners (body fragment extraction).
+- Video WebView `adm` uses the same contain shell; ExoPlayer explicitly uses `RESIZE_MODE_FIT`.
+
 ## 0.5.15
 
 - **Instream unmute:** `DKMadsVideoChrome.isInstreamPlacement` treats `placementContext` values like `instream_preroll` as instream (`contains("instream")`); falls back to the `load()` placement when the bid omits `placement_context`.
