@@ -17,7 +17,7 @@ Add the Android library **`com.dkmads.ssp:ssp-android`** to your Gradle project.
 
 | | |
 |---|---|
-| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.17` |
+| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.18` |
 | **Repository** | [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) |
 
 ### Install from GitHub Packages (recommended)
@@ -53,7 +53,7 @@ gpr.key=YOUR_GITHUB_PAT
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.17")
+  implementation("com.dkmads.ssp:ssp-android:0.5.18")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
 ```
@@ -90,7 +90,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.17")
+  implementation("com.dkmads.ssp:ssp-android:0.5.18")
 }
 ```
 
@@ -107,11 +107,11 @@ Point the `maven { url = … }` repository at `vendor/dkmads-ssp-sdk/android-mod
 
 ### Prebuilt AAR (enterprise distribution)
 
-When DKMads provides `ssp-android-0.5.17.aar`, add it under `app/libs/`:
+When DKMads provides `ssp-android-0.5.18.aar`, add it under `app/libs/`:
 
 ```kotlin
 dependencies {
-  implementation(files("libs/ssp-android-0.5.17.aar"))
+  implementation(files("libs/ssp-android-0.5.18.aar"))
 }
 ```
 

@@ -94,11 +94,28 @@ import Foundation
     }
 
     @objc public var hasFill: Bool {
-        isHTML5
-            || isVideo
-            || (isAudio && (!(audioUrl ?? "").isEmpty || !(adm?.isEmpty ?? true)))
-            || !(adm?.isEmpty ?? true)
-            || !creativeUrl.isEmpty
+        if isHTML5 { return !(html5EntryUrl ?? "").isEmpty || !(adm?.isEmpty ?? true) }
+        if isVideoUnitFormat { return hasVideoRenderableContent }
+        if hasVideoRenderableContent { return true }
+        if isAudio { return !(audioUrl ?? "").isEmpty || (adm?.lowercased().contains("<audio") == true) }
+        if !creativeUrl.isEmpty { return true }
+        if let adm, !adm.isEmpty { return true }
+        return false
+    }
+
+    private var isVideoUnitFormat: Bool {
+        switch (unitFormat ?? "").lowercased() {
+        case "video", "video_instream", "video_outstream", "rewarded", "splash", "display_video":
+            return true
+        default:
+            return false
+        }
+    }
+
+    @objc public var hasVideoRenderableContent: Bool {
+        if isHTML5 { return false }
+        if let url = playableVideoURL, !url.isEmpty { return true }
+        return AdMediaParsing.hasVideoMarkup(adm)
     }
 
     @objc public var isAudio: Bool {
@@ -125,8 +142,8 @@ import Foundation
         if isHTML5 { return false }
         let dt = (deliveryType ?? creativeType ?? "").lowercased()
         if dt == "video" || dt == "rewarded" || dt == "splash" { return true }
-        if let videoUrl, !videoUrl.isEmpty { return true }
-        if let adm, AdMediaParsing.videoSrcFromAdm(adm) != nil { return true }
+        if let videoUrl, !videoUrl.isEmpty, AdMediaParsing.isPlayableVideoUrl(videoUrl) { return true }
+        if AdMediaParsing.hasVideoMarkup(adm) { return true }
         return false
     }
 
@@ -136,13 +153,13 @@ import Foundation
 
     /// Native player URL — includes hosted creative-assets paths without file extensions.
     @objc public var playableVideoURL: String? {
-        if let videoUrl, !videoUrl.isEmpty {
-            if AdMediaParsing.isHostedCreativeVideoUrl(videoUrl, isVideoCreative: isVideo) {
-                return videoUrl
-            }
+        if let videoUrl, !videoUrl.isEmpty, AdMediaParsing.isPlayableVideoUrl(videoUrl) {
+            return videoUrl
         }
-        if let fromAdm = AdMediaParsing.videoSrcFromAdm(adm, isVideoCreative: isVideo) { return fromAdm }
-        if isVideo, let videoUrl, !videoUrl.isEmpty, !AdMediaParsing.isHtml5AssetUrl(videoUrl) {
+        if let fromAdm = AdMediaParsing.videoSrcFromAdm(adm) { return fromAdm }
+        if let videoUrl, !videoUrl.isEmpty,
+           !AdMediaParsing.isHtml5AssetUrl(videoUrl),
+           !AdMediaParsing.isRasterImageUrl(videoUrl) {
             return videoUrl
         }
         return nil

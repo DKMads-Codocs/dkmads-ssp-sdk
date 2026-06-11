@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.18
+
+- **`hasFill` / video validation:** renderable fill only (`html5_entry_url`, playable `video_url`, VAST/HTML video `adm`); `delivery_type: video` alone no longer counts.
+- **`playableVideoURL`:** hosted HLS (`…/hls/master.m3u8`), VAST `<MediaFile>`, extensionless creative-assets paths.
+- **`hasVideoRenderableContent`:** `DKMadsVideoAdView` uses this instead of `isVideo` for load guards.
+
 ## 0.5.17
 
 - **Bid vs render split:** `bidSlotSize()` for bids; `renderSlotSize()` for WebView viewport. `load(bidSize:)` override on banner/video.

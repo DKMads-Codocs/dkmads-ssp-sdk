@@ -753,21 +753,30 @@ data class Ad(
             if (isHtml5) return false
             val dt = deliveryType?.lowercase().orEmpty()
             if (dt == "video" || dt == "rewarded" || dt == "splash") return true
-            if (videoUrl.isNotBlank()) return true
-            if (AdMediaParsing.videoSrcFromAdm(adm, isVideoCreative = true) != null) return true
+            if (videoUrl.isNotBlank() && AdMediaParsing.isPlayableVideoUrl(videoUrl)) return true
+            if (AdMediaParsing.hasVideoMarkup(adm)) return true
             return false
         }
 
-    /** Native player URL — hosted creative-assets paths, HLS, and MP4 (parity with iOS `playableVideoURL`). */
+    /** True when native ExoPlayer or HTML/VAST video `adm` can render. */
+    val hasVideoRenderableContent: Boolean
+        get() {
+            if (isHtml5) return false
+            if (!playableVideoUrl.isNullOrBlank()) return true
+            return AdMediaParsing.hasVideoMarkup(adm)
+        }
+
+    /** Native player URL — hosted HLS/MP4, VAST MediaFile, and adm `<video>` src (parity with iOS). */
     val playableVideoUrl: String?
         get() {
-            if (videoUrl.isNotBlank()) {
-                if (AdMediaParsing.isHostedCreativeVideoUrl(videoUrl, isVideoCreative = isVideo)) {
-                    return videoUrl
-                }
+            if (videoUrl.isNotBlank() && AdMediaParsing.isPlayableVideoUrl(videoUrl)) {
+                return videoUrl
             }
-            AdMediaParsing.videoSrcFromAdm(adm, isVideoCreative = isVideo)?.let { return it }
-            if (isVideo && videoUrl.isNotBlank() && !AdMediaParsing.isHtml5AssetUrl(videoUrl)) {
+            AdMediaParsing.videoSrcFromAdm(adm)?.let { return it }
+            if (videoUrl.isNotBlank()
+                && !AdMediaParsing.isHtml5AssetUrl(videoUrl)
+                && !AdMediaParsing.isRasterImageUrl(videoUrl)
+            ) {
                 return videoUrl
             }
             return null
@@ -791,11 +800,22 @@ data class Ad(
 
     /** Fill when renderable markup exists (house winners may omit id/crid). */
     val hasFill: Boolean
-        get() = isHtml5
-            || isVideo
-            || (isAudio && (audioUrl.isNotBlank() || adm.isNotBlank()))
-            || adm.isNotBlank()
-            || creativeUrl.isNotBlank()
+        get() {
+            if (isHtml5) return html5EntryUrl.isNotBlank() || adm.isNotBlank()
+            if (isVideoUnitFormat()) return hasVideoRenderableContent
+            if (hasVideoRenderableContent) return true
+            if (isAudio) return audioUrl.isNotBlank() || adm.contains("<audio", ignoreCase = true)
+            if (creativeUrl.isNotBlank()) return true
+            if (adm.isNotBlank()) return true
+            return false
+        }
+
+    private fun isVideoUnitFormat(): Boolean {
+        return when (unitFormat?.lowercase().orEmpty()) {
+            "video", "video_instream", "video_outstream", "rewarded", "splash", "display_video" -> true
+            else -> false
+        }
+    }
 
     companion object {
         fun empty(reason: String? = null, requestId: String? = null, refreshIntervalSec: Int? = null) =
@@ -821,4 +841,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.17"
+const val SDK_VERSION = "0.5.18"

@@ -102,7 +102,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         ++loadGeneration
         isLoading = false
         stopPlayback()
-        if (!ad.isVideo || (ad.playableVideoUrl.isNullOrBlank() && ad.adm.isBlank())) {
+        if (!ad.hasVideoRenderableContent) {
             listener?.onAdFailed(this, "Video fill missing video_url or adm", responseInfo)
             return
         }
@@ -164,7 +164,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         listener?.onAdFailed(this@DKMadsVideoAdView, ad.reason ?: "no_fill", info)
                         return@fold
                     }
-                    if (!ad.isVideo || (ad.playableVideoUrl.isNullOrBlank() && ad.adm.isBlank())) {
+                    if (!ad.hasVideoRenderableContent) {
                         listener?.onAdFailed(
                             this@DKMadsVideoAdView,
                             "Video fill missing video_url or adm",
@@ -205,7 +205,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
     private fun renderNative(ad: Ad) {
         val playbackUrl = ad.playableVideoUrl ?: return
-        webView.visibility = GONE
+            webView.visibility = GONE
         videoContainer.visibility = VISIBLE
         isPrepared = false
         cancelPlaybackTimeouts()
@@ -227,22 +227,22 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         cancelPrepareTimeout()
                         attachVideoClickOverlay(ad)
                         attachVideoChrome(ad)
-                        videoTracker = SSPSDK.trackVideoLifecycle(
-                            adUnitId = adUnitId,
-                            campaignId = ad.campaignId,
-                            creativeId = ad.creativeId ?: ad.id,
+                videoTracker = SSPSDK.trackVideoLifecycle(
+                    adUnitId = adUnitId,
+                    campaignId = ad.campaignId,
+                    creativeId = ad.creativeId ?: ad.id,
                             containerView = this@DKMadsVideoAdView,
                             durationMsProvider = { surface.durationMs() },
                             currentPositionMsProvider = { surface.currentPositionMs() },
                             isPlayingProvider = { surface.isPlaying() },
-                            skippable = isSkippable,
-                        )
-                        if (autoplay) {
+                    skippable = isSkippable,
+                )
+                if (autoplay) {
                             listener?.onPlaybackStarted(this@DKMadsVideoAdView)
-                        }
+                }
                         startProgressUpdates(surface)
-                        post { startViewability() }
-                    }
+                post { startViewability() }
+            }
 
                     override fun onBuffering(buffering: Boolean) {
                         if (buffering) {
@@ -274,19 +274,19 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         videoContainer.visibility = GONE
         nativeVideo?.release()
         nativeVideo = null
-        webView.visibility = VISIBLE
+            webView.visibility = VISIBLE
         val renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(lastBidWidth, lastBidHeight, width, height)
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
+            webView.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
                 webContentReady = true
                 view?.evaluateJavascript(
                     DKMadsBannerCreativeLayout.viewportInjectionScript(renderSlot.first, renderSlot.second),
                     null,
                 )
-                listener?.onPlaybackStarted(this@DKMadsVideoAdView)
+                    listener?.onPlaybackStarted(this@DKMadsVideoAdView)
                 attachVideoChrome(ad)
                 attachVideoClickOverlay(ad)
-                post { startViewability() }
+                    post { startViewability() }
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -298,13 +298,13 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 ) {
                     return false
                 }
-                recordClick()
+                    recordClick()
                 context.startActivity(Intent(Intent.ACTION_VIEW, request?.url))
-                return true
+                    return true
+                }
             }
-        }
         webContentReady = false
-        if (ad.adm.isNotBlank()) {
+            if (ad.adm.isNotBlank()) {
             webView.loadDataWithBaseURL(
                 "https://ssp.dkmads.com",
                 DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second),
@@ -312,8 +312,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 "UTF-8",
                 null,
             )
-        } else if (ad.html5EntryUrl.isNotBlank()) {
-            webView.loadUrl(ad.html5EntryUrl)
+            } else if (ad.html5EntryUrl.isNotBlank()) {
+                webView.loadUrl(ad.html5EntryUrl)
         }
     }
 
@@ -429,9 +429,9 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     )
                     val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END).apply {
                         setMargins(side, side, side, bottom)
-                    }
-                    addView(btn, lp)
-                    skipButton = btn
+            }
+            addView(btn, lp)
+            skipButton = btn
                 } else {
                     skipButton?.text = if (left <= 0) "Skip" else "Skip in ${left}s"
                     if (left <= 0) {

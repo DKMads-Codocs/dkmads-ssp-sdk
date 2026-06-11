@@ -65,7 +65,7 @@ class DKMadsVideoAdController(
                         listener?.onAdFailed(ad.reason ?: "no_fill", info)
                         return@fold
                     }
-                    if (!ad.isVideo || (ad.playableVideoUrl.isNullOrBlank() && ad.adm.isBlank())) {
+                    if (!ad.hasVideoRenderableContent) {
                         listener?.onAdFailed("Video fill missing video_url or adm", info)
                         return@fold
                     }

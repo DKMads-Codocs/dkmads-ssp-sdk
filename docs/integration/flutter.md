@@ -39,7 +39,7 @@ dependencies:
     git:
       url: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
       path: flutter
-      ref: sdk-0.5.17   # release tag (sdk-<semver>)
+      ref: sdk-0.5.18   # release tag (sdk-<semver>)
 ```
 
 ```bash
@@ -53,7 +53,7 @@ In `ios/Podfile` (see [iOS install](./ios.md)):
 ```ruby
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.17',
+    :tag => 'sdk-0.5.18',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -61,7 +61,7 @@ Then `cd ios && pod install`.
 
 ### 3. Android native SDK
 
-Add `com.dkmads.ssp:ssp-android:0.5.17` per [Android Installation](./android.md).
+Add `com.dkmads.ssp:ssp-android:0.5.18` per [Android Installation](./android.md).
 
 ### Example app
 
@@ -130,7 +130,7 @@ if (banner.hasFill) {
 
 ### Interstitial (recommended)
 
-Dashboard ad unit format must be **interstitial**. Uses IAB sizes (320×480 default), not screen pixels. **Pin native SDK `sdk-0.5.17`** — interstitial fit, click-through, and 90% letterbox chrome are implemented in native iOS/Android (Flutter inherits automatically).
+Dashboard ad unit format must be **interstitial**. Uses IAB sizes (320×480 default), not screen pixels. **Pin native SDK `sdk-0.5.18`** — interstitial fit, click-through, and 90% letterbox chrome are implemented in native iOS/Android (Flutter inherits automatically).
 
 ```dart
 final fill = await DkmadsSsp.loadInterstitial(

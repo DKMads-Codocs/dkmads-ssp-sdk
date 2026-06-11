@@ -84,7 +84,7 @@ import WebKit
         loadGeneration &+= 1
         isLoading = false
         stopPlayback()
-        guard ad.isVideo, ad.playableVideoURL != nil || !(ad.adm?.isEmpty ?? true) else {
+        guard ad.hasVideoRenderableContent else {
             delegate?.videoAdView?(self, didFailToReceiveAdWithError: DKMadsAdError.missingVideoURL.nsError())
             return
         }
@@ -140,7 +140,7 @@ import WebKit
                     self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: err)
                     return
                 }
-                guard ad.isVideo, ad.playableVideoURL != nil || !(ad.adm?.isEmpty ?? true) else {
+                guard ad.hasVideoRenderableContent else {
                     let err = DKMadsAdError.missingVideoURL.nsError()
                     self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: err)
                     return

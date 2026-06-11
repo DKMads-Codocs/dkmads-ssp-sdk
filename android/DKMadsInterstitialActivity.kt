@@ -83,8 +83,8 @@ class DKMadsInterstitialActivity : Activity() {
         setContentView(root)
         setupChrome()
         when {
-            ad.isVideo && !ad.playableVideoUrl.isNullOrBlank() -> presentVideo()
-            ad.isHtml5 || ad.adm.isNotBlank() -> presentWeb()
+            !ad.playableVideoUrl.isNullOrBlank() -> presentVideo()
+            ad.hasVideoRenderableContent || ad.isHtml5 || ad.adm.isNotBlank() -> presentWeb()
             ad.creativeUrl.isNotBlank() -> presentImage()
             else -> failAndFinish("Interstitial creative is not video, image, or HTML5")
         }
@@ -212,10 +212,10 @@ class DKMadsInterstitialActivity : Activity() {
                 muted = muted,
                 callbacks = object : DKMadsNativeVideoSurface.Callbacks {
                     override fun onReady(durationMs: Long) {
-                        videoTracker = SSPSDK.trackVideoLifecycle(
-                            adUnitId = adUnitId,
-                            campaignId = ad.campaignId,
-                            creativeId = ad.creativeId ?: ad.id,
+            videoTracker = SSPSDK.trackVideoLifecycle(
+                adUnitId = adUnitId,
+                campaignId = ad.campaignId,
+                creativeId = ad.creativeId ?: ad.id,
                             containerView = videoContainer,
                             durationMsProvider = { surface.durationMs() },
                             currentPositionMsProvider = { surface.currentPositionMs() },
