@@ -77,6 +77,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private var isLoading = false
     private var loadGeneration = 0L
     private var lastRequestedPlacementContext: String? = null
+    private var lastBidWidth: Int = 640
+    private var lastBidHeight: Int = 360
     private var prepareTimeoutRunnable: Runnable? = null
     private var bufferTimeoutRunnable: Runnable? = null
 
@@ -128,6 +130,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         placementCode: String? = null,
         placementContext: String? = null,
         keyValues: Map<String, Any> = emptyMap(),
+        sizes: List<Pair<Int, Int>>? = null,
     ) {
         if (adUnitId.isBlank()) {
             listener?.onAdFailed(this, "adUnitId is required", null)
@@ -137,13 +140,16 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         val generation = ++loadGeneration
         isLoading = true
         lastRequestedPlacementContext = placementContext
+        val bidSizes = sizes?.takeIf { it.isNotEmpty() } ?: listOf(width to height)
+        lastBidWidth = bidSizes.first().first
+        lastBidHeight = bidSizes.first().second
         stopPlayback()
         scope.launch {
             val result = SSPSDK.loadAd(
                 context = context,
                 adUnitCode = adUnitId,
                 format = AdFormat.VIDEO,
-                sizes = listOf(width to height),
+                sizes = bidSizes,
                 placementCode = placementCode,
                 placementContext = placementContext,
                 keyValues = keyValues,
@@ -269,12 +275,12 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         nativeVideo?.release()
         nativeVideo = null
         webView.visibility = VISIBLE
-        val slot = DKMadsBannerCreativeLayout.effectiveSlotSize(ad.width, ad.height, width, height)
+        val renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(lastBidWidth, lastBidHeight, width, height)
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 webContentReady = true
                 view?.evaluateJavascript(
-                    DKMadsBannerCreativeLayout.viewportInjectionScript(slot.first, slot.second),
+                    DKMadsBannerCreativeLayout.viewportInjectionScript(renderSlot.first, renderSlot.second),
                     null,
                 )
                 listener?.onPlaybackStarted(this@DKMadsVideoAdView)
@@ -301,7 +307,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         if (ad.adm.isNotBlank()) {
             webView.loadDataWithBaseURL(
                 "https://ssp.dkmads.com",
-                DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, slot.first, slot.second),
+                DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second),
                 "text/html",
                 "UTF-8",
                 null,

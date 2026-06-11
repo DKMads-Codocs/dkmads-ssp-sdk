@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| **Version** | `0.5.16` |
-| **Release tag** | `sdk-0.5.16` |
+| |**Version** | `0.5.17` |
+| **Release tag** | `sdk-0.5.17` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.16',
+    :tag => 'sdk-0.5.17',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -102,7 +102,9 @@ request.keyValues = ["test_mode": true]  // optional, SDK-only / QA
 banner.load(request)
 ```
 
-After layout changes, call `banner.updateAdSize(_:)` (Swift) / `updateAdSize:` (ObjC) — not `setAdSize:` (that selector is reserved for the `adSize` property).
+After layout changes, call `banner.updateAdSize(_:)` (Swift) / `updateAdSize:` (ObjC) to update **IAB bid metadata** — not view layout (use Auto Layout constraints for sizing).
+
+**Bid vs render (0.5.17+):** `adSize` / `load(bidSize:)` → IAB tokens for `/v1/bid`. WebView viewport uses **laid-out bounds** (`renderSlotSize`). Optional `load(request, bidSize: CGSize(width: 300, height: 250))` to bid IAB while the view is responsive.
 
 Delegate callbacks:
 

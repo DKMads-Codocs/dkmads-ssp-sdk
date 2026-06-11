@@ -49,7 +49,8 @@ import WebKit
     private var isLoading = false
     private var loadGeneration: UInt = 0
     private var lastRequestedPlacementContext: String?
-    private var lastVideoSlotSize: CGSize = CGSize(width: 640, height: 360)
+    private var lastBidVideoSize: CGSize = CGSize(width: 640, height: 360)
+    private var lastVideoRenderSize: CGSize = CGSize(width: 640, height: 360)
     private var viewabilityActive = false
     private var videoEventsAttached = false
     private var webPlaybackStarted = false
@@ -104,7 +105,7 @@ import WebKit
         delegate?.videoAdViewDidRecordImpression?(self)
     }
 
-    @objc public func load(_ request: DKMadsAdRequest? = nil, adSize: CGSize = CGSize(width: 640, height: 360)) {
+    @objc public func load(_ request: DKMadsAdRequest? = nil, adSize: CGSize = CGSize(width: 640, height: 360), bidSize: CGSize = .zero) {
         guard !isLoading else { return }
         guard SSPSDK.shared.isSDKInitialized else {
             delegate?.videoAdView?(self, didFailToReceiveAdWithError: DKMadsAdError.notInitialized.nsError())
@@ -115,11 +116,13 @@ import WebKit
         loadGeneration = generation
         isLoading = true
         lastRequestedPlacementContext = request?.placementContext
+        let bidSizeForRequest = (bidSize.width > 0 && bidSize.height > 0) ? bidSize : adSize
+        lastBidVideoSize = bidSizeForRequest
 
         SSPSDK.shared.loadAd(
             code: adUnitID,
             format: .video,
-            sizes: [adSize],
+            sizes: [bidSizeForRequest],
             placementCode: request?.placementCode,
             placementContext: request?.placementContext,
             keyValues: request?.keyValues ?? [:]
@@ -273,11 +276,8 @@ import WebKit
                     baseURL: AdVideoPlayback.baseURL
                 )
             } else {
-                let slot = bounds.width > 0 && bounds.height > 0
-                    ? bounds.size
-                    : CGSize(width: max(ad.width, 640), height: max(ad.height, 360))
-                lastVideoSlotSize = slot
-                AdVideoPlayback.loadWebMarkup(ad: ad, in: webView, autoplay: autoplay, slotSize: slot)
+                lastVideoRenderSize = DKMadsBannerCreativeLayout.renderSlotSize(adSize: lastBidVideoSize, bounds: bounds.size)
+                AdVideoPlayback.loadWebMarkup(ad: ad, in: webView, autoplay: autoplay, slotSize: lastVideoRenderSize)
             }
         }
     }
@@ -494,7 +494,7 @@ import WebKit
 extension DKMadsVideoAdView: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         webView.evaluateJavaScript(
-            DKMadsBannerCreativeLayout.viewportInjectionScript(slotSize: lastVideoSlotSize),
+            DKMadsBannerCreativeLayout.viewportInjectionScript(slotSize: lastVideoRenderSize),
             completionHandler: nil
         )
         AdVideoPlayback.injectVideoEndDetection(in: webView)

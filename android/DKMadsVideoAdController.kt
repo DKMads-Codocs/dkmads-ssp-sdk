@@ -38,17 +38,19 @@ class DKMadsVideoAdController(
         placementCode: String? = null,
         placementContext: String? = null,
         keyValues: Map<String, Any> = emptyMap(),
+        sizes: List<Pair<Int, Int>>? = null,
     ) {
         if (isLoading) return
         val generation = ++loadGeneration
         isLoading = true
         detach()
+        val bidSizes = sizes?.takeIf { it.isNotEmpty() } ?: listOf(width to height)
         scope.launch {
             val result = SSPSDK.loadAd(
                 context = context,
                 adUnitCode = adUnitId,
                 format = AdFormat.VIDEO,
-                sizes = listOf(width to height),
+                sizes = bidSizes,
                 placementCode = placementCode,
                 placementContext = placementContext,
                 keyValues = keyValues,

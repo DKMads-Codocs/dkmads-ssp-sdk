@@ -1,11 +1,21 @@
 package com.dkmads.ssp
 
 internal object DKMadsBannerCreativeLayout {
-    fun effectiveSlotSize(adWidth: Int, adHeight: Int, viewWidth: Int, viewHeight: Int): Pair<Int, Int> {
-        if (viewWidth > 0 && viewHeight > 0) return viewWidth to viewHeight
+    /** IAB token for `/v1/bid` — from [setAdSize] / `load(sizes=…)` only, never view bounds. */
+    fun bidSlotSize(adWidth: Int, adHeight: Int): Pair<Int, Int> {
         if (adWidth > 0 && adHeight > 0) return adWidth to adHeight
         return 300 to 250
     }
+
+    /** Viewport for WebView / contain — laid-out bounds when available, else IAB fallback. */
+    fun renderSlotSize(adWidth: Int, adHeight: Int, viewWidth: Int, viewHeight: Int): Pair<Int, Int> {
+        if (viewWidth > 0 && viewHeight > 0) return viewWidth to viewHeight
+        return bidSlotSize(adWidth, adHeight)
+    }
+
+    @Deprecated("Use bidSlotSize for bids and renderSlotSize for viewport", ReplaceWith("renderSlotSize(adWidth, adHeight, viewWidth, viewHeight)"))
+    fun effectiveSlotSize(adWidth: Int, adHeight: Int, viewWidth: Int, viewHeight: Int): Pair<Int, Int> =
+        renderSlotSize(adWidth, adHeight, viewWidth, viewHeight)
 
     fun htmlForFullscreen(adm: String): String {
         val fragment = extractRenderableFragment(adm)

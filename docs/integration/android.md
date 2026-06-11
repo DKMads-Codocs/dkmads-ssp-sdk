@@ -17,7 +17,7 @@ Add the Android library **`com.dkmads.ssp:ssp-android`** to your Gradle project.
 
 | | |
 |---|---|
-| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.16` |
+| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.17` |
 | **Repository** | [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) |
 
 ### Install from GitHub Packages (recommended)
@@ -53,7 +53,7 @@ gpr.key=YOUR_GITHUB_PAT
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.16")
+  implementation("com.dkmads.ssp:ssp-android:0.5.17")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
 ```
@@ -90,7 +90,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.16")
+  implementation("com.dkmads.ssp:ssp-android:0.5.17")
 }
 ```
 
@@ -107,11 +107,11 @@ Point the `maven { url = … }` repository at `vendor/dkmads-ssp-sdk/android-mod
 
 ### Prebuilt AAR (enterprise distribution)
 
-When DKMads provides `ssp-android-0.5.16.aar`, add it under `app/libs/`:
+When DKMads provides `ssp-android-0.5.17.aar`, add it under `app/libs/`:
 
 ```kotlin
 dependencies {
-  implementation(files("libs/ssp-android-0.5.16.aar"))
+  implementation(files("libs/ssp-android-0.5.17.aar"))
 }
 ```
 
@@ -146,7 +146,18 @@ parent.addView(banner)
 banner.load()
 ```
 
-**Layout (0.5.16+):** Set `setAdSize(w, h)` to match your dashboard ad unit. Creatives scale with **`contain`** inside that slot — full creative visible, no crop-to-fill. Measured view bounds override declared size when the view is laid out.
+**Layout (0.5.16+):** Set `setAdSize(w, h)` to match your dashboard ad unit IAB token. Creatives scale with **`contain`** inside the laid-out view — full creative visible, no crop-to-fill.
+
+**Bid vs render (0.5.17+):** `setAdSize()` / `load(sizes = …)` sends **IAB tokens to `/v1/bid` only**. It does **not** set view layout (use `match_parent` + dp/ConstraintLayout). WebView viewport / `object-fit: contain` uses **measured view bounds**. Do not use `effectiveSlotSize()` / `renderSlotSize()` for bid requests.
+
+```kotlin
+banner.setAdSize(300, 250)  // IAB metadata for bidding
+// Layout in dp — e.g. ConstraintLayout 300dp × 250dp
+banner.load()  // bids 300×250; renders into laid-out bounds
+
+// Optional: bid IAB while view is responsive
+banner.load(sizes = listOf(300 to 250))
+```
 
 ## Manual load API
 

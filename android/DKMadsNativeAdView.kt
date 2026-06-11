@@ -66,19 +66,17 @@ class DKMadsNativeAdView @JvmOverloads constructor(
         addView(imageView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    /** IAB size metadata for bidding only — does not set view layout. */
     fun setAdSize(width: Int, height: Int) {
         adWidth = width
         adHeight = height
-        layoutParams = layoutParams?.apply {
-            this.width = width
-            this.height = height
-        } ?: LayoutParams(width, height)
     }
 
     fun load(
         placementCode: String? = null,
         placementContext: String? = null,
         keyValues: Map<String, Any> = emptyMap(),
+        sizes: List<Pair<Int, Int>>? = null,
     ) {
         if (adUnitId.isBlank()) {
             listener?.onAdFailed(this, "adUnitId is required", null)
@@ -87,11 +85,13 @@ class DKMadsNativeAdView @JvmOverloads constructor(
         stopViewability()
         clearCreative()
         scope.launch {
+            val bidSizes = sizes?.takeIf { it.isNotEmpty() }
+                ?: listOf(DKMadsBannerCreativeLayout.bidSlotSize(adWidth, adHeight))
             val result = SSPSDK.loadAd(
                 context = context,
                 adUnitCode = adUnitId,
                 format = AdFormat.NATIVE,
-                sizes = listOf(adWidth to adHeight),
+                sizes = bidSizes,
                 placementCode = placementCode,
                 placementContext = placementContext,
                 keyValues = keyValues,

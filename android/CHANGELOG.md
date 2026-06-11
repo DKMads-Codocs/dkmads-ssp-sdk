@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.17
+
+- **Bid vs render split:** `bidSlotSize()` for `/v1/bid` (IAB from `setAdSize` / `load(sizes=…)`); `renderSlotSize()` for WebView viewport only.
+- `setAdSize()` no longer sets `layoutParams` in raw px — IAB metadata only; use layout XML for dp sizing.
+- Banner/video/native `load(sizes=…)` optional bid override while rendering into responsive view bounds.
+
 ## 0.5.16
 
 - **Responsive contain layout:** banner raster images use `FIT_CENTER` (no crop); HTML banners use slot-sized viewport + `object-fit: contain` (fixes device-width rescale).

@@ -55,6 +55,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         val placementCode: String? = null,
         val placementContext: String? = null,
         val keyValues: Map<String, Any> = emptyMap(),
+        val bidSizes: List<Pair<Int, Int>>? = null,
     )
     private var lastLoadParams: BannerLoadParams? = null
     private val webView: WebView
@@ -81,19 +82,21 @@ class DKMadsBannerAdView @JvmOverloads constructor(
         addView(imageView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    /** IAB size metadata for bidding only — does not set view layout (use ConstraintLayout / dp for layout). */
     fun setAdSize(width: Int, height: Int) {
         adWidth = width
         adHeight = height
-        layoutParams = layoutParams?.apply {
-            this.width = width
-            this.height = height
-        } ?: LayoutParams(width, height)
     }
 
+    /**
+     * @param sizes Optional IAB bid tokens (e.g. `listOf(300 to 250)`). When omitted, uses [setAdSize].
+     * Render/viewport always follows laid-out view bounds.
+     */
     fun load(
         placementCode: String? = null,
         placementContext: String? = null,
         keyValues: Map<String, Any>? = null,
+        sizes: List<Pair<Int, Int>>? = null,
     ) {
         if (adUnitId.isBlank()) {
             listener?.onAdFailed(this, "adUnitId is required", null)
@@ -107,22 +110,20 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 placementCode = placementCode ?: lastLoadParams?.placementCode,
                 placementContext = placementContext ?: lastLoadParams?.placementContext,
                 keyValues = keyValues ?: lastLoadParams?.keyValues ?: emptyMap(),
+                bidSizes = sizes ?: lastLoadParams?.bidSizes,
             ),
         )
         lastLoadParams = resolved
         stopViewability()
         clearCreative()
-        val slot = DKMadsBannerCreativeLayout.effectiveSlotSize(adWidth, adHeight, width, height)
-        if (width > 0 && height > 0 && (slot.first != adWidth || slot.second != adHeight)) {
-            adWidth = slot.first
-            adHeight = slot.second
-        }
+        val bidSizes = resolved.bidSizes?.takeIf { it.isNotEmpty() }
+            ?: listOf(DKMadsBannerCreativeLayout.bidSlotSize(adWidth, adHeight))
         scope.launch {
             val result = SSPSDK.loadAd(
                 context = context,
                 adUnitCode = adUnitId,
                 format = AdFormat.BANNER,
-                sizes = listOf(slot),
+                sizes = bidSizes,
                 placementCode = resolved.placementCode,
                 placementContext = resolved.placementContext,
                 keyValues = resolved.keyValues,
@@ -160,7 +161,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     }
 
     private fun render(ad: Ad) {
-        val slot = DKMadsBannerCreativeLayout.effectiveSlotSize(adWidth, adHeight, width, height)
+        val renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(adWidth, adHeight, width, height)
         if (ad.isHtml5 || ad.adm.isNotBlank()) {
             webView.visibility = VISIBLE
             imageView.visibility = GONE
@@ -170,7 +171,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 override fun onPageFinished(view: WebView?, url: String?) {
                     webContentReady = true
                     view?.evaluateJavascript(
-                        DKMadsBannerCreativeLayout.viewportInjectionScript(slot.first, slot.second),
+                        DKMadsBannerCreativeLayout.viewportInjectionScript(renderSlot.first, renderSlot.second),
                         null,
                     )
                     post { startViewability() }
@@ -192,7 +193,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             if (ad.adm.isNotBlank()) {
                 webView.loadDataWithBaseURL(
                     "https://ssp.dkmads.com",
-                    DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, slot.first, slot.second),
+                    DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second),
                     "text/html",
                     "UTF-8",
                     null,

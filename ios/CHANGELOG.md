@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.17
+
+- **Bid vs render split:** `bidSlotSize()` for bids; `renderSlotSize()` for WebView viewport. `load(bidSize:)` override on banner/video.
+- `updateAdSize(_:)` is IAB metadata only — layout via Auto Layout constraints.
+
 ## 0.5.16
 
 - **Responsive contain layout:** banner images use `scaleAspectFit` (no crop); HTML banners use slot-sized viewport + `object-fit: contain`.

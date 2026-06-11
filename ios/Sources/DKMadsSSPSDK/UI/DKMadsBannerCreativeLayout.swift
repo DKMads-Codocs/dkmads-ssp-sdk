@@ -2,10 +2,21 @@ import CoreGraphics
 import Foundation
 
 enum DKMadsBannerCreativeLayout {
-    static func effectiveSlotSize(adSize: CGSize, bounds: CGSize) -> CGSize {
-        if bounds.width > 0, bounds.height > 0 { return bounds }
+    /** IAB token for `/v1/bid` — from `adSize` / `load(bidSize:)` only, never view bounds. */
+    static func bidSlotSize(adSize: CGSize) -> CGSize {
         if adSize.width > 0, adSize.height > 0 { return adSize }
         return CGSize(width: 300, height: 250)
+    }
+
+    /** Viewport for WebView / contain — laid-out bounds when available, else IAB fallback. */
+    static func renderSlotSize(adSize: CGSize, bounds: CGSize) -> CGSize {
+        if bounds.width > 0, bounds.height > 0 { return bounds }
+        return bidSlotSize(adSize: adSize)
+    }
+
+    @available(*, deprecated, message: "Use bidSlotSize for bids and renderSlotSize for viewport")
+    static func effectiveSlotSize(adSize: CGSize, bounds: CGSize) -> CGSize {
+        renderSlotSize(adSize: adSize, bounds: bounds)
     }
 
     static func htmlForBanner(adm: String, slotSize: CGSize) -> String {

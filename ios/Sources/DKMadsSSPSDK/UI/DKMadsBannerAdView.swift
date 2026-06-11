@@ -56,7 +56,7 @@ import SafariServices
         setupViews()
     }
 
-    /// Updates slot size after layout (ObjC: `updateAdSize:` — not `setAdSize:` to avoid clashing with the `adSize` property setter).
+    /// Updates IAB bid metadata (`adSize`) — does not resize the view; use Auto Layout constraints for layout.
     @objc(updateAdSize:)
     public func updateAdSize(_ size: CGSize) {
         guard size.width > 0, size.height > 0 else { return }
@@ -67,7 +67,7 @@ import SafariServices
         adSize.width > 0 && adSize.height > 0 ? adSize : CGSize(width: 300, height: 250)
     }
 
-    @objc public func load(_ request: DKMadsAdRequest? = nil) {
+    @objc public func load(_ request: DKMadsAdRequest? = nil, bidSize: CGSize = .zero) {
         guard !isLoading else { return }
         let effectiveRequest = Self.normalizedRequest(request ?? lastAdRequest, adUnitID: adUnitID)
         lastAdRequest = effectiveRequest
@@ -81,15 +81,14 @@ import SafariServices
         isLoading = true
         clearCreative()
 
-        let slotSize = DKMadsBannerCreativeLayout.effectiveSlotSize(adSize: adSize, bounds: bounds.size)
-        if bounds.width > 0, bounds.height > 0, slotSize != adSize {
-            adSize = slotSize
-        }
+        let bidSizeForRequest = (bidSize.width > 0 && bidSize.height > 0)
+            ? bidSize
+            : DKMadsBannerCreativeLayout.bidSlotSize(adSize: adSize)
 
         SSPSDK.shared.loadAd(
             code: adUnitID,
             format: .banner,
-            sizes: [slotSize],
+            sizes: [bidSizeForRequest],
             placementCode: effectiveRequest.placementCode,
             placementContext: effectiveRequest.placementContext,
             keyValues: effectiveRequest.keyValues
@@ -223,14 +222,14 @@ import SafariServices
     }
 
     private func render(ad: Ad) {
-        let slotSize = DKMadsBannerCreativeLayout.effectiveSlotSize(adSize: adSize, bounds: bounds.size)
-        lastBannerSlotSize = slotSize
+        let renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(adSize: adSize, bounds: bounds.size)
+        lastBannerSlotSize = renderSlot
         if ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             webView.isHidden = false
             imageView.isHidden = true
             let base = URL(string: "https://ssp.dkmads.com")
             if let adm = ad.adm, !adm.isEmpty {
-                webView.loadHTMLString(DKMadsBannerCreativeLayout.htmlForBanner(adm: adm, slotSize: slotSize), baseURL: base)
+                webView.loadHTMLString(DKMadsBannerCreativeLayout.htmlForBanner(adm: adm, slotSize: renderSlot), baseURL: base)
             } else if let entry = ad.html5EntryUrl, let entryURL = URL(string: entry) {
                 webView.load(URLRequest(url: entryURL))
             }
