@@ -312,8 +312,8 @@ object SSPSDK {
                 else Result.failure(Exception("FPD sync failed HTTP $code"))
             } catch (e: Exception) {
                 Result.failure(e)
+            }
         }
-    }
 
     /**
      * Set consent flags
@@ -795,7 +795,7 @@ data class Ad(
 ) {
     val isHtml5: Boolean
         get() {
-            if (isVideoPlacement) return false
+            if (isVideo) return false
             if (deliveryType.equals("html5", ignoreCase = true)) return true
             if (html5EntryUrl.isNotBlank()) return true
             if (adm.contains("<iframe", ignoreCase = true)) return true
@@ -804,27 +804,24 @@ data class Ad(
 
     val isVideo: Boolean
         get() {
-            if (isVideoPlacement) return true
+            if (isVideoDeliveryType(deliveryType)) return true
             if (videoUrl.isNotBlank() && AdMediaParsing.isPlayableVideoUrl(videoUrl)) return true
             if (AdMediaParsing.hasVideoMarkup(adm)) return true
             return false
         }
 
-    /** Video / instream / rewarded slot or creative from the bid payload. */
+    /**
+     * True when the bid should be filled/rendered as video (slot format, delivery type, or playable stream).
+     * `video_template` alone does not count — house may attach it to banner/interstitial image wins.
+     */
     val isVideoPlacement: Boolean
-        get() {
-            if (isVideoUnitFormat()) return true
-            if (isVideoDeliveryType(deliveryType)) return true
-            return !videoTemplate.isNullOrBlank()
-        }
+        get() = requiresVideoFill()
 
     /** True when native ExoPlayer or HTML/VAST video `adm` can render. */
     val hasVideoRenderableContent: Boolean
         get() {
             if (!playableVideoUrl.isNullOrBlank()) return true
-            if (AdMediaParsing.hasVideoMarkup(adm)) return true
-            if (isVideoPlacement && videoUrl.isNotBlank()) return true
-            return false
+            return AdMediaParsing.hasVideoMarkup(adm)
         }
 
     /** Native player URL — hosted HLS/MP4, VAST MediaFile, and adm `<video>` src (parity with iOS). */
@@ -863,13 +860,27 @@ data class Ad(
     val hasFill: Boolean
         get() {
             if (isHtml5) return html5EntryUrl.isNotBlank() || adm.isNotBlank()
-            if (isVideoPlacement) return hasVideoRenderableContent
+            if (requiresVideoFill()) return hasVideoRenderableContent
             if (hasVideoRenderableContent) return true
             if (isAudio) return audioUrl.isNotBlank() || adm.contains("<audio", ignoreCase = true)
             if (creativeUrl.isNotBlank()) return true
             if (adm.isNotBlank()) return true
             return false
         }
+
+    private fun requiresVideoFill(): Boolean {
+        if (isDisplayUnitFormat()) {
+            return isVideoDeliveryType(deliveryType) || hasVideoRenderableContent
+        }
+        return isVideoUnitFormat() || isVideoDeliveryType(deliveryType)
+    }
+
+    private fun isDisplayUnitFormat(): Boolean {
+        return when (unitFormat?.lowercase().orEmpty()) {
+            "banner", "interstitial", "native" -> true
+            else -> false
+        }
+    }
 
     private fun isVideoUnitFormat(): Boolean {
         return when (unitFormat?.lowercase().orEmpty()) {
@@ -902,4 +913,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.20"
+const val SDK_VERSION = "0.5.21"

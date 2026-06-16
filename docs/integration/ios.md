@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| ||||**Version** | `0.5.20` |
-| **Release tag** | `sdk-0.5.20` |
+| |||||**Version** | `0.5.21` |
+| **Release tag** | `sdk-0.5.21` |
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +29,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.20',
+    :tag => 'sdk-0.5.21',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 

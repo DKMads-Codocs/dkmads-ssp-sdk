@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.21
+
+- Banner/interstitial `hasFill` no longer blocked by stray `video_template` on image/HTML house wins.
+
 ## 0.5.20
 
 - Compact video chrome (28px mute/skip, 12px CTA) aligned with Android 0.5.20.

@@ -466,8 +466,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         isEnabled = left <= 0
                         alpha = if (left <= 0) 1f else 0.85f
                         if (left <= 0) {
-                            setOnClickListener { completePlayback(skipped = true) }
-                        }
+                setOnClickListener { completePlayback(skipped = true) }
+            }
                     }
                     slot.addView(
                         btn,

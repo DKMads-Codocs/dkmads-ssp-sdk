@@ -95,7 +95,7 @@ import Foundation
 
     @objc public var hasFill: Bool {
         if isHTML5 { return !(html5EntryUrl ?? "").isEmpty || !(adm?.isEmpty ?? true) }
-        if isVideoPlacement { return hasVideoRenderableContent }
+        if requiresVideoFill { return hasVideoRenderableContent }
         if hasVideoRenderableContent { return true }
         if isAudio { return !(audioUrl ?? "").isEmpty || (adm?.lowercased().contains("<audio") == true) }
         if !creativeUrl.isEmpty { return true }
@@ -104,10 +104,32 @@ import Foundation
     }
 
     @objc public var isVideoPlacement: Bool {
-        if isVideoUnitFormat { return true }
-        let dt = (deliveryType ?? creativeType ?? "").lowercased()
-        if dt == "video" || dt == "rewarded" || dt == "splash" { return true }
-        return !(videoTemplate ?? "").isEmpty
+        requiresVideoFill
+    }
+
+    private var requiresVideoFill: Bool {
+        if isDisplayUnitFormat {
+            return isVideoDeliveryType || hasVideoRenderableContent
+        }
+        return isVideoUnitFormat || isVideoDeliveryType
+    }
+
+    private var isDisplayUnitFormat: Bool {
+        switch (unitFormat ?? "").lowercased() {
+        case "banner", "interstitial", "native":
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var isVideoDeliveryType: Bool {
+        switch (deliveryType ?? creativeType ?? "").lowercased() {
+        case "video", "rewarded", "splash":
+            return true
+        default:
+            return false
+        }
     }
 
     private var isVideoUnitFormat: Bool {
@@ -121,9 +143,7 @@ import Foundation
 
     @objc public var hasVideoRenderableContent: Bool {
         if let url = playableVideoURL, !url.isEmpty { return true }
-        if AdMediaParsing.hasVideoMarkup(adm) { return true }
-        if isVideoPlacement, let videoUrl, !videoUrl.isEmpty { return true }
-        return false
+        return AdMediaParsing.hasVideoMarkup(adm)
     }
 
     @objc public var isAudio: Bool {
@@ -136,7 +156,7 @@ import Foundation
     }
 
     @objc public var isHTML5: Bool {
-        if isVideoPlacement { return false }
+        if isVideo { return false }
         if deliveryType?.lowercased() == "html5" { return true }
         if creativeType?.lowercased() == "html5" { return true }
         if let html5EntryUrl, !html5EntryUrl.isEmpty { return true }
@@ -148,7 +168,7 @@ import Foundation
     }
 
     @objc public var isVideo: Bool {
-        if isVideoPlacement { return true }
+        if isVideoDeliveryType { return true }
         if let videoUrl, !videoUrl.isEmpty, AdMediaParsing.isPlayableVideoUrl(videoUrl) { return true }
         if AdMediaParsing.hasVideoMarkup(adm) { return true }
         return false

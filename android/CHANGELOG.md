@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.21
+
+- **`hasFill` on banner/interstitial:** image/HTML wins no longer require video when `video_template` metadata is present; placement uses `unit_format` + `delivery_type` + playable content, not `video_template` alone.
+- **Server:** `video_template` omitted from `/v1/bid` winner for non-video display slots (banner/interstitial/native image/HTML).
+
 ## 0.5.20
 
 - **Premium video chrome (Android):** unified bottom control row `[mute] · [Learn more] · [Skip]` with glass pills, 28dp icons, sentence-case labels (fixes oversized Material `LEARN MORE` blocking video).
