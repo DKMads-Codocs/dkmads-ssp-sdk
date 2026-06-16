@@ -41,7 +41,7 @@ enum DKMadsVideoChrome {
         button.layer.borderWidth = 1
         button.layer.borderColor = UIColor.white.withAlphaComponent(0.22).cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
-        let size: CGFloat = 32
+        let size: CGFloat = 28
         NSLayoutConstraint.activate([
             button.widthAnchor.constraint(equalToConstant: size),
             button.heightAnchor.constraint(equalToConstant: size),
@@ -51,7 +51,7 @@ enum DKMadsVideoChrome {
 
     static func updateMuteButton(_ button: UIButton, muted: Bool) {
         let name = muted ? "speaker.slash.fill" : "speaker.wave.2.fill"
-        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        let config = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
         button.setImage(UIImage(systemName: name, withConfiguration: config), for: .normal)
         button.accessibilityLabel = muted ? "Unmute advertisement" : "Mute advertisement"
     }

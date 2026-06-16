@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.20
+
+- **Premium video chrome (Android):** unified bottom control row `[mute] · [Learn more] · [Skip]` with glass pills, 28dp icons, sentence-case labels (fixes oversized Material `LEARN MORE` blocking video).
+- Custom speaker icon drawable; subtle bottom gradient scrim; compact CTA gradient pill matching iOS/web.
+- Web + house `adm` chrome CSS tightened (28px controls, 12px CTA).
+
 ## 0.5.19
 
 - **Video fill / Inspector parity:** `loaded` and `hasFill` for video/rewarded requests require `hasVideoRenderableContent` (playable `video_url`, video/VAST `adm`) — no more `loaded=true` when playback is rejected.

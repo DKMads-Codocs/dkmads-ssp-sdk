@@ -9,6 +9,7 @@ import android.net.Uri
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -17,6 +18,8 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.graphics.drawable.GradientDrawable
+import android.widget.LinearLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -60,6 +63,9 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private val videoContainer = FrameLayout(context)
     private val webView: WebView
     private var nativeVideo: DKMadsNativeVideoSurface? = null
+    private var chromeControlsRow: LinearLayout? = null
+    private var chromeSkipSlot: FrameLayout? = null
+    private var chromeScrim: View? = null
     private var skipButton: Button? = null
     private var muteButton: ImageButton? = null
     private var clickOverlay: View? = null
@@ -226,7 +232,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         isPrepared = true
                         cancelPrepareTimeout()
                         attachVideoClickOverlay(ad)
-                        attachVideoChrome(ad)
+                        setupVideoChrome(ad)
+                        attachCompanion(ad)
                 videoTracker = SSPSDK.trackVideoLifecycle(
                     adUnitId = adUnitId,
                     campaignId = ad.campaignId,
@@ -264,8 +271,6 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     }
                 },
             )
-            attachClickThroughCta(ad)
-            attachCompanion(ad)
         }
     }
 
@@ -284,7 +289,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     null,
                 )
                     listener?.onPlaybackStarted(this@DKMadsVideoAdView)
-                attachVideoChrome(ad)
+                setupVideoChrome(ad)
                 attachVideoClickOverlay(ad)
                     post { startViewability() }
             }
@@ -334,34 +339,82 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         listener?.onAdComplete(this, skipped)
     }
 
-    private fun attachVideoChrome(ad: Ad) {
-        removeVideoChrome()
-        val template = ad.videoTemplate
-        if (DKMadsVideoChrome.showsMute(template)) {
-            val btn = DKMadsVideoChrome.muteIconButton(context, isMuted)
-            btn.setOnClickListener {
-                val surface = nativeVideo ?: return@setOnClickListener
-                isMuted = !isMuted
-                surface.setMuted(isMuted)
-                DKMadsVideoChrome.updateMuteIcon(btn, isMuted)
-            }
-            val side = (10 * resources.displayMetrics.density).toInt()
-            val bottom = DKMadsVideoChrome.chromeBottomInsetPx(context, DKMadsVideoChrome.showsProgress(template))
-            val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.START).apply {
-                setMargins(side, side, side, bottom)
-            }
-            addView(btn, lp)
-            muteButton = btn
-        }
-        if (DKMadsVideoChrome.showsProgress(template)) {
-            val bar = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
-                max = 100
-            }
-            val lp = LayoutParams(LayoutParams.MATCH_PARENT, (3 * resources.displayMetrics.density).toInt().coerceAtLeast(3), Gravity.BOTTOM)
-            addView(bar, lp)
-            progressBar = bar
-        }
+    private fun setupVideoChrome(ad: Ad) {
+        if (chromeControlsRow != null) return
+        ensureChromeBar(ad)
+        attachMuteControl(ad)
+        attachClickThroughCta(ad)
+        attachProgressBar(ad)
         scheduleSkip(ad)
+    }
+
+    private fun ensureChromeBar(ad: Ad) {
+        if (chromeControlsRow != null) return
+        val density = resources.displayMetrics.density
+        val template = ad.videoTemplate
+        val bottomInset = DKMadsVideoChrome.chromeBottomInsetPx(
+            context,
+            DKMadsVideoChrome.showsProgress(template),
+        )
+        chromeScrim = View(context).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.BOTTOM_TOP,
+                intArrayOf(0x73000000, Color.TRANSPARENT),
+            )
+        }
+        val scrimLp = LayoutParams(LayoutParams.MATCH_PARENT, (48 * density).toInt(), Gravity.BOTTOM).apply {
+            bottomMargin = bottomInset
+        }
+        addView(chromeScrim, scrimLp)
+
+        val row = DKMadsVideoChrome.buildControlsRow(context)
+        val rowLp = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
+            bottomMargin = bottomInset
+        }
+        addView(row, rowLp)
+        chromeControlsRow = row
+        chromeSkipSlot = FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+    }
+
+    private fun attachMuteControl(ad: Ad) {
+        val row = chromeControlsRow ?: return
+        if (!DKMadsVideoChrome.showsMute(ad.videoTemplate)) return
+        val btn = DKMadsVideoChrome.muteIconButton(context, isMuted)
+        btn.setOnClickListener {
+            val surface = nativeVideo ?: return@setOnClickListener
+            isMuted = !isMuted
+            surface.setMuted(isMuted)
+            DKMadsVideoChrome.updateMuteIcon(btn, isMuted)
+        }
+        row.addView(
+            btn,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        muteButton = btn
+        DKMadsVideoChrome.addWeightedSpacer(row)
+    }
+
+    private fun attachProgressBar(ad: Ad) {
+        val template = ad.videoTemplate
+        if (!DKMadsVideoChrome.showsProgress(template)) return
+        val bar = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+        }
+        val lp = LayoutParams(LayoutParams.MATCH_PARENT, (3 * resources.displayMetrics.density).toInt().coerceAtLeast(3), Gravity.BOTTOM)
+        addView(bar, lp)
+        progressBar = bar
+    }
+
+    private fun attachVideoChrome(ad: Ad) {
+        setupVideoChrome(ad)
     }
 
     private fun startProgressUpdates(surface: DKMadsNativeVideoSurface) {
@@ -388,8 +441,12 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     }
 
     private fun removeVideoChrome() {
-        muteButton?.let { removeView(it) }
         muteButton = null
+        chromeScrim?.let { removeView(it) }
+        chromeScrim = null
+        chromeControlsRow?.let { removeView(it) }
+        chromeControlsRow = null
+        chromeSkipSlot = null
         progressBar?.let { removeView(it) }
         progressBar = null
     }
@@ -397,41 +454,30 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private fun scheduleSkip(ad: Ad) {
         if (!DKMadsVideoChrome.showsSkip(ad.videoTemplate, isSkippable)) return
         cancelSkip()
+        ensureSkipSlotInRow()
+        val slot = chromeSkipSlot ?: return
         var left = (skipOffsetMs / 1000).toInt().coerceAtLeast(0)
         val runnable = object : Runnable {
             override fun run() {
                 if (playbackCompleted) return
-                if (left <= 0 && skipButton == null) {
-                    val btn = DKMadsVideoChrome.chromeButton(context, "Skip").apply {
-                        setOnClickListener { completePlayback(skipped = true) }
-                    }
-                    val side = (10 * resources.displayMetrics.density).toInt()
-                    val bottom = DKMadsVideoChrome.chromeBottomInsetPx(
-                        context,
-                        DKMadsVideoChrome.showsProgress(ad.videoTemplate),
-                    )
-                    val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END).apply {
-                        setMargins(side, side, side, bottom)
-                    }
-                    addView(btn, lp)
-                    skipButton = btn
-                    return
-                }
                 if (skipButton == null) {
-                    val btn = DKMadsVideoChrome.chromeButton(context, "Skip in ${left}s").apply {
-                        isEnabled = false
-                        alpha = 0.85f
+                    val label = if (left <= 0) "Skip" else "Skip in ${left}s"
+                    val btn = DKMadsVideoChrome.chromeButton(context, label).apply {
+                        isEnabled = left <= 0
+                        alpha = if (left <= 0) 1f else 0.85f
+                        if (left <= 0) {
+                            setOnClickListener { completePlayback(skipped = true) }
+                        }
                     }
-                    val side = (10 * resources.displayMetrics.density).toInt()
-                    val bottom = DKMadsVideoChrome.chromeBottomInsetPx(
-                        context,
-                        DKMadsVideoChrome.showsProgress(ad.videoTemplate),
+                    slot.addView(
+                        btn,
+                        FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            Gravity.CENTER,
+                        ),
                     )
-                    val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END).apply {
-                        setMargins(side, side, side, bottom)
-            }
-            addView(btn, lp)
-            skipButton = btn
+                    skipButton = btn
                 } else {
                     skipButton?.text = if (left <= 0) "Skip" else "Skip in ${left}s"
                     if (left <= 0) {
@@ -452,7 +498,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private fun cancelSkip() {
         skipRunnable?.let { removeCallbacks(it) }
         skipRunnable = null
-        skipButton?.let { removeView(it) }
+        skipButton?.let { (it.parent as? ViewGroup)?.removeView(it) }
         skipButton = null
     }
 
@@ -485,13 +531,34 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         removeClickThroughCta()
         removeCompanion()
         val style = DKMadsClickThroughCta.styleForAd(ad.videoTemplate, ad.ctaPosition)
+        val chromeRow = if (style == VideoCtaStyle.DEFAULT) {
+            chromeControlsRow ?: run {
+                ensureChromeBar(ad)
+                chromeControlsRow
+            }
+        } else {
+            null
+        }
         ctaButton = DKMadsClickThroughCta.attach(
             parent = this,
             clickUrl = ad.clickUrl,
             style = style,
             label = ad.ctaLabel,
             onClickThrough = { recordClick() },
+            chromeRow = chromeRow,
         )
+        if (chromeRow != null && chromeSkipSlot?.parent == null) {
+            DKMadsVideoChrome.addWeightedSpacer(chromeRow)
+            chromeSkipSlot?.let { chromeRow.addView(it) }
+        }
+    }
+
+    private fun ensureSkipSlotInRow() {
+        val row = chromeControlsRow ?: return
+        val slot = chromeSkipSlot ?: return
+        if (slot.parent != null) return
+        DKMadsVideoChrome.addWeightedSpacer(row)
+        row.addView(slot)
     }
 
     private fun removeClickThroughCta() {

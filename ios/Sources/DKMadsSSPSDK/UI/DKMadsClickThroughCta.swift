@@ -39,8 +39,8 @@ enum DKMadsClickThroughCta {
             button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
             button.layer.cornerRadius = 0
         case .default, .endCard:
-            button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
-            button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+            button.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
+            button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
         case .barBelow:
             button.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
             button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)

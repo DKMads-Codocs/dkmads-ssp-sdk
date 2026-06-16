@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.20
+
+- Compact video chrome (28px mute/skip, 12px CTA) aligned with Android 0.5.20.
+
 ## 0.5.19
 
 - Video `loaded` / `hasFill` aligned with `hasVideoRenderableContent`; video placements never classified as HTML5.

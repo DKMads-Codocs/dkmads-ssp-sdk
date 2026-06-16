@@ -346,8 +346,8 @@ import WebKit
         button.layer.cornerRadius = 16
         button.layer.borderWidth = 1
         button.layer.borderColor = UIColor.white.withAlphaComponent(0.22).cgColor
-        button.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
-        button.contentEdgeInsets = UIEdgeInsets(top: 7, left: 12, bottom: 7, right: 12)
+        button.titleLabel?.font = .systemFont(ofSize: 11, weight: .semibold)
+        button.contentEdgeInsets = UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
         addSubview(button)

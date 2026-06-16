@@ -3,24 +3,25 @@ package com.dkmads.ssp
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.os.Build
 import android.view.Gravity
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 
 /**
  * IAB-style click-through: explicit CTA only (not play/pause/skip on the video surface).
  */
 enum class VideoCtaStyle {
-    /** Instream / default — compact pill, bottom center */
+    /** Instream — compact pill in bottom chrome row */
     DEFAULT,
-    /** Outstream — full-width bar at bottom of placement */
     OUTSTREAM_BAR,
-    /** Rewarded / splash / interstitial video — large primary button */
     REWARDED,
-    /** Overlay on video (end-card style) */
     END_CARD,
-    /** Full-width bar below video (non-outstream) */
     BAR_BELOW,
 }
 
@@ -31,99 +32,93 @@ object DKMadsClickThroughCta {
         style: VideoCtaStyle = VideoCtaStyle.DEFAULT,
         label: String = "Learn more",
         onClickThrough: () -> Unit,
+        chromeRow: LinearLayout? = null,
     ): Button? {
         val url = clickUrl?.trim().orEmpty()
         if (url.isBlank()) return null
         val density = parent.resources.displayMetrics.density
-        val btn = Button(parent.context).apply {
-            text = label.ifBlank { "Learn more" }
-            setTextColor(Color.WHITE)
-            setBackgroundColor(0xFF1A73E8.toInt())
-            contentDescription = "Advertisement — learn more"
-            when (style) {
-                VideoCtaStyle.REWARDED -> {
-                    textSize = 16f
-                    val hPad = (20 * density).toInt()
-                    val vPad = (14 * density).toInt()
-                    setPadding(hPad, vPad, hPad, vPad)
+        val btn = when (style) {
+            VideoCtaStyle.DEFAULT, VideoCtaStyle.END_CARD -> DKMadsVideoChrome.compactCtaButton(parent.context, label)
+            else -> createFullWidthCta(parent.context, style, label, density)
+        }
+        btn.contentDescription = "Advertisement — learn more"
+        btn.setOnClickListener {
+            onClickThrough()
+            runCatching {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                if (parent.context !is Activity) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                VideoCtaStyle.OUTSTREAM_BAR -> {
-                    textSize = 14f
-                    val hPad = (16 * density).toInt()
-                    val vPad = (12 * density).toInt()
-                    setPadding(hPad, vPad, hPad, vPad)
-                }
-                VideoCtaStyle.DEFAULT, VideoCtaStyle.END_CARD -> {
-                    textSize = 14f
-                    val hPad = (16 * density).toInt()
-                    val vPad = (8 * density).toInt()
-                    setPadding(hPad, vPad, hPad, vPad)
-                }
-                VideoCtaStyle.BAR_BELOW -> {
-                    textSize = 14f
-                    val hPad = (16 * density).toInt()
-                    val vPad = (12 * density).toInt()
-                    setPadding(hPad, vPad, hPad, vPad)
-                }
+                parent.context.startActivity(intent)
             }
-            if (style == VideoCtaStyle.END_CARD) {
-                setBackgroundColor(0xEB1A73E8.toInt())
-            }
-            setOnClickListener {
-                onClickThrough()
-                runCatching {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    if (parent.context !is Activity) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        when (style) {
+            VideoCtaStyle.DEFAULT -> {
+                if (chromeRow != null) {
+                    val lp = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    )
+                    chromeRow.addView(btn, lp)
+                } else {
+                    val bottom = DKMadsVideoChrome.chromeBottomInsetPx(
+                        parent.context,
+                        hasProgress = true,
+                    )
+                    val lp = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
+                    ).apply {
+                        val side = (12 * density).toInt()
+                        setMargins(side, side, side, bottom)
                     }
-                    parent.context.startActivity(intent)
+                    parent.addView(btn, lp)
                 }
             }
+            VideoCtaStyle.END_CARD -> {
+                val lp = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
+                ).apply {
+                    val m = (10 * density).toInt()
+                    setMargins(m, m, m, m)
+                }
+                parent.addView(btn, lp)
+            }
+            VideoCtaStyle.OUTSTREAM_BAR -> {
+                val lp = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM,
+                )
+                parent.addView(btn, lp)
+            }
+            VideoCtaStyle.REWARDED -> {
+                val lp = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
+                ).apply {
+                    val side = (16 * density).toInt()
+                    val bottom = (20 * density).toInt()
+                    setMargins(side, 0, side, bottom)
+                }
+                parent.addView(btn, lp)
+            }
+            VideoCtaStyle.BAR_BELOW -> {
+                val lp = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM,
+                ).apply {
+                    val m = (8 * density).toInt()
+                    setMargins(m, m, m, m)
+                }
+                parent.addView(btn, lp)
+            }
         }
-        val lp = when (style) {
-            VideoCtaStyle.OUTSTREAM_BAR -> FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM,
-            ).apply {
-                val m = (0 * density).toInt()
-                setMargins(m, m, m, m)
-            }
-            VideoCtaStyle.REWARDED -> FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
-            ).apply {
-                val side = (16 * density).toInt()
-                val bottom = (20 * density).toInt()
-                setMargins(side, 0, side, bottom)
-            }
-            VideoCtaStyle.END_CARD -> FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
-            ).apply {
-                val m = (10 * density).toInt()
-                setMargins(m, m, m, m)
-            }
-            VideoCtaStyle.BAR_BELOW -> FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM,
-            ).apply {
-                val m = (8 * density).toInt()
-                setMargins(m, m, m, m)
-            }
-            VideoCtaStyle.DEFAULT -> FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
-            ).apply {
-                val m = (12 * density).toInt()
-                setMargins(m, m, m, m)
-            }
-        }
-        parent.addView(btn, lp)
         return btn
     }
 
@@ -144,4 +139,45 @@ object DKMadsClickThroughCta {
         }
         return styleForTemplate(template)
     }
+
+    private fun createFullWidthCta(
+        context: android.content.Context,
+        style: VideoCtaStyle,
+        label: String,
+        density: Float,
+    ): Button = Button(context).apply {
+        text = label.ifBlank { "Learn more" }
+        setTextColor(Color.WHITE)
+        isAllCaps = false
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        stateListAnimator = null
+        elevation = 0f
+        minHeight = 0
+        minWidth = 0
+        minimumHeight = 0
+        minimumWidth = 0
+        when (style) {
+            VideoCtaStyle.REWARDED -> {
+                textSize = 15f
+                val hPad = (20 * density).toInt()
+                val vPad = (12 * density).toInt()
+                setPadding(hPad, vPad, hPad, vPad)
+                background = roundedFill(context, 0xFF2563EB.toInt(), 8f * density)
+            }
+            VideoCtaStyle.OUTSTREAM_BAR, VideoCtaStyle.BAR_BELOW -> {
+                textSize = 13f
+                val hPad = (16 * density).toInt()
+                val vPad = (10 * density).toInt()
+                setPadding(hPad, vPad, hPad, vPad)
+                background = roundedFill(context, 0xFF2563EB.toInt(), 0f)
+            }
+            else -> Unit
+        }
+    }
+
+    private fun roundedFill(context: android.content.Context, color: Int, radiusPx: Float): GradientDrawable =
+        GradientDrawable().apply {
+            cornerRadius = radiusPx
+            setColor(color)
+        }
 }
