@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.19
+
+- **Video fill / Inspector parity:** `loaded` and `hasFill` for video/rewarded requests require `hasVideoRenderableContent` (playable `video_url`, video/VAST `adm`) — no more `loaded=true` when playback is rejected.
+- **Video vs HTML5:** video placements (`delivery_type`, `unit_format`, `video_template`) are never classified as HTML5; `hasVideoRenderableContent` no longer blocked by false HTML5 detection.
+- **Bid parsing:** camelCase `videoUrl`, nested `winner.creative`, and `image_url`→`video_url` fallback when the stream is HLS/MP4; video streams excluded from banner `creativeUrl`.
+- **Server:** `resolveBidImageUrl` no longer puts HLS/MP4 in `image_url`.
+
 ## 0.5.18
 
 - **`hasFill` / video validation:** `hasFill` requires renderable assets (`html5_entry_url`, playable `video_url`, VAST/HTML video `adm`, image `adm`, etc.); `delivery_type: video` alone no longer counts as fill.

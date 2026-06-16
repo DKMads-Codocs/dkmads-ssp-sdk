@@ -20,12 +20,17 @@ data class DKMadsResponseInfo(
         ).joinToString(" ")
 
     companion object {
-        fun from(ad: Ad): DKMadsResponseInfo = DKMadsResponseInfo(
-            reason = ad.reason,
-            requestId = ad.requestId,
-            dsp = ad.dsp,
-            price = ad.price,
-            loaded = ad.hasFill,
-        )
+        fun from(ad: Ad, requestFormat: String? = null): DKMadsResponseInfo {
+            val videoRequest = requestFormat?.lowercase() in VIDEO_REQUEST_FORMATS || ad.isVideoPlacement
+            return DKMadsResponseInfo(
+                reason = ad.reason,
+                requestId = ad.requestId,
+                dsp = ad.dsp,
+                price = ad.price,
+                loaded = if (videoRequest) ad.hasVideoRenderableContent else ad.hasFill,
+            )
+        }
+
+        private val VIDEO_REQUEST_FORMATS = setOf("video", "rewarded")
     }
 }

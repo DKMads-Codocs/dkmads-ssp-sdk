@@ -150,13 +150,14 @@ object SSPSDK {
             val refreshSec = response.optInt("refresh_interval_sec", -1).takeIf { it >= 0 }
             val adData = response.optJSONObject("winner")
             if (adData != null && adData.length() > 0) {
-                val adm = adData.optString("adm", "")
-                val deliveryType = adData.optString("delivery_type", adData.optString("creative_type", ""))
-                val html5EntryUrl = adData.optString("html5_entry_url", "")
-                val videoUrl = adData.optString("video_url", "")
-                val audioUrl = adData.optString("audio_url", "")
-                val imageUrl = adData.optString("image_url", "")
-                val creativeUrl = resolveRasterCreativeUrl(adData, imageUrl)
+                val parsed = parseWinnerFields(adData)
+                val adm = parsed.adm
+                val deliveryType = parsed.deliveryType
+                val html5EntryUrl = parsed.html5EntryUrl
+                val videoUrl = parsed.videoUrl
+                val audioUrl = parsed.audioUrl
+                val imageUrl = parsed.imageUrl
+                val creativeUrl = resolveRasterCreativeUrl(adData, imageUrl, deliveryType)
                 var resolvedId = adData.optString("id", adData.optString("crid", ""))
                 if (resolvedId.isBlank() && creativeUrl.isNotBlank()) {
                     resolvedId = creativeUrl
@@ -233,7 +234,10 @@ object SSPSDK {
             price = ad?.price,
             latencyMs = latencyMs,
             refreshIntervalSec = refreshSec ?: ad?.refreshIntervalSec,
-            loaded = ad?.hasFill == true,
+            loaded = when (format.lowercase()) {
+                "video", "rewarded" -> ad?.hasVideoRenderableContent == true
+                else -> ad?.hasFill == true
+            },
             errorMessage = errorMessage,
         )
     }
@@ -703,9 +707,55 @@ private fun isRasterImageUrl(url: String): Boolean {
     return Regex("""\.(jpe?g|png|gif|webp|avif|bmp|svg)(\?|#|$)""").containsMatchIn(u)
 }
 
-private fun resolveRasterCreativeUrl(adData: JSONObject, imageUrl: String): String {
-    val delivery = adData.optString("delivery_type", adData.optString("creative_type", ""))
+private data class ParsedWinnerFields(
+    val adm: String,
+    val deliveryType: String,
+    val html5EntryUrl: String,
+    val videoUrl: String,
+    val audioUrl: String,
+    val imageUrl: String,
+)
+
+private fun parseWinnerFields(adData: JSONObject): ParsedWinnerFields {
+    var adm = adData.optString("adm", "")
+    var deliveryType = adData.optString("delivery_type", adData.optString("creative_type", ""))
+    var html5EntryUrl = adData.optString("html5_entry_url", adData.optString("html5EntryUrl", ""))
+    var videoUrl = adData.optString("video_url", adData.optString("videoUrl", ""))
+    var audioUrl = adData.optString("audio_url", adData.optString("audioUrl", ""))
+    var imageUrl = adData.optString("image_url", adData.optString("imageUrl", ""))
+    val nested = adData.optJSONObject("creative")
+    if (nested != null) {
+        if (adm.isBlank()) adm = nested.optString("adm", adm)
+        if (deliveryType.isBlank()) {
+            deliveryType = nested.optString("delivery_type", nested.optString("creative_type", deliveryType))
+        }
+        if (html5EntryUrl.isBlank()) {
+            html5EntryUrl = nested.optString("html5_entry_url", nested.optString("html5EntryUrl", html5EntryUrl))
+        }
+        if (videoUrl.isBlank()) videoUrl = nested.optString("video_url", nested.optString("videoUrl", videoUrl))
+        if (audioUrl.isBlank()) audioUrl = nested.optString("audio_url", nested.optString("audioUrl", audioUrl))
+        if (imageUrl.isBlank()) imageUrl = nested.optString("image_url", nested.optString("imageUrl", imageUrl))
+    }
+    if (videoUrl.isBlank() && AdMediaParsing.isPlayableVideoUrl(imageUrl)) {
+        videoUrl = imageUrl
+    }
+    return ParsedWinnerFields(adm, deliveryType, html5EntryUrl, videoUrl, audioUrl, imageUrl)
+}
+
+private fun isVideoDeliveryType(deliveryType: String?): Boolean {
+    return when (deliveryType?.lowercase().orEmpty()) {
+        "video", "rewarded", "splash" -> true
+        else -> false
+    }
+}
+
+private fun resolveRasterCreativeUrl(adData: JSONObject, imageUrl: String, deliveryType: String): String {
+    val delivery = deliveryType.ifBlank {
+        adData.optString("delivery_type", adData.optString("creative_type", ""))
+    }
     if (delivery.equals("html5", ignoreCase = true)) return ""
+    if (isVideoDeliveryType(delivery)) return ""
+    if (AdMediaParsing.isPlayableVideoUrl(imageUrl)) return ""
     if (isRasterImageUrl(imageUrl)) return imageUrl
     val direct = adData.optString("creativeUrl", "")
     return if (isRasterImageUrl(direct)) direct else ""
@@ -744,26 +794,37 @@ data class Ad(
     val impressionRecorded: Boolean = false,
 ) {
     val isHtml5: Boolean
-        get() = deliveryType.equals("html5", ignoreCase = true)
-            || html5EntryUrl.isNotBlank()
-            || (adm.contains("<iframe", ignoreCase = true) || adm.contains("/html5/"))
+        get() {
+            if (isVideoPlacement) return false
+            if (deliveryType.equals("html5", ignoreCase = true)) return true
+            if (html5EntryUrl.isNotBlank()) return true
+            if (adm.contains("<iframe", ignoreCase = true)) return true
+            return adm.contains("/html5/", ignoreCase = true)
+        }
 
     val isVideo: Boolean
         get() {
-            if (isHtml5) return false
-            val dt = deliveryType?.lowercase().orEmpty()
-            if (dt == "video" || dt == "rewarded" || dt == "splash") return true
+            if (isVideoPlacement) return true
             if (videoUrl.isNotBlank() && AdMediaParsing.isPlayableVideoUrl(videoUrl)) return true
             if (AdMediaParsing.hasVideoMarkup(adm)) return true
             return false
         }
 
+    /** Video / instream / rewarded slot or creative from the bid payload. */
+    val isVideoPlacement: Boolean
+        get() {
+            if (isVideoUnitFormat()) return true
+            if (isVideoDeliveryType(deliveryType)) return true
+            return !videoTemplate.isNullOrBlank()
+        }
+
     /** True when native ExoPlayer or HTML/VAST video `adm` can render. */
     val hasVideoRenderableContent: Boolean
         get() {
-            if (isHtml5) return false
             if (!playableVideoUrl.isNullOrBlank()) return true
-            return AdMediaParsing.hasVideoMarkup(adm)
+            if (AdMediaParsing.hasVideoMarkup(adm)) return true
+            if (isVideoPlacement && videoUrl.isNotBlank()) return true
+            return false
         }
 
     /** Native player URL — hosted HLS/MP4, VAST MediaFile, and adm `<video>` src (parity with iOS). */
@@ -802,7 +863,7 @@ data class Ad(
     val hasFill: Boolean
         get() {
             if (isHtml5) return html5EntryUrl.isNotBlank() || adm.isNotBlank()
-            if (isVideoUnitFormat()) return hasVideoRenderableContent
+            if (isVideoPlacement) return hasVideoRenderableContent
             if (hasVideoRenderableContent) return true
             if (isAudio) return audioUrl.isNotBlank() || adm.contains("<audio", ignoreCase = true)
             if (creativeUrl.isNotBlank()) return true
@@ -841,4 +902,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.18"
+const val SDK_VERSION = "0.5.19"

@@ -98,7 +98,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     }
 
     /** Renders an ad already returned from [SSPSDK.loadAd] (e.g. instream preload). */
-    fun display(ad: Ad, responseInfo: DKMadsResponseInfo? = DKMadsResponseInfo.from(ad)) {
+    fun display(ad: Ad, responseInfo: DKMadsResponseInfo? = DKMadsResponseInfo.from(ad, requestFormat = "video")) {
         ++loadGeneration
         isLoading = false
         stopPlayback()
@@ -120,7 +120,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 reason = ad.reason,
             )
         }
-        listener?.onAdLoaded(this, ad, responseInfo ?: DKMadsResponseInfo.from(ad))
+        listener?.onAdLoaded(this, ad, responseInfo ?: DKMadsResponseInfo.from(ad, requestFormat = "video"))
         listener?.onAdImpression(this)
     }
 
@@ -158,7 +158,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
             isLoading = false
             result.fold(
                 onSuccess = { ad ->
-                    val info = DKMadsResponseInfo.from(ad)
+                    val info = DKMadsResponseInfo.from(ad, requestFormat = "video")
                     responseInfo = info
                     if (!ad.hasFill) {
                         listener?.onAdFailed(this@DKMadsVideoAdView, ad.reason ?: "no_fill", info)

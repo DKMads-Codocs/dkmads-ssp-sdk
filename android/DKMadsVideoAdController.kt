@@ -59,7 +59,7 @@ class DKMadsVideoAdController(
             isLoading = false
             result.fold(
                 onSuccess = { ad ->
-                    val info = DKMadsResponseInfo.from(ad)
+                    val info = DKMadsResponseInfo.from(ad, requestFormat = "video")
                     responseInfo = info
                     if (!ad.hasFill) {
                         listener?.onAdFailed(ad.reason ?: "no_fill", info)

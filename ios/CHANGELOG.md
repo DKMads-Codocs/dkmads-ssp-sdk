@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.19
+
+- Video `loaded` / `hasFill` aligned with `hasVideoRenderableContent`; video placements never classified as HTML5.
+- Bid parsing fallbacks (nested creative, `image_url` stream → `video_url`).
+
 ## 0.5.18
 
 - **`hasFill` / video validation:** renderable fill only (`html5_entry_url`, playable `video_url`, VAST/HTML video `adm`); `delivery_type: video` alone no longer counts.

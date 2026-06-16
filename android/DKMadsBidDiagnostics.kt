@@ -34,11 +34,18 @@ data class DKMadsBidDiagnostics(
         }
 
     val troubleshootingHint: String
-        get() = hint(reason, loaded)
+        get() = DKMadsBidDiagnostics.hint(reason, loaded, format)
 
     companion object {
-        fun hint(reason: String?, loaded: Boolean): String {
-            if (loaded) return "Fill OK — render winner.adm or image_url/video_url in your view."
+        fun hint(reason: String?, loaded: Boolean, format: String? = null): String {
+            if (loaded) {
+                val video = format?.lowercase() in setOf("video", "rewarded")
+                return if (video) {
+                    "Video fill OK — playable video_url or video adm detected."
+                } else {
+                    "Fill OK — render winner.adm or image_url/video_url in your view."
+                }
+            }
             return when ((reason ?: "").lowercase()) {
                 "no_tiers" -> "Fix: Save property waterfall in dashboard (Demand → Waterfall)."
                 "no_bids", "no_fill" -> "Fix: Active campaign + creative matching format/size; check floor price."

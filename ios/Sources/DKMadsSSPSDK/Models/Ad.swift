@@ -95,12 +95,19 @@ import Foundation
 
     @objc public var hasFill: Bool {
         if isHTML5 { return !(html5EntryUrl ?? "").isEmpty || !(adm?.isEmpty ?? true) }
-        if isVideoUnitFormat { return hasVideoRenderableContent }
+        if isVideoPlacement { return hasVideoRenderableContent }
         if hasVideoRenderableContent { return true }
         if isAudio { return !(audioUrl ?? "").isEmpty || (adm?.lowercased().contains("<audio") == true) }
         if !creativeUrl.isEmpty { return true }
         if let adm, !adm.isEmpty { return true }
         return false
+    }
+
+    @objc public var isVideoPlacement: Bool {
+        if isVideoUnitFormat { return true }
+        let dt = (deliveryType ?? creativeType ?? "").lowercased()
+        if dt == "video" || dt == "rewarded" || dt == "splash" { return true }
+        return !(videoTemplate ?? "").isEmpty
     }
 
     private var isVideoUnitFormat: Bool {
@@ -113,9 +120,10 @@ import Foundation
     }
 
     @objc public var hasVideoRenderableContent: Bool {
-        if isHTML5 { return false }
         if let url = playableVideoURL, !url.isEmpty { return true }
-        return AdMediaParsing.hasVideoMarkup(adm)
+        if AdMediaParsing.hasVideoMarkup(adm) { return true }
+        if isVideoPlacement, let videoUrl, !videoUrl.isEmpty { return true }
+        return false
     }
 
     @objc public var isAudio: Bool {
@@ -128,6 +136,7 @@ import Foundation
     }
 
     @objc public var isHTML5: Bool {
+        if isVideoPlacement { return false }
         if deliveryType?.lowercased() == "html5" { return true }
         if creativeType?.lowercased() == "html5" { return true }
         if let html5EntryUrl, !html5EntryUrl.isEmpty { return true }
@@ -139,9 +148,7 @@ import Foundation
     }
 
     @objc public var isVideo: Bool {
-        if isHTML5 { return false }
-        let dt = (deliveryType ?? creativeType ?? "").lowercased()
-        if dt == "video" || dt == "rewarded" || dt == "splash" { return true }
+        if isVideoPlacement { return true }
         if let videoUrl, !videoUrl.isEmpty, AdMediaParsing.isPlayableVideoUrl(videoUrl) { return true }
         if AdMediaParsing.hasVideoMarkup(adm) { return true }
         return false
