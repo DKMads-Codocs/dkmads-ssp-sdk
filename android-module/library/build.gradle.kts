@@ -2,6 +2,7 @@ plugins {
   id("com.android.library")
   id("org.jetbrains.kotlin.android")
   id("maven-publish")
+  id("signing")
 }
 
 group = providers.gradleProperty("GROUP").get()
@@ -69,6 +70,18 @@ afterEvaluate {
               url.set("https://opensource.org/licenses/MIT")
             }
           }
+          developers {
+            developer {
+              id.set("dkmads")
+              name.set("DKMads")
+              email.set("sdk@dkmads.com")
+            }
+          }
+          scm {
+            connection.set("scm:git:https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git")
+            developerConnection.set("scm:git:ssh://git@github.com/DKMads-Codocs/dkmads-ssp-sdk.git")
+            url.set("https://github.com/DKMads-Codocs/dkmads-ssp-sdk")
+          }
         }
       }
     }
@@ -89,6 +102,31 @@ afterEvaluate {
           }
         }
       }
+      // Maven Central via Sonatype OSSRH staging. Set OSSRH_USERNAME / OSSRH_PASSWORD
+      // (user token) to enable; otherwise this repository is skipped for local builds.
+      val ossrhUser = System.getenv("OSSRH_USERNAME")
+      val ossrhPassword = System.getenv("OSSRH_PASSWORD")
+      if (!ossrhUser.isNullOrBlank() && !ossrhPassword.isNullOrBlank()) {
+        maven {
+          name = "mavenCentral"
+          url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+          credentials {
+            username = ossrhUser
+            password = ossrhPassword
+          }
+        }
+      }
+    }
+  }
+
+  // Artifact signing is required by Maven Central. Provide an ASCII-armored key
+  // and passphrase via env (in-memory keys avoid a keyring on CI).
+  signing {
+    val signingKey = System.getenv("SIGNING_KEY")
+    val signingPassword = System.getenv("SIGNING_PASSWORD")
+    if (!signingKey.isNullOrBlank()) {
+      useInMemoryPgpKeys(signingKey, signingPassword)
+      sign(publishing.publications)
     }
   }
 }

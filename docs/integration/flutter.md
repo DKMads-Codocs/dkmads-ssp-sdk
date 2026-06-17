@@ -39,7 +39,7 @@ dependencies:
     git:
       url: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
       path: flutter
-      ref: sdk-0.5.21   # release tag (sdk-<semver>)
+      ref: sdk-0.5.22   # release tag (sdk-<semver>)
 ```
 
 ```bash
@@ -53,7 +53,7 @@ In `ios/Podfile` (see [iOS install](./ios.md)):
 ```ruby
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.21',
+    :tag => 'sdk-0.5.22',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -61,7 +61,7 @@ Then `cd ios && pod install`.
 
 ### 3. Android native SDK
 
-Add `com.dkmads.ssp:ssp-android:0.5.21` per [Android Installation](./android.md).
+Add `com.dkmads.ssp:ssp-android:0.5.22` per [Android Installation](./android.md).
 
 ### Example app
 
@@ -83,6 +83,8 @@ Add `com.dkmads.ssp:ssp-android:0.5.21` per [Android Installation](./android.md)
 - **`loadRewarded`** + **`showRewarded`** — rewarded fullscreen + `rewardedEvent` callbacks
 - **`DkmadsInstreamAd`** — instream PlatformView (Android/iOS)
 - Track/emit video lifecycle telemetry
+- **Server `render_mode` hint** — `DkmadsAdResult.renderMode` surfaces the explicit render fork for custom UIs
+- **MRAID 2.0 + OMID** — embedded PlatformViews inherit MRAID 2.0 rich-media and the OMID measurement seam from the native SDK (see [OMID & viewability](../OMID_VIEWABILITY.md))
 
 > Example app: `sdk/flutter/example/` (initialize, banner widget, interstitial, inspector).
 
@@ -130,7 +132,7 @@ if (banner.hasFill) {
 
 ### Interstitial (recommended)
 
-Dashboard ad unit format must be **interstitial**. Uses IAB sizes (320×480 default), not screen pixels. **Pin native SDK `sdk-0.5.21`** — interstitial fit, click-through, and 90% letterbox chrome are implemented in native iOS/Android (Flutter inherits automatically).
+Dashboard ad unit format must be **interstitial**. Uses IAB sizes (320×480 default), not screen pixels. **Pin native SDK `sdk-0.5.22`** — interstitial fit, click-through, 90% letterbox chrome, MRAID 2.0, and the OMID measurement seam are implemented in native iOS/Android (Flutter inherits automatically).
 
 ```dart
 final fill = await DkmadsSsp.loadInterstitial(
@@ -211,7 +213,18 @@ await DkmadsSsp.emitVideoEvent(
 
 ## `DkmadsAdResult` fields
 
-Aligned with native `Ad`: `videoUrl`, `html5EntryUrl`, `isVideo`, `isHtml5`, `hasFill`, `campaignId`, `creativeId`, `videoTemplate`, `ctaLabel`, `ctaPosition`, `companionImageUrl`, `showCompanionClick`, `skippable`, `skipAfterSec`, `unitFormat`, `placementContext`, plus `adm`, `creativeUrl`, `clickUrl`, `reason`, `requestId`, `dsp`, `price`. Native loads also expose `headline`, `body`, `callToAction`, `advertiser`, `iconUrl`.
+Aligned with native `Ad`: `videoUrl`, `html5EntryUrl`, `isVideo`, `isHtml5`, `renderMode`, `hasFill`, `campaignId`, `creativeId`, `videoTemplate`, `ctaLabel`, `ctaPosition`, `companionImageUrl`, `showCompanionClick`, `skippable`, `skipAfterSec`, `unitFormat`, `placementContext`, plus `adm`, `creativeUrl`, `clickUrl`, `reason`, `requestId`, `dsp`, `price`. Native loads also expose `headline`, `body`, `callToAction`, `advertiser`, `iconUrl`.
+
+`renderMode` is the server's explicit render hint (`image` | `html5` | `video_native` | `video_web` | `native_assets` | `audio`). Prefer it as the primary render fork; fall back to `isVideo` / `isHtml5` when it is `null`.
+
+## OMID measurement (optional)
+
+OMID verification resources flow through automatically, but the IAB Open Measurement SDK is never bundled. To enable verified measurement, register an OMID provider in the **native host** (the SDK then drives the full session lifecycle for embedded PlatformViews and fullscreen ads):
+
+- **Android** — register `DKMadsOmid.provider` in your `Application.onCreate()`.
+- **iOS** — set `DKMadsOmid.provider` in your `AppDelegate`.
+
+When no provider is registered, OMID is a no-op and first-party viewability still reports. See [OMID & viewability](../OMID_VIEWABILITY.md).
 
 Targeting: [TARGETING_SIGNALS.md](../TARGETING_SIGNALS.md).
 

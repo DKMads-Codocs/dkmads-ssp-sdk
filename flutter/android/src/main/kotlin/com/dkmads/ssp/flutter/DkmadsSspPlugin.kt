@@ -36,6 +36,7 @@ private fun adToMap(ad: Ad): Map<String, Any?> = mapOf(
   "height" to ad.height,
   "isVideo" to ad.isVideo,
   "isHtml5" to ad.isHtml5,
+  "renderMode" to ad.renderMode,
   "dsp" to ad.dsp,
   "price" to ad.price,
   "campaignId" to ad.campaignId,

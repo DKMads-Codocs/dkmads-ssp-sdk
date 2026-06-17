@@ -18,8 +18,10 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| |||||**Version** | `0.5.21` |
-| **Release tag** | `sdk-0.5.21` |
+| **Version** | `0.5.22` |
+| **Release tag** | `sdk-0.5.22` |
+
+> **Distribution:** the podspec is **CocoaPods trunk-lintable** and a `pod trunk push` job is wired in CI. Until a trunk release is live, install via the Git/`:tag` source below.
 
 ### CocoaPods (Git — recommended)
 
@@ -29,7 +31,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.21',
+    :tag => 'sdk-0.5.22',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -130,6 +132,8 @@ Emits `video_start`, `video_25`…`video_100`, `video_skip`, `video_viewable`, e
 Use when the dashboard ad unit format is **interstitial** (Fullscreen & breaks — not Native or banner).
 
 Supports **video**, **image**, **HTML5**, and tag/`adm` creatives from `/v1/bid` (`video_url`, `image_url`, `html5_entry_url`, `adm`).
+
+**Render fork (0.5.22+):** the bid winner carries an explicit **`render_mode`** hint (`image` / `html5` / `video_native` / `video_web` / `native_assets` / `audio`), surfaced as `ad.renderMode`. All drop-in views honor it first and fall back to the legacy `isVideo` / `isHTML5` heuristics when absent. HTML5/`adm` creatives run through the **MRAID 2.0** bridge automatically.
 
 Bid sizes use explicit `adSize`, then sizes from `registerAdUnit`, then **320×480** — not `UIScreen` pixel dimensions (avoids `no_bids` on full-screen device sizes).
 
@@ -256,6 +260,17 @@ SSPSDK.shared.setUserData([
   "user_pid": "user_abc"
 ])
 ```
+
+## Open Measurement (OMID) — optional
+
+`render_mode` and any `omid_verifications` from the bid winner are parsed automatically (`Ad.omidVerifications`), but the IAB Open Measurement SDK is **never bundled**. To enable verified measurement, implement `DKMadsOmidProvider` and register it once; the SDK then drives the full session lifecycle (load, impression, video quartiles, skip, complete) for banner, native, interstitial, and video surfaces:
+
+```swift
+// In AppDelegate, after DKMadsMobileAds.shared.start(with:)
+DKMadsOmid.provider = MyOmidProvider() // your IAB OM SDK adapter
+```
+
+When no provider is registered, OMID is a no-op and first-party viewability still reports. See [OMID & viewability](../OMID_VIEWABILITY.md).
 
 ## Curl parity check
 

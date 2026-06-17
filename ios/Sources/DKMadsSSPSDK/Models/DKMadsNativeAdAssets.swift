@@ -35,6 +35,24 @@ public final class DKMadsNativeAdAssets: NSObject {
 
     static func from(dictionary: [String: Any]?) -> DKMadsNativeAdAssets {
         let root = dictionary ?? [:]
+        if let assets = root["native_assets"] as? [String: Any] {
+            func a(_ keys: [String]) -> String? {
+                for key in keys {
+                    let t = (assets[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    if !t.isEmpty { return t }
+                }
+                return nil
+            }
+            return DKMadsNativeAdAssets(
+                headline: a(["headline"]),
+                body: a(["body", "description"]),
+                callToAction: a(["cta", "cta_label"]),
+                advertiser: a(["advertiser"]),
+                iconUrl: a(["icon_url"]),
+                imageUrl: a(["image_url"]),
+                clickUrl: a(["click_url"])
+            )
+        }
         let meta = root["meta"] as? [String: Any] ?? [:]
         func str(_ keys: [String]) -> String? {
             for key in keys {

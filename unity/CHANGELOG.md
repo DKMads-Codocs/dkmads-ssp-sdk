@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.22
+
+- Tracks native SDK **0.5.22** (server `render_mode` hint, MRAID 2.0, OMID measurement seam, structured native assets).
+- `DKMadsAdLoadResult.renderMode` surfaces the server render hint (`image` | `html5` | `video_native` | `video_web` | `native_assets` | `audio`) for custom rendering forks.
+- Native interstitial / app-open / banner surfaces automatically inherit MRAID 2.0 and the OMID measurement seam from the native SDK.
+- OMID providers are registered in the native host (Android `Application` / iOS `AppDelegate`); see `docs/integration/unity.md`.
+
 ## 0.5.15
 
 - Tracks native SDK **0.5.15** (Android video parity: HLS/ExoPlayer, `playableVideoUrl`, load guards).

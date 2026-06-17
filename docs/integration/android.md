@@ -17,8 +17,10 @@ Add the Android library **`com.dkmads.ssp:ssp-android`** to your Gradle project.
 
 | | |
 |---|---|
-| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.21` |
+| **Coordinates** | `com.dkmads.ssp:ssp-android:0.5.22` |
 | **Repository** | [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) |
+
+> **Distribution:** release AARs are published to **GitHub Packages** today; **Maven Central** publishing (`com.dkmads.ssp:ssp-android`) is wired in CI and gated on Sonatype OSSRH credentials. Once a Maven Central release is live, drop the custom `maven { … }` repository and resolve from `mavenCentral()` directly.
 
 ### Install from GitHub Packages (recommended)
 
@@ -53,7 +55,7 @@ gpr.key=YOUR_GITHUB_PAT
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.21")
+  implementation("com.dkmads.ssp:ssp-android:0.5.22")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
 ```
@@ -90,7 +92,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.21")
+  implementation("com.dkmads.ssp:ssp-android:0.5.22")
 }
 ```
 
@@ -107,11 +109,11 @@ Point the `maven { url = … }` repository at `vendor/dkmads-ssp-sdk/android-mod
 
 ### Prebuilt AAR (enterprise distribution)
 
-When DKMads provides `ssp-android-0.5.21.aar`, add it under `app/libs/`:
+When DKMads provides `ssp-android-0.5.22.aar`, add it under `app/libs/`:
 
 ```kotlin
 dependencies {
-  implementation(files("libs/ssp-android-0.5.21.aar"))
+  implementation(files("libs/ssp-android-0.5.22.aar"))
 }
 ```
 
@@ -228,6 +230,8 @@ SSPSDK.setUserData(
 Dashboard ad unit format must be **interstitial** (Fullscreen & breaks — not Native or banner).
 
 Supports **video**, **image**, **HTML5**, and tag/`adm` creatives from `/v1/bid` (`video_url`, `image_url`, `html5_entry_url`, `adm`).
+
+**Render fork (0.5.22+):** the bid winner carries an explicit **`render_mode`** hint (`image` / `html5` / `video_native` / `video_web` / `native_assets` / `audio`), surfaced as `ad.renderMode`. All drop-in views honor it first and fall back to the legacy `isVideo` / `isHtml5` heuristics when absent. HTML5/`adm` creatives run through the **MRAID 2.0** bridge automatically.
 
 ### Drop-in (recommended)
 
@@ -450,6 +454,21 @@ SSPSDK.trackVideoLifecycle(
   Log.d("SSPVideo", "event=$event payload=$payload")
 }
 ```
+
+## Open Measurement (OMID) — optional
+
+`render_mode` and any `omid_verifications` from the bid winner are parsed automatically (`Ad.omidVerifications`), but the IAB Open Measurement SDK is **never bundled**. To enable verified measurement, implement `DKMadsOmidProvider` and register it once, then the SDK drives the full session lifecycle (load, impression, video quartiles, skip, complete) for banner, native, interstitial, and video surfaces:
+
+```kotlin
+class MyApp : Application() {
+  override fun onCreate() {
+    super.onCreate()
+    DKMadsOmid.provider = MyOmidProvider() // your IAB OM SDK adapter
+  }
+}
+```
+
+When no provider is registered, OMID is a no-op and first-party viewability still reports. See [OMID & viewability](../OMID_VIEWABILITY.md).
 
 ## Troubleshooting
 

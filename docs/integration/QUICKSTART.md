@@ -46,6 +46,7 @@ curl -sS -X POST 'https://ssp.dkmads.com/api/public/v1/bid' \
 | Android | [Android integration](./android.md) — Gradle, banner or `loadAd` |
 | Flutter | [Flutter integration](./flutter.md) |
 | Unity | [Unity integration](./unity.md) |
+| React Native | [React Native integration](./react-native.md) — banner + interstitial bridge |
 
 **Integration sequence:**
 

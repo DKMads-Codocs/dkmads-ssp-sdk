@@ -22,6 +22,9 @@ import SafariServices
 
     private let webView: WKWebView
     private let imageView: UIImageView
+    private let mraid: DKMadsMraidController
+    private var mraidActive = false
+    private var omidSession: DKMadsOmidSession?
     private var isLoading = false
     private var viewabilityActive = false
 
@@ -29,9 +32,14 @@ import SafariServices
         self.adUnitID = adUnitID
         self.adSize = adSize
         let config = DKMadsBannerAdView.makeWebViewConfiguration()
+        let mraid = DKMadsMraidController(placementType: "inline")
+        mraid.install(into: config)
+        self.mraid = mraid
         self.webView = WKWebView(frame: .zero, configuration: config)
         self.imageView = UIImageView(frame: .zero)
         super.init(frame: CGRect(origin: .zero, size: adSize))
+        mraid.host = self
+        mraid.bind(webView: webView)
         setupViews()
     }
 
@@ -39,9 +47,14 @@ import SafariServices
         self.adUnitID = ""
         self.adSize = CGSize(width: 300, height: 250)
         let config = DKMadsBannerAdView.makeWebViewConfiguration()
+        let mraid = DKMadsMraidController(placementType: "inline")
+        mraid.install(into: config)
+        self.mraid = mraid
         self.webView = WKWebView(frame: .zero, configuration: config)
         self.imageView = UIImageView(frame: .zero)
         super.init(coder: coder)
+        mraid.host = self
+        mraid.bind(webView: webView)
         setupViews()
     }
 
@@ -123,14 +136,25 @@ import SafariServices
     }
 
     private func clearCreative() {
+        omidSession?.finish()
+        omidSession = nil
         webView.isHidden = true
         imageView.isHidden = true
         webView.loadHTMLString("", baseURL: nil)
         imageView.image = nil
     }
 
+    private func startOmidNativeSession() {
+        guard omidSession == nil, DKMadsOmid.isAvailable, let ad = loadedAd else { return }
+        omidSession = DKMadsOmid.provider?.createNativeDisplaySession(adView: self, verifications: ad.omidVerifications)
+        omidSession?.start()
+        omidSession?.signalLoaded()
+    }
+
     private func render(ad: Ad) {
-        if ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
+        let preferImage = ad.renderModeHint == "image" && !ad.creativeUrl.isEmpty
+        if !preferImage, ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
+            mraidActive = ad.isMraidCreative
             webView.isHidden = false
             imageView.isHidden = true
             let base = URL(string: "https://ssp.dkmads.com")
@@ -148,6 +172,7 @@ import SafariServices
                 guard let self, let data, let image = UIImage(data: data) else { return }
                 DispatchQueue.main.async {
                     self.imageView.image = image
+                    self.startOmidNativeSession()
                     self.startViewabilityIfNeeded()
                 }
             }.resume()
@@ -164,6 +189,8 @@ import SafariServices
             creativeId: loadedAd?.creativeId ?? loadedAd?.id
         ) { [weak self] in
             guard let self else { return }
+            if self.mraidActive { self.mraid.setViewable(true) }
+            self.omidSession?.signalImpression()
             self.delegate?.nativeAdViewDidRecordViewableImpression?(self)
         }
     }
@@ -192,6 +219,33 @@ import SafariServices
 
 extension DKMadsNativeAdView: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if mraidActive { mraid.notifyReady() }
+        if omidSession == nil, DKMadsOmid.isAvailable {
+            omidSession = DKMadsOmid.provider?.createHtmlDisplaySession(webView: webView)
+            omidSession?.start()
+            omidSession?.signalLoaded()
+        }
         startViewabilityIfNeeded()
+    }
+}
+
+extension DKMadsNativeAdView: DKMadsMraidHost {
+    func mraidOpen(url: String) {
+        guard let target = URL(string: url) else { return }
+        if let ad = loadedAd {
+            SSPSDK.shared.recordAdClick(
+                adId: ad.id,
+                adUnitId: adUnitID,
+                campaignId: ad.campaignId,
+                creativeId: ad.creativeId,
+                dspSource: ad.dsp
+            )
+        }
+        delegate?.nativeAdViewDidRecordClick?(self)
+        rootViewController?.present(SFSafariViewController(url: target), animated: true)
+    }
+
+    func mraidClose() {
+        mraid.setViewable(false)
     }
 }

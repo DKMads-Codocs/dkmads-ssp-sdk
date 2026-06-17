@@ -1,12 +1,12 @@
 # SDK implementation guide
 
-The central reference for integrating DKMads across **web, iOS, Android, Flutter, and Unity**.
+The central reference for integrating DKMads across **web, iOS, Android, Flutter, Unity, and React Native**.
 
 **Audience:** publisher engineering teams  
 **Outcome:** a verified property, successful bid, rendered creative, and compliant telemetry  
 **Fast path:** [60-minute quickstart](./integration/QUICKSTART.md) · **In dashboard:** Developer → SDK guide
 
-**Current release:** **0.5.17** (`sdk-0.5.17`) — bid size (IAB) separated from render size (view bounds) on all platforms.
+**Current release:** **0.5.22** (`sdk-0.5.22`) — explicit server `render_mode` hint, MRAID 2.0, OMID measurement seam, structured native assets, plus a minimal React Native bridge and Maven Central / CocoaPods trunk distribution.
 
 ## Reference samples (copy-paste)
 
@@ -16,6 +16,7 @@ The central reference for integrating DKMads across **web, iOS, Android, Flutter
 | Android | `sdk/android/sample/MainActivity.kt` |
 | Flutter | `sdk/flutter/example/` |
 | Unity | `sdk/unity/Samples~/QuickstartSample/` |
+| React Native | `sdk/react-native/` (`@dkmads/react-native-ssp`) |
 
 Android install: [GitHub Packages](./integration/android.md#install-from-github-packages-recommended) (one-line Gradle dependency after PAT setup).
 
@@ -58,6 +59,7 @@ Web additionally loads `https://ssp.dkmads.com/api/public/sp.js`.
 | Android | `com.dkmads.ssp:ssp-android` | [Android integration](./integration/android.md) |
 | Flutter | `dkmads_ssp` plugin + native SDKs | [Flutter integration](./integration/flutter.md) |
 | Unity | `com.dkmads.ssp` UPM + native SDKs | [Unity integration](./integration/unity.md) |
+| React Native | `@dkmads/react-native-ssp` + native SDKs | [React Native integration](./integration/react-native.md) |
 
 **Mobile SDK releases:** [github.com/DKMads-Codocs/dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk) — use the version shown in your dashboard SDK guide (tags `sdk-<semver>`).
 
@@ -144,6 +146,8 @@ Use platform components that auto-fire IAB-aligned events where possible:
 | Audio | `SSP.bindAudio` | `DKMadsAudioAdView` (Android) |
 
 Event catalog: [SDK metrics reference](./SDK_METRICS_REFERENCE.md).
+
+**Render hint & Open Measurement (0.5.22+):** the bid winner carries an explicit `render_mode` and optional `omid_verifications`. SDKs honor `render_mode` as the primary render fork (falling back to creative-type heuristics), run HTML/`adm` through the MRAID 2.0 bridge, and drive an OMID session when a host OMID provider is registered. See [OMID & viewability](./OMID_VIEWABILITY.md).
 
 ---
 

@@ -8,10 +8,12 @@ import android.net.Uri
 import android.util.AttributeSet
 import android.view.View
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ImageView
+import java.io.ByteArrayInputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,6 +66,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     private var webContentReady = false
     private var isLoading = false
     private var loadGeneration = 0L
+    private var mraid: DKMadsMraidController? = null
+    private var omidSession: DKMadsOmidSession? = null
 
     init {
         webView = WebView(context).apply {
@@ -162,18 +166,44 @@ class DKMadsBannerAdView @JvmOverloads constructor(
 
     private fun render(ad: Ad) {
         val renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(adWidth, adHeight, width, height)
-        if (ad.isHtml5 || ad.adm.isNotBlank()) {
+        val preferImage = ad.renderModeHint == "image" && ad.creativeUrl.isNotBlank()
+        if (!preferImage && (ad.isHtml5 || ad.adm.isNotBlank())) {
             webView.visibility = VISIBLE
             imageView.visibility = GONE
             @SuppressLint("SetJavaScriptEnabled")
             webView.settings.javaScriptEnabled = true
+            val mraidController = if (ad.isMraidCreative) {
+                DKMadsMraidController(webView, "inline", bannerMraidHost()).also {
+                    it.attach()
+                    mraid = it
+                }
+            } else {
+                mraid = null
+                null
+            }
             webView.webViewClient = object : WebViewClient() {
+                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                    mraidController?.injectScript()
+                }
+                override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                    val path = request?.url?.lastPathSegment
+                    if (mraidController != null && path == "mraid.js") {
+                        return WebResourceResponse(
+                            "application/javascript",
+                            "UTF-8",
+                            ByteArrayInputStream(DKMadsMraidScript.JS.toByteArray(Charsets.UTF_8)),
+                        )
+                    }
+                    return super.shouldInterceptRequest(view, request)
+                }
                 override fun onPageFinished(view: WebView?, url: String?) {
                     webContentReady = true
                     view?.evaluateJavascript(
                         DKMadsBannerCreativeLayout.viewportInjectionScript(renderSlot.first, renderSlot.second),
                         null,
                     )
+                    mraidController?.notifyReady()
+                    startOmidHtmlSession()
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -215,10 +245,22 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 }
                 if (bitmap != null) {
                     imageView.setImageBitmap(bitmap)
+                    startOmidNativeSession()
                     post { startViewability() }
                 }
             }
         }
+    }
+
+    private fun startOmidNativeSession() {
+        if (omidSession != null || !DKMadsOmid.isAvailable) return
+        val ad = loadedAd ?: return
+        omidSession = DKMadsOmid.provider
+            ?.createNativeDisplaySession(context, this, ad.omidVerifications)
+            ?.also {
+                it.start()
+                it.signalLoaded()
+            }
     }
 
     private fun onBannerClicked(openUri: Uri? = null) {
@@ -245,8 +287,29 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             container = this,
             campaignId = loadedAd?.campaignId,
             creativeId = loadedAd?.creativeId ?: loadedAd?.id,
-            onViewable = { listener?.onAdViewableImpression(this@DKMadsBannerAdView) },
+            onViewable = {
+                mraid?.setViewable(true)
+                omidSession?.signalImpression()
+                listener?.onAdViewableImpression(this@DKMadsBannerAdView)
+            },
         )
+    }
+
+    private fun startOmidHtmlSession() {
+        if (omidSession != null || !DKMadsOmid.isAvailable) return
+        omidSession = DKMadsOmid.provider?.createHtmlDisplaySession(context, webView)?.also {
+            it.start()
+            it.signalLoaded()
+        }
+    }
+
+    private fun bannerMraidHost(): DKMadsMraidHost = object : DKMadsMraidHost {
+        override fun onMraidOpen(url: String) {
+            onBannerClicked(Uri.parse(url))
+        }
+        override fun onMraidClose() {
+            mraid?.setViewable(false)
+        }
     }
 
     private fun stopViewability() {
@@ -257,6 +320,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
     }
 
     private fun clearCreative() {
+        omidSession?.finish()
+        omidSession = null
         webView.loadDataWithBaseURL(null, "", "text/html", "UTF-8", null)
         imageView.setImageDrawable(null)
         webView.visibility = GONE

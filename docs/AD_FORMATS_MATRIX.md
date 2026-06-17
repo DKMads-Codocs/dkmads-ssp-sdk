@@ -16,6 +16,22 @@ Supported creative formats across the dashboard, bid API, and SDKs.
 | **Splash** | `splash` | Video / image | Slot | `DKMadsAppOpenAd` | `DKMadsAppOpenAd` |
 | **Audio** | `audio` | MP3/M4A | `SSP.bindAudio()` | `loadAd(.audio)` | `loadAd` |
 
+## Industry container & measurement support (SDK 0.5.22+)
+
+| Format | MRAID 2.0 | OMID measurement | VAST |
+|--------|-----------|------------------|------|
+| **Banner** | Yes — HTML `adm` referencing `mraid.js` | Display session (HTML + native image) | — |
+| **Interstitial** | Yes — HTML/static fullscreen | Display session (HTML + native image) | Video interstitials use VAST |
+| **Native** | Yes — HTML native creatives | Display session | — |
+| **Video** | — | Video session (start, quartiles, complete, skip) | VAST 4.x in/outstream |
+| **Rewarded** | — | Video session | VAST |
+| **Splash / App open** | Static/HTML via interstitial path | Display or video session | VAST for video |
+| **Audio** | — | — (audio quartile telemetry) | VAST audio |
+
+- **MRAID** is injected automatically when `winner.adm` references `mraid.js`; no publisher action needed.
+- **OMID** is a no-op until an OM SDK adapter is registered (`DKMadsOmid.provider` on native, `SSP.setOmidProvider` on web). Verification resources flow via `winner.omid_verifications`. See [OMID & viewability](./OMID_VIEWABILITY.md).
+- **`render_mode`** on the winner is the SDK's primary render fork; heuristics are the fallback.
+
 ## Bid response (all formats)
 
 Successful fills return JSON from `POST /api/public/v1/bid`:

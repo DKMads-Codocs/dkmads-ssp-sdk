@@ -13,9 +13,11 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import java.io.ByteArrayInputStream
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -56,6 +58,8 @@ class DKMadsInterstitialActivity : Activity() {
     private var skipRunnable: Runnable? = null
     private var completionSignaled = false
     private var webContentReady = false
+    private var mraid: DKMadsMraidController? = null
+    private var omidSession: DKMadsOmidSession? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +86,9 @@ class DKMadsInterstitialActivity : Activity() {
         }
         setContentView(root)
         setupChrome()
+        val preferImage = ad.renderModeHint == "image" && ad.creativeUrl.isNotBlank()
         when {
+            preferImage -> presentImage()
             !ad.playableVideoUrl.isNullOrBlank() -> presentVideo()
             ad.hasVideoRenderableContent || ad.isHtml5 || ad.adm.isNotBlank() -> presentWeb()
             ad.creativeUrl.isNotBlank() -> presentImage()
@@ -99,6 +105,8 @@ class DKMadsInterstitialActivity : Activity() {
         videoTracker = null
         nativeVideo?.release()
         nativeVideo = null
+        omidSession?.finish()
+        omidSession = null
         scope.cancel()
         super.onDestroy()
     }
@@ -147,12 +155,41 @@ class DKMadsInterstitialActivity : Activity() {
     private fun presentWeb() {
         webContentReady = false
         webView.visibility = View.VISIBLE
+        val mraidController = if (ad.isMraidCreative) {
+            DKMadsMraidController(webView, "interstitial", interstitialMraidHost()).also {
+                it.attach()
+                mraid = it
+            }
+        } else {
+            null
+        }
         webView.webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                mraidController?.injectScript()
+            }
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                if (mraidController != null && request?.url?.lastPathSegment == "mraid.js") {
+                    return WebResourceResponse(
+                        "application/javascript",
+                        "UTF-8",
+                        ByteArrayInputStream(DKMadsMraidScript.JS.toByteArray(Charsets.UTF_8)),
+                    )
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
             override fun onPageFinished(view: WebView?, url: String?) {
                 webContentReady = true
                 view?.evaluateJavascript(DKMadsBannerCreativeLayout.FULLSCREEN_VIEWPORT_INJECTION_SCRIPT, null)
                 DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(ad.clickUrl)
                     ?.let { view?.evaluateJavascript(it, null) }
+                mraidController?.notifyReady()
+                mraidController?.setViewable(true)
+                if (omidSession == null && DKMadsOmid.isAvailable) {
+                    omidSession = DKMadsOmid.provider?.createHtmlDisplaySession(this@DKMadsInterstitialActivity, webView)?.also {
+                        it.start()
+                        it.signalLoaded()
+                    }
+                }
                 startViewability()
             }
 
@@ -221,13 +258,16 @@ class DKMadsInterstitialActivity : Activity() {
                             currentPositionMsProvider = { surface.currentPositionMs() },
                             isPlayingProvider = { surface.isPlaying() },
                             skippable = ad.skippable ?: true,
+                            eventListener = { event, _ -> forwardOmidVideoEvent(event) },
                         )
                         attachVideoClickThroughCta()
                         scheduleVideoSkip()
+                        startOmidVideoSession(durationMs, muted)
                         startViewability()
                     }
 
                     override fun onComplete() {
+                        omidSession?.signalVideoComplete()
                         signalCompletion(skipped = false)
                         finish()
                     }
@@ -270,6 +310,7 @@ class DKMadsInterstitialActivity : Activity() {
                 setOnClickListener {
                     videoTracker?.markUserSkipped()
                     nativeVideo?.stop()
+                    omidSession?.signalVideoSkipped()
                     emitVideoSkip()
                     signalCompletion(skipped = true)
                     finish()
@@ -308,6 +349,38 @@ class DKMadsInterstitialActivity : Activity() {
                 "metadata" to metadata,
             ),
         )
+    }
+
+    private fun startOmidVideoSession(durationMs: Long, muted: Boolean) {
+        if (omidSession != null || !DKMadsOmid.isAvailable) return
+        omidSession = DKMadsOmid.provider
+            ?.createVideoSession(this, videoContainer, ad.omidVerifications)
+            ?.also {
+                it.start()
+                it.signalLoaded()
+                it.signalVideoStart(durationMs / 1000f, if (muted) 0f else 1f)
+            }
+    }
+
+    private fun forwardOmidVideoEvent(event: String) {
+        val session = omidSession ?: return
+        when (event) {
+            "video_25" -> session.signalVideoFirstQuartile()
+            "video_50" -> session.signalVideoMidpoint()
+            "video_75" -> session.signalVideoThirdQuartile()
+            "video_pause" -> session.signalVideoPaused()
+            "video_resume" -> session.signalVideoResumed()
+        }
+    }
+
+    private fun interstitialMraidHost(): DKMadsMraidHost = object : DKMadsMraidHost {
+        override fun onMraidOpen(url: String) {
+            recordClick()
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }
+        override fun onMraidClose() {
+            closeFromUser()
+        }
     }
 
     private fun handleWebClickThrough(uri: Uri?, isMainFrame: Boolean): Boolean {
@@ -358,6 +431,7 @@ class DKMadsInterstitialActivity : Activity() {
             creativeId = ad.creativeId ?: ad.id,
             minExposureTimeMs = if (ad.isVideo) 2_000 else 1_000,
         )
+        omidSession?.signalImpression()
     }
 
     private fun stopViewability() {

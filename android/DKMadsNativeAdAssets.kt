@@ -22,7 +22,22 @@ data class DKMadsNativeAdAssets(
             clickUrl = ad.clickUrl.takeIf { it.isNotBlank() },
         )
 
+        /** Server-provided structured native assets (`winner.native_assets`). */
+        fun fromNativeAssets(json: JSONObject): DKMadsNativeAdAssets {
+            fun str(key: String): String? = json.optString(key).takeIf { it.isNotBlank() }
+            return DKMadsNativeAdAssets(
+                headline = str("headline"),
+                body = str("body") ?: str("description"),
+                callToAction = str("cta") ?: str("cta_label"),
+                advertiser = str("advertiser"),
+                iconUrl = str("icon_url"),
+                imageUrl = str("image_url"),
+                clickUrl = str("click_url"),
+            )
+        }
+
         fun fromWinner(json: JSONObject): DKMadsNativeAdAssets {
+            json.optJSONObject("native_assets")?.let { return fromNativeAssets(it) }
             val meta = json.optJSONObject("meta")
             fun str(vararg keys: String): String? {
                 for (key in keys) {

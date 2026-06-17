@@ -24,6 +24,7 @@ class DkmadsAdResult {
     this.height = 0,
     this.isVideo = false,
     this.isHtml5 = false,
+    this.renderMode,
     this.dsp,
     this.price,
     this.campaignId,
@@ -57,6 +58,10 @@ class DkmadsAdResult {
   final int height;
   final bool isVideo;
   final bool isHtml5;
+
+  /// Server render hint: image | html5 | video_native | video_web | native_assets | audio.
+  /// Primary render fork; falls back to [isVideo] / [isHtml5] heuristics when null.
+  final String? renderMode;
   final String? dsp;
   final double? price;
   final String? campaignId;
@@ -94,6 +99,7 @@ class DkmadsAdResult {
       height: (map['height'] as num?)?.toInt() ?? 0,
       isVideo: map['isVideo'] == true,
       isHtml5: map['isHtml5'] == true,
+      renderMode: map['renderMode'] as String?,
       dsp: map['dsp'] as String?,
       price: (map['price'] as num?)?.toDouble(),
       campaignId: map['campaignId'] as String?,

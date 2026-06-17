@@ -56,6 +56,7 @@ import WebKit
     private var webPlaybackStarted = false
     private var webPlaybackCompleted = false
     private var nativePlaybackHandle: AdNativePlaybackHandle?
+    private var omidSession: DKMadsOmidSession?
 
     @objc public init(adUnitID: String, frame: CGRect = .zero) {
         self.adUnitID = adUnitID
@@ -244,6 +245,8 @@ import WebKit
                     )
                     self.player.isMuted = muted
                     self.isPlaybackMuted = muted
+                    let durationSec = Float(CMTimeGetSeconds(self.player.currentItem?.duration ?? .zero))
+                    self.startOmidVideoSession(durationSec: durationSec.isFinite ? durationSec : 0, muted: muted)
                     self.attachVideoClickOverlay(ad: ad)
                     self.attachVideoChrome(ad: ad)
                     self.delegate?.videoAdViewDidStartPlayback?(self)
@@ -294,13 +297,30 @@ import WebKit
             skippable: skippable
         ) { [weak self] event, _ in
             guard let self else { return }
-            if event == "video_start" {
+            switch event {
+            case "video_start":
                 self.delegate?.videoAdViewDidStartPlayback?(self)
-            }
-            if event == "video_100" {
+            case "video_25":
+                self.omidSession?.signalVideoFirstQuartile?()
+            case "video_50":
+                self.omidSession?.signalVideoMidpoint?()
+            case "video_75":
+                self.omidSession?.signalVideoThirdQuartile?()
+            case "video_100":
+                self.omidSession?.signalVideoComplete?()
                 self.completePlayback(skipped: false)
+            default:
+                break
             }
         }
+    }
+
+    private func startOmidVideoSession(durationSec: Float, muted: Bool) {
+        guard omidSession == nil, DKMadsOmid.isAvailable, let ad = loadedAd else { return }
+        omidSession = DKMadsOmid.provider?.createVideoSession(adView: self, verifications: ad.omidVerifications)
+        omidSession?.start()
+        omidSession?.signalLoaded()
+        omidSession?.signalVideoStart?(duration: durationSec, volume: muted ? 0 : 1)
     }
 
     private func handleWebPlaybackComplete() {
@@ -317,6 +337,7 @@ import WebKit
         skipButton = nil
         if skipped {
             TelemetryManager.shared.markVideoUserSkipped(adUnitId: adUnitID)
+            omidSession?.signalVideoSkipped?()
             emitVideoSkip()
             delegate?.videoAdViewDidSkip?(self)
         }
@@ -455,6 +476,8 @@ import WebKit
         }
         nativePlaybackHandle?.invalidate()
         nativePlaybackHandle = nil
+        omidSession?.finish()
+        omidSession = nil
         player.pause()
         player.replaceCurrentItem(with: nil)
         webView.loadHTMLString("", baseURL: nil)

@@ -15,6 +15,9 @@ final class DKMadsInterstitialPresenter: UIViewController {
     private let webView: WKWebView
     private let imageView: UIImageView
     private let closeButton: UIButton
+    private let mraid: DKMadsMraidController
+    private var mraidActive = false
+    private var omidSession: DKMadsOmidSession?
     private var viewabilityActive = false
     private var videoConstraints: [NSLayoutConstraint] = []
     private var didPresentStaticContent = false
@@ -29,10 +32,15 @@ final class DKMadsInterstitialPresenter: UIViewController {
             config.defaultWebpagePreferences.allowsContentJavaScript = true
         }
         config.preferences.javaScriptEnabled = true
+        let mraid = DKMadsMraidController(placementType: "interstitial")
+        mraid.install(into: config)
+        self.mraid = mraid
         self.webView = WKWebView(frame: .zero, configuration: config)
         self.imageView = UIImageView()
         self.closeButton = UIButton(type: .custom)
         super.init(nibName: nil, bundle: nil)
+        mraid.host = self
+        mraid.bind(webView: webView)
         modalPresentationStyle = .fullScreen
     }
 
@@ -176,7 +184,9 @@ final class DKMadsInterstitialPresenter: UIViewController {
         didPresentStaticContent = true
         webContentReady = false
         let slotSize = view.bounds.size
-        if ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
+        let preferImage = ad.renderModeHint == "image" && !ad.creativeUrl.isEmpty
+        if !preferImage, ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
+            mraidActive = ad.isMraidCreative
             webView.isHidden = false
             imageView.isHidden = true
             let base = URL(string: "https://ssp.dkmads.com")
@@ -202,6 +212,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
                 }
                 DispatchQueue.main.async {
                     self.imageView.image = image
+                    self.startOmidNativeSession()
                     self.startViewabilityIfNeeded()
                     self.bringChromeToFront()
                 }
@@ -227,7 +238,16 @@ final class DKMadsInterstitialPresenter: UIViewController {
             containerView: contentContainer,
             campaignId: ad.campaignId,
             creativeId: ad.creativeId ?? ad.id
-        ) { }
+        ) { [weak self] in
+            self?.omidSession?.signalImpression()
+        }
+    }
+
+    private func startOmidNativeSession() {
+        guard omidSession == nil, DKMadsOmid.isAvailable else { return }
+        omidSession = DKMadsOmid.provider?.createNativeDisplaySession(adView: contentContainer, verifications: ad.omidVerifications)
+        omidSession?.start()
+        omidSession?.signalLoaded()
     }
 
     private func stopViewability() {
@@ -235,6 +255,8 @@ final class DKMadsInterstitialPresenter: UIViewController {
             SSPSDK.shared.detachBannerViewability(adUnitId: adUnitID)
             viewabilityActive = false
         }
+        omidSession?.finish()
+        omidSession = nil
     }
 
     private func recordClick() {
@@ -292,6 +314,15 @@ extension DKMadsInterstitialPresenter: WKNavigationDelegate {
         if let script = DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(clickUrl: ad.clickUrl) {
             webView.evaluateJavaScript(script, completionHandler: nil)
         }
+        if mraidActive {
+            mraid.notifyReady()
+            mraid.setViewable(true)
+        }
+        if omidSession == nil, DKMadsOmid.isAvailable {
+            omidSession = DKMadsOmid.provider?.createHtmlDisplaySession(webView: webView)
+            omidSession?.start()
+            omidSession?.signalLoaded()
+        }
         startViewabilityIfNeeded()
         bringChromeToFront()
     }
@@ -321,5 +352,17 @@ extension DKMadsInterstitialPresenter: WKNavigationDelegate {
         recordClick()
         present(SFSafariViewController(url: url), animated: true)
         decisionHandler(.cancel)
+    }
+}
+
+extension DKMadsInterstitialPresenter: DKMadsMraidHost {
+    func mraidOpen(url: String) {
+        guard let target = URL(string: url) else { return }
+        recordClick()
+        present(SFSafariViewController(url: target), animated: true)
+    }
+
+    func mraidClose() {
+        dismiss(animated: true)
     }
 }

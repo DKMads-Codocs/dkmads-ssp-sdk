@@ -21,6 +21,10 @@ namespace DKMads.SSP
         public int height;
         public bool isVideo;
         public bool isHtml5;
+
+        /// <summary>Server render hint: image | html5 | video_native | video_web | native_assets | audio.
+        /// Primary render fork; falls back to isVideo / isHtml5 heuristics when empty.</summary>
+        public string renderMode;
         public string dsp;
         public double price;
         public string campaignId;

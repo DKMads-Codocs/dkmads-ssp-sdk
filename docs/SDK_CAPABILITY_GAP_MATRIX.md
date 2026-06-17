@@ -1,7 +1,7 @@
 # SDK capability gap matrix
 
-Last updated: 2026-05-27  
-**Version:** unified **`sdk/VERSION`** — web, iOS, Android, Flutter, Unity (currently **0.5.15**)
+Last updated: 2026-06-17  
+**Version:** unified **`sdk/VERSION`** — web, iOS, Android, Flutter, Unity, React Native (currently **0.5.22**)
 
 Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (large network SDKs and mediation hubs). This is a capability map, not a competitor feature list.
 
@@ -25,6 +25,9 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 | Fullscreen cache expiry | 4h TTL on show (`AD_EXPIRED` / `ad_expired`) |
 | Video / instream | `DKMadsVideoAdView` (ExoPlayer MP4+HLS on Android, AVPlayer on iOS), `DKMadsVideoAdController`, `DKMadsInstreamAdsLoader` |
 | Audio | `DKMadsAudioAdView` (Android), audio events |
+| Server render hint | `render_mode` on bid winner → `ad.renderMode` (explicit render fork) (0.5.22) |
+| MRAID 2.0 | WebView bridge for banner / interstitial / native HTML creatives (0.5.22) |
+| OMID measurement | Adapter seam (`DKMadsOmidProvider`) — host plugs in IAB OM SDK; SDK drives session lifecycle (0.5.22) |
 
 ---
 
@@ -34,7 +37,8 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 
 | Gap | Status | Action |
 |-----|--------|--------|
-| Android one-line Maven | **Documented** | GitHub Packages install in [Android guide](./integration/android.md); CI publishes on release when `SDK_PUBLISH_TOKEN` is set |
+| Android one-line Maven | **Documented** | GitHub Packages install in [Android guide](./integration/android.md); **Maven Central** publish wired in CI (gated on Sonatype OSSRH creds) |
+| iOS CocoaPods trunk | **Wired** | Podspec is trunk-lintable; `pod trunk push` job in CI |
 | Guaranteed test fill unit | Partial | `useTestAds` + dashboard creatives; document QA checklist in [SDK_TEST_MODE](./SDK_TEST_MODE.md) |
 
 ### P1 — By design (SSP model)
@@ -48,7 +52,7 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 
 | Gap | DKMads | Typical leader |
 |-----|--------|----------------|
-| OMID in-app SDK | MRC events; roadmap in [OMID_VIEWABILITY](./OMID_VIEWABILITY.md) | Full OMID session |
+| OMID in-app SDK | **Adapter seam shipped** (0.5.22) — host plugs in IAB OM SDK; see [OMID_VIEWABILITY](./OMID_VIEWABILITY.md) | OM SDK bundled in-box |
 | VAST / IMA player kit | MP4/WebView + lifecycle events | Official player adapters |
 | SKAN helper APIs | Policy docs + ATT | Conversion value helpers |
 | Unified `preload(token)` | Per-format `load` | Single preload API |
@@ -58,7 +62,7 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 | Gap | Status |
 |-----|--------|
 | Unity banner widget | JSON `LoadAd` + sample; no UGUI prefab |
-| React Native | [sdk/react-native/README.md](../sdk/react-native/README.md) stub — use native modules pattern |
+| React Native | **Bridge shipped** (0.5.22) — `@dkmads/react-native-ssp` banner + interstitial; see [React Native guide](./integration/react-native.md) |
 | Flutter native assets | **Closed** — `loadNative` + `DkmadsAdResult` headline/body/cta fields |
 
 ---
@@ -73,6 +77,8 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 | App open | `DKMadsAppOpenAd` | load + show | load + show | `SSP.displaySplash` |
 | Native | `DKMadsNativeAd` | `loadNative` | `LoadNative` | `SSP.bind` + `native_assets` |
 | Inspector | Full screen | `presentAdInspector` | `PresentAdInspector` | `SSP.lastBidDiagnostics` |
+
+> **React Native** (`@dkmads/react-native-ssp`) covers **banner** + **interstitial** as a thin bridge over the native SDKs; other formats fall back to direct native integration.
 
 ---
 

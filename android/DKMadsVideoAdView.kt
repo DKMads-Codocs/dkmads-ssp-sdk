@@ -76,6 +76,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private var skipRunnable: Runnable? = null
     private var progressRunnable: Runnable? = null
     private var videoTracker: VideoTracker? = null
+    private var omidSession: DKMadsOmidSession? = null
     private var viewabilityStarted = false
     private var webContentReady = false
     private var playbackCompleted = false
@@ -234,6 +235,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         attachVideoClickOverlay(ad)
                         setupVideoChrome(ad)
                         attachCompanion(ad)
+                startOmidVideoSession(ad, surface.durationMs(), isMuted)
                 videoTracker = SSPSDK.trackVideoLifecycle(
                     adUnitId = adUnitId,
                     campaignId = ad.campaignId,
@@ -243,6 +245,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                             currentPositionMsProvider = { surface.currentPositionMs() },
                             isPlayingProvider = { surface.isPlaying() },
                     skippable = isSkippable,
+                    eventListener = { event, _ -> forwardOmidVideoEvent(event) },
                 )
                 if (autoplay) {
                             listener?.onPlaybackStarted(this@DKMadsVideoAdView)
@@ -331,12 +334,36 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         stopProgressUpdates()
         if (skipped) {
             videoTracker?.markUserSkipped()
+            omidSession?.signalVideoSkipped()
             emitVideoSkip()
         }
         videoTracker?.stop()
         videoTracker = null
         nativeVideo?.stop()
         listener?.onAdComplete(this, skipped)
+    }
+
+    private fun startOmidVideoSession(ad: Ad, durationMs: Long, muted: Boolean) {
+        if (omidSession != null || !DKMadsOmid.isAvailable) return
+        omidSession = DKMadsOmid.provider
+            ?.createVideoSession(context, this, ad.omidVerifications)
+            ?.also {
+                it.start()
+                it.signalLoaded()
+                it.signalVideoStart(durationMs / 1000f, if (muted) 0f else 1f)
+            }
+    }
+
+    private fun forwardOmidVideoEvent(event: String) {
+        val session = omidSession ?: return
+        when (event) {
+            "video_25" -> session.signalVideoFirstQuartile()
+            "video_50" -> session.signalVideoMidpoint()
+            "video_75" -> session.signalVideoThirdQuartile()
+            "video_100" -> session.signalVideoComplete()
+            "video_pause" -> session.signalVideoPaused()
+            "video_resume" -> session.signalVideoResumed()
+        }
     }
 
     private fun setupVideoChrome(ad: Ad) {
@@ -692,6 +719,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         removeVideoClickOverlay()
         videoTracker?.stop()
         videoTracker = null
+        omidSession?.finish()
+        omidSession = null
         SSPSDK.stopVideoLifecycleTracking(adUnitId)
         nativeVideo?.release()
         nativeVideo = null

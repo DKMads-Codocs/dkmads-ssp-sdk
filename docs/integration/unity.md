@@ -15,7 +15,7 @@ The **com.dkmads.ssp** package bridges Unity to native iOS and Android SDKs for 
 | Component | Package / coordinates |
 |-----------|------------------------|
 | Unity bridge | `com.dkmads.ssp` (`sdk/unity`) |
-| Android | `com.dkmads.ssp:ssp-android:0.5.21` |
+| Android | `com.dkmads.ssp:ssp-android:0.5.22` |
 | iOS | `DKMadsSSPSDK` |
 
 For web, use the [Web SDK](./web.md).
@@ -69,6 +69,8 @@ Follow [iOS Installation](./ios.md) in the Xcode project Unity generates (CocoaP
 - **`LoadNative`** — native format JSON (headline, creativeUrl, cta fields when present in bid)
 - **`LoadRewarded`** + **`ShowRewarded`** — native rewarded fullscreen UI
 - Forward video lifecycle events to telemetry (`EmitVideoEvent`)
+- **Server `render_mode` hint** — `DKMadsAdLoadResult.renderMode` (`renderMode` in JSON) for custom render forks
+- **MRAID 2.0 + OMID** — native fullscreen surfaces inherit MRAID 2.0 rich-media and the OMID measurement seam from the native SDK (see [OMID & viewability](../OMID_VIEWABILITY.md))
 
 > Unity has no UGUI banner widget. Use **`LoadInterstitial`** / **`LoadAppOpen`** for native fullscreen, or **`LoadAd`** JSON for custom UI.
 
@@ -109,7 +111,7 @@ string json = DKMadsSdk.LoadAd("BANNER_UUID", 300, 250);
 
 ### Interstitial (recommended)
 
-Dashboard format **interstitial**. IAB sizes (320×480), not display pixels. **Pin native SDK `sdk-0.5.21`** — interstitial fit, click-through, and 90% letterbox chrome are implemented in native iOS/Android (Unity bridge inherits automatically).
+Dashboard format **interstitial**. IAB sizes (320×480), not display pixels. **Pin native SDK `sdk-0.5.22`** — interstitial fit, click-through, 90% letterbox chrome, MRAID 2.0, and the OMID measurement seam are implemented in native iOS/Android (Unity bridge inherits automatically).
 
 ```csharp
 string json = DKMadsSdk.LoadInterstitial("INTERSTITIAL_UUID", 320, 480);
@@ -167,10 +169,20 @@ Native bridges return fields aligned with `Ad`:
 | `creativeUrl` | Image URL |
 | `html5EntryUrl` | HTML5 entry |
 | `isVideo` / `isHtml5` | Creative type hints |
+| `renderMode` | Server render hint: `image` / `html5` / `video_native` / `video_web` / `native_assets` / `audio` (primary render fork) |
 | `videoTemplate` / `ctaLabel` / `ctaPosition` | Video CTA contract |
 | `companionImageUrl` / `showCompanionClick` | Companion rendering contract |
 | `skippable` / `skipAfterSec` | Skip controls contract |
 | `unitFormat` / `placementContext` | Placement semantics |
+
+## OMID measurement (optional)
+
+OMID verification resources flow through automatically, but the IAB Open Measurement SDK is never bundled. To enable verified measurement, register an OMID provider in the **native host** of the Unity-generated project:
+
+- **Android** — register `DKMadsOmid.provider` in your `Application.onCreate()`.
+- **iOS** — set `DKMadsOmid.provider` in your `AppDelegate`.
+
+When no provider is registered, OMID is a no-op and first-party viewability still reports. See [OMID & viewability](../OMID_VIEWABILITY.md).
 
 ## Runtime defaults
 

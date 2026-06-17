@@ -8,10 +8,12 @@ import android.net.Uri
 import android.util.AttributeSet
 import android.view.View
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ImageView
+import java.io.ByteArrayInputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +52,7 @@ class DKMadsNativeAdView @JvmOverloads constructor(
     private val webView: WebView
     private val imageView: ImageView
     private var viewabilityStarted = false
+    private var mraid: DKMadsMraidController? = null
 
     init {
         webView = WebView(context).apply {
@@ -127,11 +130,35 @@ class DKMadsNativeAdView @JvmOverloads constructor(
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun render(ad: Ad) {
-        if (ad.isHtml5 || ad.adm.isNotBlank()) {
+        val preferImage = ad.renderModeHint == "image" && ad.creativeUrl.isNotBlank()
+        if (!preferImage && (ad.isHtml5 || ad.adm.isNotBlank())) {
             webView.visibility = VISIBLE
             imageView.visibility = GONE
+            val mraidController = if (ad.isMraidCreative) {
+                DKMadsMraidController(webView, "inline", nativeMraidHost()).also {
+                    it.attach()
+                    mraid = it
+                }
+            } else {
+                mraid = null
+                null
+            }
             webView.webViewClient = object : WebViewClient() {
+                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                    mraidController?.injectScript()
+                }
+                override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                    if (mraidController != null && request?.url?.lastPathSegment == "mraid.js") {
+                        return WebResourceResponse(
+                            "application/javascript",
+                            "UTF-8",
+                            ByteArrayInputStream(DKMadsMraidScript.JS.toByteArray(Charsets.UTF_8)),
+                        )
+                    }
+                    return super.shouldInterceptRequest(view, request)
+                }
                 override fun onPageFinished(view: WebView?, url: String?) {
+                    mraidController?.notifyReady()
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -184,8 +211,18 @@ class DKMadsNativeAdView @JvmOverloads constructor(
             container = this,
             campaignId = loadedAd?.campaignId,
             creativeId = loadedAd?.creativeId ?: loadedAd?.id,
-            onViewable = { listener?.onAdViewableImpression(this) },
+            onViewable = {
+                mraid?.setViewable(true)
+                listener?.onAdViewableImpression(this)
+            },
         )
+    }
+
+    private fun nativeMraidHost(): DKMadsMraidHost = object : DKMadsMraidHost {
+        override fun onMraidOpen(url: String) {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            onClicked()
+        }
     }
 
     private fun stopViewability() {

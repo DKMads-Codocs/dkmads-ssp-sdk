@@ -175,6 +175,10 @@ object SSPSDK {
                     videoUrl = videoUrl,
                     audioUrl = audioUrl,
                     deliveryType = deliveryType.takeIf { it.isNotBlank() },
+                    renderMode = adData.optString("render_mode").takeIf { it.isNotBlank() },
+                    nativeAssets = adData.optJSONObject("native_assets")
+                        ?.let { DKMadsNativeAdAssets.fromNativeAssets(it) },
+                    omidVerifications = parseOmidVerifications(adData),
                     reason = reason ?: "won",
                     requestId = requestId,
                     dsp = adData.optString("dsp").takeIf { it.isNotBlank() },
@@ -749,6 +753,24 @@ private fun isVideoDeliveryType(deliveryType: String?): Boolean {
     }
 }
 
+private fun parseOmidVerifications(adData: JSONObject): List<DKMadsOmidVerification> {
+    val array = adData.optJSONArray("omid_verifications") ?: return emptyList()
+    val out = ArrayList<DKMadsOmidVerification>(array.length())
+    for (i in 0 until array.length()) {
+        val node = array.optJSONObject(i) ?: continue
+        val url = node.optString("javascript_resource_url", node.optString("url")).takeIf { it.isNotBlank() }
+            ?: continue
+        out.add(
+            DKMadsOmidVerification(
+                vendorKey = node.optString("vendor_key", node.optString("vendor")),
+                javascriptResourceUrl = url,
+                verificationParameters = node.optString("verification_parameters").takeIf { it.isNotBlank() },
+            ),
+        )
+    }
+    return out
+}
+
 private fun resolveRasterCreativeUrl(adData: JSONObject, imageUrl: String, deliveryType: String): String {
     val delivery = deliveryType.ifBlank {
         adData.optString("delivery_type", adData.optString("creative_type", ""))
@@ -773,6 +795,12 @@ data class Ad(
     val videoUrl: String = "",
     val audioUrl: String = "",
     val deliveryType: String? = null,
+    /** Server creative render hint: image | html5 | video_native | video_web | native_assets | audio. */
+    val renderMode: String? = null,
+    /** Structured native assets from `winner.native_assets` (external + house native). */
+    val nativeAssets: DKMadsNativeAdAssets? = null,
+    /** Open Measurement verification resources from `winner.omid_verifications`. */
+    val omidVerifications: List<DKMadsOmidVerification> = emptyList(),
     val reason: String? = null,
     val requestId: String? = null,
     val dsp: String? = null,
@@ -793,8 +821,17 @@ data class Ad(
     /** Set after [recordAdImpression] (avoids duplicate on [DKMadsVideoAdView.display] / interstitial). */
     val impressionRecorded: Boolean = false,
 ) {
+    /** Normalized server render hint, or null when absent (older servers). */
+    val renderModeHint: String?
+        get() = renderMode?.lowercase()?.takeIf { it.isNotBlank() }
+
+    /** MRAID rich-media creative — references the mraid.js container API. */
+    val isMraidCreative: Boolean
+        get() = adm.contains("mraid.js", ignoreCase = true)
+
     val isHtml5: Boolean
         get() {
+            renderModeHint?.let { return it == "html5" }
             if (isVideo) return false
             if (deliveryType.equals("html5", ignoreCase = true)) return true
             if (html5EntryUrl.isNotBlank()) return true
@@ -804,6 +841,7 @@ data class Ad(
 
     val isVideo: Boolean
         get() {
+            renderModeHint?.let { return it == "video_native" || it == "video_web" }
             if (isVideoDeliveryType(deliveryType)) return true
             if (videoUrl.isNotBlank() && AdMediaParsing.isPlayableVideoUrl(videoUrl)) return true
             if (AdMediaParsing.hasVideoMarkup(adm)) return true
@@ -842,6 +880,10 @@ data class Ad(
 
     val preferredRenderer: DKMadsCreativeRenderer
         get() {
+            if (renderModeHint == "video_native" && !playableVideoUrl.isNullOrBlank()) {
+                return DKMadsCreativeRenderer.NATIVE_MP4
+            }
+            if (renderModeHint == "video_web") return DKMadsCreativeRenderer.WEB_MARKUP
             if (!playableVideoUrl.isNullOrBlank()) return DKMadsCreativeRenderer.NATIVE_MP4
             if (isHtml5 || adm.contains("<iframe", ignoreCase = true)) return DKMadsCreativeRenderer.WEB_MARKUP
             if (adm.isNotBlank()) return DKMadsCreativeRenderer.WEB_MARKUP
@@ -850,6 +892,7 @@ data class Ad(
 
     val isAudio: Boolean
         get() {
+            renderModeHint?.let { return it == "audio" }
             if (deliveryType.equals("audio", ignoreCase = true)) return true
             if (audioUrl.isNotBlank()) return true
             if (adm.contains("<audio", ignoreCase = true)) return true
@@ -869,6 +912,7 @@ data class Ad(
         }
 
     private fun requiresVideoFill(): Boolean {
+        renderModeHint?.let { return it == "video_native" || it == "video_web" }
         if (isDisplayUnitFormat()) {
             return isVideoDeliveryType(deliveryType) || hasVideoRenderableContent
         }
@@ -913,4 +957,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.21"
+const val SDK_VERSION = "0.5.22"

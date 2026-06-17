@@ -1,8 +1,8 @@
 # SDK contract (v0.5.x)
 
-Canonical **request, response, and lifecycle** contract for web, iOS, Android, Flutter, and Unity integrations.
+Canonical **request, response, and lifecycle** contract for web, iOS, Android, Flutter, Unity, and React Native integrations.
 
-All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.16**).
+All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.22**).
 
 **Use with:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · platform integration guides
 
@@ -112,10 +112,15 @@ Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
     "click_url": "https://example.com/click",
     "w": 300,
     "h": 250,
+    "render_mode": "image",
+    "native_assets": {},
+    "omid_verifications": [],
     "meta": {}
   }
 }
 ```
+
+`render_mode` (0.5.22+) is the server's explicit render hint: `image` · `html5` · `video_native` · `video_web` · `native_assets` · `audio`. `native_assets` carries structured native fields; `omid_verifications` carries Open Measurement resources parsed from creative metadata or VAST. All three are optional and additive.
 
 `id` / `crid` may be omitted on older API builds; mobile SDKs treat fill as **`adm` or `image_url` present**, not `id` required.
 
@@ -133,11 +138,13 @@ Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
 
 ## Rendering contract
 
-- If `winner.adm` is present, render in `WKWebView` (iOS) or WebView (Android).
+- Prefer **`winner.render_mode`** as the primary render fork (0.5.22+); fall back to creative-type heuristics (`isVideo` / `isHtml5`) when absent.
+- If `winner.adm` is present, render in `WKWebView` (iOS) or WebView (Android) — HTML/`adm` creatives run through the **MRAID 2.0** bridge automatically.
 - If only `winner.image_url` is available, render image directly (web: `<img>`, mobile: image view).
 - Use `winner.click_url` for click-through when present.
 - Treat fill as **renderable creative** (`adm` or `image_url`), not “non-empty `id`”.
 - `success=true` with empty `adm` and empty `image_url` is no-fill.
+- **OMID:** when `winner.omid_verifications` is present and a host OMID provider is registered, the native/web SDKs drive the measurement session automatically. See [OMID & viewability](./OMID_VIEWABILITY.md).
 
 ## Public REST endpoints (publisher)
 

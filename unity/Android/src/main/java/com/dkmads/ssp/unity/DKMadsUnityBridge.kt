@@ -310,6 +310,7 @@ object DKMadsUnityBridge {
     put("height", ad.height)
     put("isVideo", ad.isVideo)
     put("isHtml5", ad.isHtml5)
+    put("renderMode", ad.renderMode ?: JSONObject.NULL)
     put("dsp", ad.dsp ?: JSONObject.NULL)
     put("price", ad.price ?: JSONObject.NULL)
     put("campaignId", ad.campaignId ?: JSONObject.NULL)

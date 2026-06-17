@@ -55,7 +55,7 @@ class DKMadsNativeAd(
                         return@fold
                     }
                     loadedAd = ad
-                    assets = DKMadsNativeAdAssets.from(ad)
+                    assets = ad.nativeAssets ?: DKMadsNativeAdAssets.from(ad)
                     listener?.onAdLoaded(this@DKMadsNativeAd, ad, assets!!, info)
                 },
                 onFailure = { err ->

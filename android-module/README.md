@@ -27,7 +27,32 @@ cd sdk/android-module
 
 The repo includes **`gradlew`** — you do not need a global Gradle install.
 
-## Publish to GitHub Packages (maintainers)
+## Publish to Maven Central (maintainers)
+
+Maven Central is the primary channel — consumers add a single Gradle line with
+no GitHub PAT:
+
+```kotlin
+dependencies {
+  implementation("com.dkmads.ssp:ssp-android:0.5.22")
+}
+```
+
+Publish requires Sonatype OSSRH credentials and an in-memory PGP signing key:
+
+```bash
+export OSSRH_USERNAME=...        # Sonatype user token name
+export OSSRH_PASSWORD=...        # Sonatype user token secret
+export SIGNING_KEY="$(cat private-key.asc)"
+export SIGNING_PASSWORD=...      # key passphrase
+cd sdk/android-module
+./gradlew :library:publishReleasePublicationToMavenCentralRepository
+```
+
+Then release the staging repository on [s01.oss.sonatype.org](https://s01.oss.sonatype.org).
+CI can do this via the **SDK Release** workflow (`publish_maven_central: true`).
+
+## Publish to GitHub Packages (mirror)
 
 ```bash
 export GITHUB_ACTOR=your_github_username
@@ -52,7 +77,7 @@ Published artifacts are written to:
 
 - Group: `com.dkmads.ssp`
 - Artifact: `ssp-android`
-- Version: `0.5.15` (see `sdk/VERSION` — run `scripts/sync-sdk-versions.sh` after bumps)
+- Version: `0.5.22` (see `sdk/VERSION` — run `scripts/sync-sdk-versions.sh` after bumps)
 
 ## Integration
 

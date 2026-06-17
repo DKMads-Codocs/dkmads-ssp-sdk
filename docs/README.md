@@ -57,7 +57,7 @@ Available when your workspace is enrolled. Google partnership onboarding is mana
 | [SDK Google policy checklist](./SDK_GOOGLE_POLICY_CHECKLIST.md) | TCF, USP, GPP, ATT, GAID by platform |
 | [How Google Exchange works](./GOOGLE_EXCHANGE_ARCHITECTURE.md) | Demand model and your responsibilities |
 | [Pilot rollout](./GOOGLE_PILOT_ROLLOUT.md) | Testing and live mode in Privacy settings |
-| [OMID / viewability](./OMID_VIEWABILITY.md) | Video measurement |
+| [OMID / viewability](./OMID_VIEWABILITY.md) | Display + video Open Measurement (adapter seam) |
 
 ---
 

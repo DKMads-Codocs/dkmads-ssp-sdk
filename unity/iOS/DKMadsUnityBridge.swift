@@ -305,6 +305,7 @@ private func adToJson(_ ad: Ad, responseInfo: DKMadsResponseInfo?) -> String {
     "\"height\":\(ad.height)",
     "\"isVideo\":\(ad.isVideo)",
     "\"isHtml5\":\(ad.isHTML5)",
+    "\"renderMode\":\"\(escapeJson(ad.renderMode ?? ""))\"",
     "\"campaignId\":\"\(escapeJson(ad.campaignId ?? ""))\"",
     "\"creativeId\":\"\(escapeJson(ad.creativeId ?? ""))\"",
     "\"videoTemplate\":\"\(escapeJson(ad.videoTemplate ?? ""))\"",

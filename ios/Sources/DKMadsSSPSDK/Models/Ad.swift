@@ -17,6 +17,8 @@ import Foundation
     @objc public let audioUrl: String?
     @objc public let deliveryType: String?
     @objc public let creativeType: String?
+    /// Server creative render hint: image | html5 | video_native | video_web | native_assets | audio.
+    @objc public let renderMode: String?
     @objc public let videoTemplate: String?
     @objc public let ctaLabel: String
     @objc public let ctaPosition: String?
@@ -26,6 +28,7 @@ import Foundation
     @objc public let skipAfterSec: NSNumber?
     @objc public let unitFormat: String?
     @objc public let placementContext: String?
+    @objc public let omidVerifications: [DKMadsOmidVerification]
 
     private let bidPayload: [String: Any]
 
@@ -37,6 +40,9 @@ import Foundation
             .trimmingCharacters(in: .whitespacesAndNewlines)
         self.creativeType = (dictionary["creative_type"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let rm = (dictionary["render_mode"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.renderMode = rm.isEmpty ? nil : rm
         self.html5EntryUrl = (dictionary["html5_entry_url"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         self.videoUrl = (dictionary["video_url"] as? String)?
@@ -87,10 +93,40 @@ import Foundation
         self.unitFormat = format.isEmpty ? nil : format
         let context = (dictionary["placement_context"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.placementContext = context.isEmpty ? nil : context
+        self.omidVerifications = Ad.parseOmidVerifications(from: dictionary)
+    }
+
+    private static func parseOmidVerifications(from dictionary: [String: Any]) -> [DKMadsOmidVerification] {
+        guard let array = dictionary["omid_verifications"] as? [[String: Any]] else { return [] }
+        return array.compactMap { node in
+            let url = ((node["javascript_resource_url"] as? String) ?? (node["url"] as? String) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !url.isEmpty else { return nil }
+            let vendor = ((node["vendor_key"] as? String) ?? (node["vendor"] as? String) ?? "")
+            let params = (node["verification_parameters"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return DKMadsOmidVerification(
+                vendorKey: vendor,
+                javascriptResourceURL: url,
+                verificationParameters: (params?.isEmpty ?? true) ? nil : params
+            )
+        }
     }
 
     @objc public var nativeAssets: DKMadsNativeAdAssets {
         DKMadsNativeAdAssets.from(dictionary: bidPayload)
+    }
+
+    /// Normalized server render hint, or nil when absent (older servers).
+    public var renderModeHint: String? {
+        guard let rm = renderMode?.lowercased(), !rm.isEmpty else { return nil }
+        return rm
+    }
+
+    /// MRAID rich-media creative — references the mraid.js container API.
+    @objc public var isMraidCreative: Bool {
+        guard let adm else { return false }
+        return adm.range(of: "mraid.js", options: .caseInsensitive) != nil
     }
 
     @objc public var hasFill: Bool {
@@ -108,6 +144,7 @@ import Foundation
     }
 
     private var requiresVideoFill: Bool {
+        if let hint = renderModeHint { return hint == "video_native" || hint == "video_web" }
         if isDisplayUnitFormat {
             return isVideoDeliveryType || hasVideoRenderableContent
         }
@@ -147,6 +184,7 @@ import Foundation
     }
 
     @objc public var isAudio: Bool {
+        if let hint = renderModeHint { return hint == "audio" }
         if isHTML5 || isVideo { return false }
         let dt = (deliveryType ?? creativeType ?? unitFormat ?? "").lowercased()
         if dt == "audio" { return true }
@@ -156,6 +194,7 @@ import Foundation
     }
 
     @objc public var isHTML5: Bool {
+        if let hint = renderModeHint { return hint == "html5" }
         if isVideo { return false }
         if deliveryType?.lowercased() == "html5" { return true }
         if creativeType?.lowercased() == "html5" { return true }
@@ -168,6 +207,7 @@ import Foundation
     }
 
     @objc public var isVideo: Bool {
+        if let hint = renderModeHint { return hint == "video_native" || hint == "video_web" }
         if isVideoDeliveryType { return true }
         if let videoUrl, !videoUrl.isEmpty, AdMediaParsing.isPlayableVideoUrl(videoUrl) { return true }
         if AdMediaParsing.hasVideoMarkup(adm) { return true }
@@ -193,6 +233,8 @@ import Foundation
     }
 
     public var preferredRenderer: DKMadsCreativeRenderer {
+        if renderModeHint == "video_native", let url = playableVideoURL, !url.isEmpty { return .nativeMP4 }
+        if renderModeHint == "video_web" { return .webMarkup }
         if let url = playableVideoURL, !url.isEmpty { return .nativeMP4 }
         if isHTML5 || (adm?.lowercased().contains("<iframe") == true) { return .webMarkup }
         if let adm, !adm.isEmpty { return .webMarkup }

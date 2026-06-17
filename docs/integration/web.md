@@ -4,11 +4,13 @@ Integrate display, video, and audio ads on any modern website using a single hos
 
 **Audience:** web developers and ad-ops  
 **Prerequisites:** web property, integration key, and at least one ad unit in the dashboard  
-**Mobile apps:** see [iOS](./ios.md), [Android](./android.md), [Flutter](./flutter.md), or [Unity](./unity.md)
+**Mobile apps:** see [iOS](./ios.md), [Android](./android.md), [Flutter](./flutter.md), [Unity](./unity.md), or [React Native](./react-native.md)
 
 **Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md)
 
-**Version:** **0.5.17** — aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
+**Version:** **0.5.22** — aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
+
+**Render fork (0.5.22+):** the bid winner carries an explicit **`render_mode`** hint (`image` / `html5` / `video_native` / `video_web` / `native_assets` / `audio`). The SDK honors it first and falls back to creative-type heuristics when absent. HTML5/`adm` creatives run through the **MRAID 2.0** bridge automatically.
 
 **Bid vs render (0.5.17+):** `data-ssp-size` / `data-ssp-sizes` → IAB tokens sent to `/v1/bid`. Creative viewport / `object-fit: contain` uses **element `clientWidth` × `clientHeight`** after layout — not the bid token.
 
@@ -189,6 +191,18 @@ matches iOS/Android/Flutter/Unity lifecycle telemetry:
 
 ---
 
+## 7b. Open Measurement (OMID) — optional
+
+`omid_verifications` from the bid winner are threaded into every display and video mount automatically, but no Open Measurement library is bundled. To enable verified measurement, register a provider once and the SDK drives the session lifecycle (load, impression, video quartiles, skip, pause/resume, complete):
+
+```js
+SSP.setOmidProvider(myOmidProvider); // your OM Web SDK adapter
+```
+
+When no provider is registered, OMID is a no-op and first-party viewability still reports. See [OMID & viewability](../OMID_VIEWABILITY.md).
+
+---
+
 ## 8. Verify your integration
 
 Run in the browser console on a page with the SDK loaded:
@@ -226,4 +240,4 @@ On the dashboard, confirm:
 | Reward callbacks never fire              | DSP returned non-rewarded creative; reject in waterfall |
 | `ssp.push` never runs                    | Ensure `SSP.init` ran (pasteable tag with `data-property-key`, or call `SSP.init` before pushing). |
 
-See also: [SDK Implementation Guide](./SDK_IMPLEMENTATION_GUIDE.md) (troubleshooting).
+See also: [SDK Implementation Guide](../SDK_IMPLEMENTATION_GUIDE.md) (troubleshooting).

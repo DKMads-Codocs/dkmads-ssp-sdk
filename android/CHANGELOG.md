@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.22
+
+- **Render mode contract:** banner/native/interstitial honor the server `render_mode` hint as the primary render fork, with existing heuristics as fallback.
+- **MRAID 2.0:** WebView creatives that reference `mraid.js` get the MRAID bridge injected on banner, native HTML, and interstitial paths.
+- **Open Measurement (OMID) adapter seam:** new `DKMadsOmid` provider registry drives session lifecycle (start, loaded, impression, video start/quartiles/complete/skip, finish) on display and video placements when an OM SDK adapter is registered. No-op when unregistered.
+- **Native assets:** `native_assets` from the winner are parsed into `DKMadsNativeAdAssets` without client-side `adm` parsing.
+
 ## 0.5.21
 
 - **`hasFill` on banner/interstitial:** image/HTML wins no longer require video when `video_template` metadata is present; placement uses `unit_format` + `delivery_type` + playable content, not `video_template` alone.

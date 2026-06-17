@@ -23,6 +23,7 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
       "height": ad.height,
       "isVideo": ad.isVideo,
       "isHtml5": ad.isHTML5,
+      "renderMode": ad.renderMode as Any,
       "dsp": dsp as Any,
       "price": price as Any,
       "campaignId": ad.campaignId as Any,

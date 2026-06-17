@@ -24,7 +24,7 @@ Guidance for DKMads operators on how to ship publisher SDKs securely. Publishers
 
 ### What belongs in the publisher SDK repo
 
-- `sdk/ios`, `sdk/android`, `sdk/android-module`, `sdk/flutter`, `sdk/unity`
+- `sdk/ios`, `sdk/android`, `sdk/android-module`, `sdk/flutter`, `sdk/unity`, `sdk/react-native`
 - Public integration docs (or a `docs/` mirror synced on release)
 - Sample apps and CHANGELOG per platform
 - License and security policy (`SECURITY.md`)
@@ -44,6 +44,7 @@ dkmads-ssp-sdk/                # https://github.com/DKMads-Codocs/dkmads-ssp-sdk
   android-module/
   flutter/
   unity/
+  react-native/
   docs/
   CHANGELOG.md
   LICENSE
@@ -73,18 +74,18 @@ Publish to GitHub Releases on a **minimal public repo** that contains no server 
    chmod +x scripts/publish-sdk-release.sh
 
    # Preview
-   ./scripts/publish-sdk-release.sh 0.4.2 --dry-run
+   ./scripts/publish-sdk-release.sh 0.5.22 --dry-run
 
-   # Build dist/sdk-release/sdk-0.5.15/ + tarball + SHA256
-   ./scripts/publish-sdk-release.sh 0.4.2 --archive-only
+   # Build dist/sdk-release/sdk-0.5.22/ + tarball + SHA256
+   ./scripts/publish-sdk-release.sh 0.5.22 --archive-only
 
    # Tag this monorepo
-   ./scripts/publish-sdk-release.sh 0.4.2 --archive-only --tag-monorepo
-   git push origin sdk-0.5.15
+   ./scripts/publish-sdk-release.sh 0.5.22 --archive-only --tag-monorepo
+   git push origin sdk-0.5.22
 
    # Push to publisher repository
    export SDK_PUBLISH_TOKEN=ghp_...   # PAT with repo scope on dkmads-ssp-sdk
-   ./scripts/publish-sdk-release.sh 0.5.15 --skip-android-build
+   ./scripts/publish-sdk-release.sh 0.5.22 --skip-android-build
    # default push: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
 
    Full release **with Android AAR** needs JDK 17+ locally (`sdk/android-module/gradlew`) or run the **SDK Release** GitHub Action (Java 17 on Ubuntu).
@@ -103,6 +104,17 @@ Workflow: **`.github/workflows/sdk-release.yml`** (manual **Actions → SDK Rele
 | `push_publisher_repo` | Push staged tree to `SDK_PUBLISH_REPO` |
 | `tag_monorepo` | Annotated tag on platform repo |
 | `skip_android_build` | Skip AAR / Maven repo in bundle |
+| `publish_maven_central` | Run the Sonatype OSSRH staging publish job (Android AAR) |
+| `publish_cocoapods` | Run the `pod trunk push` job (iOS pod) |
+
+**Public registry jobs** (optional, gated on credentials):
+
+| Job | Runner | Secrets |
+|-----|--------|---------|
+| Maven Central | `ubuntu-latest` | `OSSRH_USERNAME`, `OSSRH_PASSWORD`, signing key/passphrase |
+| CocoaPods trunk | `macos-14` | `COCOAPODS_TRUNK_TOKEN` |
+
+When `publish_maven_central` runs, the Android module signs and stages `com.dkmads.ssp:ssp-android` to Sonatype OSSRH; when `publish_cocoapods` runs, the trunk-lintable `DKMadsSSPSDK` podspec is pushed to CocoaPods trunk.
 
 **Secrets** (publisher push only):
 
@@ -117,8 +129,8 @@ Artifacts uploaded: `sdk-release-<version>/` (folder, `.tar.gz`, `.sha256`).
 ### Release bundle contents
 
 ```text
-sdk-0.5.15/
-  ios/ android/ android-module/ flutter/ unity/
+sdk-0.5.22/
+  ios/ android/ android-module/ flutter/ unity/ react-native/
   docs/integration/ …
   artifacts/android-maven/   # when Gradle build ran
   RELEASE.json
