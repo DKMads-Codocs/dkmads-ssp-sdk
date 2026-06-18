@@ -322,6 +322,17 @@ private func adToJson(_ ad: Ad, responseInfo: DKMadsResponseInfo?) -> String {
   if let requestId = responseInfo?.requestId { parts.append("\"requestId\":\"\(escapeJson(requestId))\"") }
   if let dsp = responseInfo?.dsp { parts.append("\"dsp\":\"\(escapeJson(dsp))\"") }
   if let price = responseInfo?.price { parts.append("\"price\":\(price.doubleValue)") }
+  let n = ad.nativeAssets
+  if let v = n.headline { parts.append("\"headline\":\"\(escapeJson(v))\"") }
+  if let v = n.body { parts.append("\"body\":\"\(escapeJson(v))\"") }
+  if let v = n.callToAction { parts.append("\"callToAction\":\"\(escapeJson(v))\"") }
+  if let v = n.advertiser { parts.append("\"advertiser\":\"\(escapeJson(v))\"") }
+  if let v = n.iconUrl { parts.append("\"iconUrl\":\"\(escapeJson(v))\"") }
+  if let v = n.imageUrl { parts.append("\"imageUrl\":\"\(escapeJson(v))\"") }
+  if let v = n.rating { parts.append("\"rating\":\"\(escapeJson(v))\"") }
+  if let v = n.price { parts.append("\"price\":\"\(escapeJson(v))\"") }
+  if let v = n.downloads { parts.append("\"downloads\":\"\(escapeJson(v))\"") }
+  if let v = n.likes { parts.append("\"likes\":\"\(escapeJson(v))\"") }
   return "{\(parts.joined(separator: ","))}"
 }
 

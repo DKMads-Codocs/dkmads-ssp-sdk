@@ -10,7 +10,7 @@ Supported creative formats across the dashboard, bid API, and SDKs.
 |--------|-------------------|----------------|---------|-----|---------|
 | **Banner** | `banner` | Image, tag, HTML5 | `SSP.bind` | `DKMadsBannerAdView` | `DKMadsBannerAdView` |
 | **Interstitial** | `interstitial` | Image, tag, HTML5, video | `SSP.displayInterstitial` | `DKMadsInterstitialAd` | `DKMadsInterstitialAd` |
-| **Native** | `native` | Image, tag | `SSP.bind` / fluid slot (`native_assets` from bid `meta`) | `DKMadsNativeAd` / `DKMadsNativeAdView` | `DKMadsNativeAd` |
+| **Native** | `native` | Component assets (headline, body, CTA, advertiser, icon, main image, rating/price/downloads/likes) | `SSP.bind` / fluid slot (`native_assets`) | `DKMadsNativeAd` / `DKMadsNativeAdView` | `DKMadsNativeAd` |
 | **Video** | `video` | MP4 upload | `SSP.bindVideo()` | `DKMadsVideoAdController` | `DKMadsVideoAdController` |
 | **Rewarded** | `rewarded` | Video creative | `bindVideo` + app logic | Video APIs | Video APIs |
 | **Splash** | `splash` | Video / image | Slot | `DKMadsAppOpenAd` | `DKMadsAppOpenAd` |

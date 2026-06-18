@@ -222,6 +222,10 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
                 map["callToAction"] = assets.callToAction
                 map["advertiser"] = assets.advertiser
                 map["iconUrl"] = assets.iconUrl
+                map["rating"] = assets.rating
+                map["price"] = assets.price
+                map["downloads"] = assets.downloads
+                map["likes"] = assets.likes
                 map
               },
               onFailure = { err ->

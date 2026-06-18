@@ -152,16 +152,17 @@ import SafariServices
     }
 
     private func render(ad: Ad) {
+        let html5Entry = DKMadsBannerCreativeLayout.resolveHtml5EntryUrl(ad: ad)
         let preferImage = ad.renderModeHint == "image" && !ad.creativeUrl.isEmpty
-        if !preferImage, ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
+        if !preferImage, html5Entry != nil || ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             mraidActive = ad.isMraidCreative
             webView.isHidden = false
             imageView.isHidden = true
             let base = URL(string: "https://ssp.dkmads.com")
-            if let adm = ad.adm, !adm.isEmpty {
-                webView.loadHTMLString(adm, baseURL: base)
-            } else if let entry = ad.html5EntryUrl, let entryURL = URL(string: entry) {
+            if let entry = html5Entry, let entryURL = URL(string: entry) {
                 webView.load(URLRequest(url: entryURL))
+            } else if let adm = ad.adm, !adm.isEmpty {
+                webView.loadHTMLString(adm, baseURL: base)
             }
             return
         }

@@ -130,10 +130,12 @@ class DKMadsNativeAdView @JvmOverloads constructor(
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun render(ad: Ad) {
+        val html5Entry = DKMadsBannerCreativeLayout.resolveHtml5EntryUrl(ad)
         val preferImage = ad.renderModeHint == "image" && ad.creativeUrl.isNotBlank()
-        if (!preferImage && (ad.isHtml5 || ad.adm.isNotBlank())) {
+        if (!preferImage && (html5Entry != null || ad.isHtml5 || ad.adm.isNotBlank())) {
             webView.visibility = VISIBLE
             imageView.visibility = GONE
+            DKMadsBannerCreativeLayout.configureWebViewForRichMedia(webView.settings)
             val mraidController = if (ad.isMraidCreative) {
                 DKMadsMraidController(webView, "inline", nativeMraidHost()).also {
                     it.attach()
@@ -168,10 +170,9 @@ class DKMadsNativeAdView @JvmOverloads constructor(
                     return true
                 }
             }
-            if (ad.adm.isNotBlank()) {
-                webView.loadDataWithBaseURL("https://ssp.dkmads.com", ad.adm, "text/html", "UTF-8", null)
-            } else if (ad.html5EntryUrl.isNotBlank()) {
-                webView.loadUrl(ad.html5EntryUrl)
+            when {
+                html5Entry != null -> webView.loadUrl(html5Entry)
+                ad.adm.isNotBlank() -> webView.loadDataWithBaseURL("https://ssp.dkmads.com", ad.adm, "text/html", "UTF-8", null)
             }
             return
         }

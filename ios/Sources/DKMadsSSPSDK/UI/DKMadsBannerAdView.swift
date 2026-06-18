@@ -35,6 +35,7 @@ import SafariServices
     private var isLoading = false
     private var loadGeneration: UInt = 0
     private var lastBannerSlotSize: CGSize = CGSize(width: 300, height: 250)
+    private var html5DirectLoad = false
     private var viewabilityActive = false
     private var refreshTimer: Timer?
     private var lastAdRequest: DKMadsAdRequest?
@@ -247,16 +248,19 @@ import SafariServices
     private func render(ad: Ad) {
         let renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(adSize: adSize, bounds: bounds.size)
         lastBannerSlotSize = renderSlot
+        let html5Entry = DKMadsBannerCreativeLayout.resolveHtml5EntryUrl(ad: ad)
         let preferImage = ad.renderModeHint == "image" && !ad.creativeUrl.isEmpty
-        if !preferImage, ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
+        if !preferImage, html5Entry != nil || ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             mraidActive = ad.isMraidCreative
             webView.isHidden = false
             imageView.isHidden = true
             let base = URL(string: "https://ssp.dkmads.com")
-            if let adm = ad.adm, !adm.isEmpty {
-                webView.loadHTMLString(DKMadsBannerCreativeLayout.htmlForBanner(adm: adm, slotSize: renderSlot), baseURL: base)
-            } else if let entry = ad.html5EntryUrl, let entryURL = URL(string: entry) {
+            if let entry = html5Entry, let entryURL = URL(string: entry) {
+                html5DirectLoad = true
                 webView.load(URLRequest(url: entryURL))
+            } else if let adm = ad.adm, !adm.isEmpty {
+                html5DirectLoad = false
+                webView.loadHTMLString(DKMadsBannerCreativeLayout.htmlForBanner(adm: adm, slotSize: renderSlot), baseURL: base)
             }
             return
         }
@@ -314,10 +318,10 @@ import SafariServices
 
 extension DKMadsBannerAdView: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        webView.evaluateJavaScript(
-            DKMadsBannerCreativeLayout.viewportInjectionScript(slotSize: lastBannerSlotSize),
-            completionHandler: nil
-        )
+        let script = html5DirectLoad
+            ? DKMadsBannerCreativeLayout.html5PackageViewportInjectionScript(slotSize: lastBannerSlotSize)
+            : DKMadsBannerCreativeLayout.viewportInjectionScript(slotSize: lastBannerSlotSize)
+        webView.evaluateJavaScript(script, completionHandler: nil)
         if mraidActive { mraid.notifyReady() }
         if omidSession == nil, DKMadsOmid.isAvailable {
             omidSession = DKMadsOmid.provider?.createHtmlDisplaySession(webView: webView)

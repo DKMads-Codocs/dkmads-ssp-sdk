@@ -43,6 +43,10 @@ class DkmadsAdResult {
     this.callToAction,
     this.advertiser,
     this.iconUrl,
+    this.rating,
+    this.price,
+    this.downloads,
+    this.likes,
   });
 
   final bool success;
@@ -81,6 +85,12 @@ class DkmadsAdResult {
   final String? advertiser;
   final String? iconUrl;
 
+  /// App/store native assets (OpenRTB Native data assets): rating 0–5, price, downloads, likes.
+  final String? rating;
+  final String? price;
+  final String? downloads;
+  final String? likes;
+
   bool get hasFill => success;
 
   factory DkmadsAdResult.fromMap(Map<dynamic, dynamic>? raw) {
@@ -118,6 +128,10 @@ class DkmadsAdResult {
       callToAction: map['callToAction'] as String?,
       advertiser: map['advertiser'] as String?,
       iconUrl: map['iconUrl'] as String?,
+      rating: map['rating']?.toString(),
+      price: map['price']?.toString(),
+      downloads: map['downloads']?.toString(),
+      likes: map['likes']?.toString(),
     );
   }
 }

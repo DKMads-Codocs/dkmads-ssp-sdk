@@ -38,6 +38,19 @@ namespace DKMads.SSP
         public double skipAfterSec;
         public string unitFormat;
         public string placementContext;
+
+        // Native (OpenRTB Native 1.2) component assets — populated for native ad units.
+        public string headline;
+        public string body;
+        public string callToAction;
+        public string advertiser;
+        public string iconUrl;
+        public string imageUrl;
+        /// <summary>App/store native assets: rating 0–5, price, downloads, likes.</summary>
+        public string rating;
+        public string price;
+        public string downloads;
+        public string likes;
     }
 
     public static class DKMadsSdk

@@ -210,6 +210,10 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
             payload["callToAction"] = assets.callToAction as Any
             payload["advertiser"] = assets.advertiser as Any
             payload["iconUrl"] = assets.iconUrl as Any
+            payload["rating"] = assets.rating as Any
+            payload["price"] = assets.price as Any
+            payload["downloads"] = assets.downloads as Any
+            payload["likes"] = assets.likes as Any
             result(payload)
           } else {
             result(["success": response.success, "reason": response.reason as Any])

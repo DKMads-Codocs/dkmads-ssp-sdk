@@ -1,5 +1,8 @@
 package com.dkmads.ssp
 
+import android.os.Build
+import android.webkit.WebSettings
+
 internal object DKMadsBannerCreativeLayout {
     /** IAB token for `/v1/bid` — from [setAdSize] / `load(sizes=…)` only, never view bounds. */
     fun bidSlotSize(adWidth: Int, adHeight: Int): Pair<Int, Int> {
@@ -12,6 +15,64 @@ internal object DKMadsBannerCreativeLayout {
         if (viewWidth > 0 && viewHeight > 0) return viewWidth to viewHeight
         return bidSlotSize(adWidth, adHeight)
     }
+
+    /** WebView settings required for hosted HTML5 ZIP packages (animations, localStorage, autoplay). */
+    fun configureWebViewForRichMedia(settings: WebSettings) {
+        settings.javaScriptEnabled = true
+        settings.domStorageEnabled = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            @Suppress("DEPRECATION")
+            settings.mediaPlaybackRequiresUserGesture = false
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        }
+    }
+
+    /**
+     * Hosted HTML5 packages must load at [html5EntryUrl] in the top-level WebView — not inside an
+     * iframe wrapper from `adm`. The wrapper + viewport restyling froze animated creatives at their
+     * first frame (industry practice: direct entry URL, MRAID/HTML5 spec).
+     */
+    fun resolveHtml5EntryUrl(ad: Ad): String? {
+        val direct = ad.html5EntryUrl.trim()
+        if (direct.isNotBlank() && ad.isHtml5 && !ad.isMraidCreative) return direct
+        if (!ad.isHtml5 || ad.isMraidCreative) return null
+        return extractHtml5IframeSrc(ad.adm)
+    }
+
+    private val html5IframeSrcRegex = Regex(
+        """<iframe[^>]+src\s*=\s*["']([^"']+)["']""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    private fun extractHtml5IframeSrc(adm: String): String? {
+        val src = html5IframeSrcRegex.find(adm.trim())?.groupValues?.getOrNull(1)?.trim().orEmpty()
+        if (src.isBlank()) return null
+        return src.takeIf { AdMediaParsing.isHtml5AssetUrl(it) }
+    }
+
+    /** Viewport meta only — never restyle creative DOM (breaks HTML5/CSS/JS animations). */
+    fun html5PackageViewportScript(slotWidth: Int, slotHeight: Int): String {
+        val w = slotWidth.coerceAtLeast(1)
+        val h = slotHeight.coerceAtLeast(1)
+        return """
+            (function(){
+              var meta = document.querySelector('meta[name=viewport]');
+              if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
+              meta.content = 'width=$w, height=$h, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+            })();
+        """.trimIndent()
+    }
+
+    /** Fullscreen hosted HTML5 — device viewport only; do not mutate inner creative nodes. */
+    const val HTML5_FULLSCREEN_VIEWPORT_SCRIPT = """
+        (function(){
+          var meta = document.querySelector('meta[name=viewport]');
+          if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
+          meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        })();
+    """
 
     @Deprecated("Use bidSlotSize for bids and renderSlotSize for viewport", ReplaceWith("renderSlotSize(adWidth, adHeight, viewWidth, viewHeight)"))
     fun effectiveSlotSize(adWidth: Int, adHeight: Int, viewWidth: Int, viewHeight: Int): Pair<Int, Int> =

@@ -130,7 +130,7 @@ class DKMadsInterstitialActivity : Activity() {
         root.addView(close, closeLp)
 
         webView = WebView(this).apply {
-            settings.javaScriptEnabled = true
+            DKMadsBannerCreativeLayout.configureWebViewForRichMedia(settings)
             visibility = View.GONE
         }
         imageView = ImageView(this).apply {
@@ -155,6 +155,8 @@ class DKMadsInterstitialActivity : Activity() {
     private fun presentWeb() {
         webContentReady = false
         webView.visibility = View.VISIBLE
+        val html5Entry = DKMadsBannerCreativeLayout.resolveHtml5EntryUrl(ad)
+        DKMadsBannerCreativeLayout.configureWebViewForRichMedia(webView.settings)
         val mraidController = if (ad.isMraidCreative) {
             DKMadsMraidController(webView, "interstitial", interstitialMraidHost()).also {
                 it.attach()
@@ -179,7 +181,12 @@ class DKMadsInterstitialActivity : Activity() {
             }
             override fun onPageFinished(view: WebView?, url: String?) {
                 webContentReady = true
-                view?.evaluateJavascript(DKMadsBannerCreativeLayout.FULLSCREEN_VIEWPORT_INJECTION_SCRIPT, null)
+                val injectScript = if (html5Entry != null) {
+                    DKMadsBannerCreativeLayout.HTML5_FULLSCREEN_VIEWPORT_SCRIPT
+                } else {
+                    DKMadsBannerCreativeLayout.FULLSCREEN_VIEWPORT_INJECTION_SCRIPT
+                }
+                view?.evaluateJavascript(injectScript, null)
                 DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(ad.clickUrl)
                     ?.let { view?.evaluateJavascript(it, null) }
                 mraidController?.notifyReady()
@@ -202,18 +209,16 @@ class DKMadsInterstitialActivity : Activity() {
                 return handleWebClickThrough(url?.let { Uri.parse(it) }, true)
             }
         }
-        if (ad.adm.isNotBlank()) {
-            webView.loadDataWithBaseURL(
+        when {
+            html5Entry != null -> webView.loadUrl(html5Entry)
+            ad.adm.isNotBlank() -> webView.loadDataWithBaseURL(
                 "https://ssp.dkmads.com",
                 DKMadsBannerCreativeLayout.htmlForFullscreen(ad.adm),
                 "text/html",
                 "UTF-8",
                 null,
             )
-        } else if (ad.html5EntryUrl.isNotBlank()) {
-            webView.loadUrl(ad.html5EntryUrl)
-        } else {
-            failAndFinish("HTML5 interstitial missing adm or html5_entry_url")
+            else -> failAndFinish("HTML5 interstitial missing adm or html5_entry_url")
         }
     }
 

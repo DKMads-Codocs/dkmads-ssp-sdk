@@ -71,7 +71,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
 
     init {
         webView = WebView(context).apply {
-            settings.javaScriptEnabled = true
+            DKMadsBannerCreativeLayout.configureWebViewForRichMedia(settings)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
             visibility = GONE
@@ -166,12 +166,12 @@ class DKMadsBannerAdView @JvmOverloads constructor(
 
     private fun render(ad: Ad) {
         val renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(adWidth, adHeight, width, height)
+        val html5Entry = DKMadsBannerCreativeLayout.resolveHtml5EntryUrl(ad)
         val preferImage = ad.renderModeHint == "image" && ad.creativeUrl.isNotBlank()
-        if (!preferImage && (ad.isHtml5 || ad.adm.isNotBlank())) {
+        if (!preferImage && (html5Entry != null || ad.isHtml5 || ad.adm.isNotBlank())) {
             webView.visibility = VISIBLE
             imageView.visibility = GONE
-            @SuppressLint("SetJavaScriptEnabled")
-            webView.settings.javaScriptEnabled = true
+            DKMadsBannerCreativeLayout.configureWebViewForRichMedia(webView.settings)
             val mraidController = if (ad.isMraidCreative) {
                 DKMadsMraidController(webView, "inline", bannerMraidHost()).also {
                     it.attach()
@@ -198,10 +198,12 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 }
                 override fun onPageFinished(view: WebView?, url: String?) {
                     webContentReady = true
-                    view?.evaluateJavascript(
-                        DKMadsBannerCreativeLayout.viewportInjectionScript(renderSlot.first, renderSlot.second),
-                        null,
-                    )
+                    val injectScript = if (html5Entry != null) {
+                        DKMadsBannerCreativeLayout.html5PackageViewportScript(renderSlot.first, renderSlot.second)
+                    } else {
+                        DKMadsBannerCreativeLayout.viewportInjectionScript(renderSlot.first, renderSlot.second)
+                    }
+                    view?.evaluateJavascript(injectScript, null)
                     mraidController?.notifyReady()
                     startOmidHtmlSession()
                     post { startViewability() }
@@ -220,16 +222,15 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                 }
             }
             webContentReady = false
-            if (ad.adm.isNotBlank()) {
-                webView.loadDataWithBaseURL(
+            when {
+                html5Entry != null -> webView.loadUrl(html5Entry)
+                ad.adm.isNotBlank() -> webView.loadDataWithBaseURL(
                     "https://ssp.dkmads.com",
                     DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second),
                     "text/html",
                     "UTF-8",
                     null,
                 )
-            } else if (ad.html5EntryUrl.isNotBlank()) {
-                webView.loadUrl(ad.html5EntryUrl)
             }
             return
         }

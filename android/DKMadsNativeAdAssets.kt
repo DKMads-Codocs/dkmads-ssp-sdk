@@ -10,9 +10,14 @@ data class DKMadsNativeAdAssets(
     val iconUrl: String? = null,
     val imageUrl: String? = null,
     val clickUrl: String? = null,
+    /** App/store assets (OpenRTB Native data assets): rating 0–5, price, downloads, likes. */
+    val rating: String? = null,
+    val price: String? = null,
+    val downloads: String? = null,
+    val likes: String? = null,
 ) {
     companion object {
-        fun from(ad: Ad): DKMadsNativeAdAssets = DKMadsNativeAdAssets(
+        fun from(ad: Ad): DKMadsNativeAdAssets = ad.nativeAssets ?: DKMadsNativeAdAssets(
             headline = null,
             body = null,
             callToAction = ad.ctaLabel.takeIf { it.isNotBlank() },
@@ -33,6 +38,10 @@ data class DKMadsNativeAdAssets(
                 iconUrl = str("icon_url"),
                 imageUrl = str("image_url"),
                 clickUrl = str("click_url"),
+                rating = str("rating"),
+                price = str("price") ?: str("saleprice"),
+                downloads = str("downloads"),
+                likes = str("likes"),
             )
         }
 
@@ -54,6 +63,10 @@ data class DKMadsNativeAdAssets(
                 iconUrl = str("icon_url", "native_icon_url"),
                 imageUrl = str("image_url", "native_image_url") ?: json.optString("creativeUrl").takeIf { it.isNotBlank() },
                 clickUrl = str("click_url", "clickUrl"),
+                rating = str("rating"),
+                price = str("price", "saleprice"),
+                downloads = str("downloads"),
+                likes = str("likes"),
             )
         }
     }

@@ -324,6 +324,18 @@ object DKMadsUnityBridge {
     put("skipAfterSec", ad.skipAfterSec ?: JSONObject.NULL)
     put("unitFormat", ad.unitFormat ?: JSONObject.NULL)
     put("placementContext", ad.placementContext ?: JSONObject.NULL)
+    ad.nativeAssets?.let { n ->
+      put("headline", n.headline ?: JSONObject.NULL)
+      put("body", n.body ?: JSONObject.NULL)
+      put("callToAction", n.callToAction ?: JSONObject.NULL)
+      put("advertiser", n.advertiser ?: JSONObject.NULL)
+      put("iconUrl", n.iconUrl ?: JSONObject.NULL)
+      put("imageUrl", n.imageUrl ?: JSONObject.NULL)
+      put("rating", n.rating ?: JSONObject.NULL)
+      put("price", n.price ?: JSONObject.NULL)
+      put("downloads", n.downloads ?: JSONObject.NULL)
+      put("likes", n.likes ?: JSONObject.NULL)
+    }
   }
 
   private fun parseJson(raw: String): Map<String, Any?> {

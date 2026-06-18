@@ -39,7 +39,7 @@ dependencies:
     git:
       url: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
       path: flutter
-      ref: sdk-0.5.22   # release tag (sdk-<semver>)
+      ref: sdk-0.5.23   # release tag (sdk-<semver>)
 ```
 
 ```bash
@@ -53,7 +53,7 @@ In `ios/Podfile` (see [iOS install](./ios.md)):
 ```ruby
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.22',
+    :tag => 'sdk-0.5.23',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 
@@ -61,7 +61,7 @@ Then `cd ios && pod install`.
 
 ### 3. Android native SDK
 
-Add `com.dkmads.ssp:ssp-android:0.5.22` per [Android Installation](./android.md).
+Add `com.dkmads.ssp:ssp-android:0.5.23` per [Android Installation](./android.md).
 
 ### Example app
 
@@ -132,7 +132,7 @@ if (banner.hasFill) {
 
 ### Interstitial (recommended)
 
-Dashboard ad unit format must be **interstitial**. Uses IAB sizes (320×480 default), not screen pixels. **Pin native SDK `sdk-0.5.22`** — interstitial fit, click-through, 90% letterbox chrome, MRAID 2.0, and the OMID measurement seam are implemented in native iOS/Android (Flutter inherits automatically).
+Dashboard ad unit format must be **interstitial**. Uses IAB sizes (320×480 default), not screen pixels. **Pin native SDK `sdk-0.5.23`** — interstitial fit, click-through, 90% letterbox chrome, MRAID 2.0, and the OMID measurement seam are implemented in native iOS/Android (Flutter inherits automatically).
 
 ```dart
 final fill = await DkmadsSsp.loadInterstitial(

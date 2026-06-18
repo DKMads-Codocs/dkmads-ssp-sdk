@@ -22,6 +22,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
     private var videoConstraints: [NSLayoutConstraint] = []
     private var didPresentStaticContent = false
     private var webContentReady = false
+    private var html5DirectLoad = false
 
     init(adUnitID: String, ad: Ad) {
         self.adUnitID = adUnitID
@@ -184,19 +185,22 @@ final class DKMadsInterstitialPresenter: UIViewController {
         didPresentStaticContent = true
         webContentReady = false
         let slotSize = view.bounds.size
+        let html5Entry = DKMadsBannerCreativeLayout.resolveHtml5EntryUrl(ad: ad)
         let preferImage = ad.renderModeHint == "image" && !ad.creativeUrl.isEmpty
-        if !preferImage, ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
+        if !preferImage, html5Entry != nil || ad.isHTML5 || !(ad.adm?.isEmpty ?? true) {
             mraidActive = ad.isMraidCreative
             webView.isHidden = false
             imageView.isHidden = true
             let base = URL(string: "https://ssp.dkmads.com")
-            if let adm = ad.adm, !adm.isEmpty {
+            if let entry = html5Entry, let entryURL = URL(string: entry) {
+                html5DirectLoad = true
+                webView.load(URLRequest(url: entryURL))
+            } else if let adm = ad.adm, !adm.isEmpty {
+                html5DirectLoad = false
                 webView.loadHTMLString(
                     DKMadsBannerCreativeLayout.htmlForFullscreen(adm: adm, slotSize: slotSize),
                     baseURL: base
                 )
-            } else if let entry = ad.html5EntryUrl, let entryURL = URL(string: entry) {
-                webView.load(URLRequest(url: entryURL))
             }
             return
         }
@@ -310,7 +314,10 @@ extension DKMadsInterstitialPresenter: DKMadsVideoAdViewDelegate {
 extension DKMadsInterstitialPresenter: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         webContentReady = true
-        webView.evaluateJavaScript(DKMadsBannerCreativeLayout.fullscreenViewportInjectionScript, completionHandler: nil)
+        let script = html5DirectLoad
+            ? DKMadsBannerCreativeLayout.html5FullscreenViewportInjectionScript
+            : DKMadsBannerCreativeLayout.fullscreenViewportInjectionScript
+        webView.evaluateJavaScript(script, completionHandler: nil)
         if let script = DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(clickUrl: ad.clickUrl) {
             webView.evaluateJavaScript(script, completionHandler: nil)
         }

@@ -14,6 +14,46 @@ enum DKMadsBannerCreativeLayout {
         return bidSlotSize(adSize: adSize)
     }
 
+    /// Hosted HTML5 ZIP packages load at the entry URL in the top-level WebView (not an iframe wrapper).
+    static func resolveHtml5EntryUrl(ad: Ad) -> String? {
+        let direct = ad.html5EntryUrl?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !direct.isEmpty, ad.isHTML5, !ad.isMraidCreative { return direct }
+        guard ad.isHTML5, !ad.isMraidCreative else { return nil }
+        return extractHtml5IframeSrc(from: ad.adm ?? "")
+    }
+
+    private static func extractHtml5IframeSrc(from adm: String) -> String? {
+        let trimmed = adm.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let regex = try? NSRegularExpression(pattern: #"<iframe[^>]+src\s*=\s*["']([^"']+)["']"#, options: .caseInsensitive),
+              let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)),
+              match.numberOfRanges > 1,
+              let capture = Range(match.range(at: 1), in: trimmed) else { return nil }
+        let src = String(trimmed[capture]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return AdMediaParsing.isHtml5AssetUrl(src) ? src : nil
+    }
+
+    /// Viewport meta only — do not restyle creative DOM (breaks HTML5 animations).
+    static func html5PackageViewportInjectionScript(slotSize: CGSize) -> String {
+        let w = max(1, Int(slotSize.width.rounded()))
+        let h = max(1, Int(slotSize.height.rounded()))
+        return """
+        (function(){
+          var meta = document.querySelector('meta[name=viewport]');
+          if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
+          meta.content = 'width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        })();
+        """
+    }
+
+    static let html5FullscreenViewportInjectionScript = """
+    (function(){
+      var meta = document.querySelector('meta[name=viewport]');
+      if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
+      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+    })();
+    """
+
     @available(*, deprecated, message: "Use bidSlotSize for bids and renderSlotSize for viewport")
     static func effectiveSlotSize(adSize: CGSize, bounds: CGSize) -> CGSize {
         renderSlotSize(adSize: adSize, bounds: bounds)

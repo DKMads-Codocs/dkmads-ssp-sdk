@@ -1,8 +1,24 @@
 # Native ad SDK integration
 
+Native ads are **component assets** (not a single image): the publisher app renders
+the headline, body, CTA, advertiser, icon, main image and optional store data into
+its own layout. This follows **OpenRTB Native 1.2** and aligns with AdMob / Meta
+Audience Network native asset sets.
+
 Use **`DKMadsNativeAd`** when you build custom in-feed layouts. Use **`DKMadsNativeAdView`** for default WebView/image rendering.
 
 **Related:** [Ad formats](./AD_FORMATS_MATRIX.md) · [iOS](./integration/ios.md) · [Android](./integration/android.md)
+
+## Authoring native creatives (dashboard)
+
+Native creatives are authored as structured assets — no fixed slot size:
+
+- **Advertiser creative library** → **Upload Creative** → Delivery type **Native (component assets)**.
+- **Campaign builder** → Ads step → **Ad format = Native** on a creative.
+
+Both capture: **headline** (required), body, CTA label, advertiser/sponsored-by,
+**icon (1:1)**, **main image (1.91:1, required)**, and optional store assets
+(star rating 0–5, price, downloads, likes). Image ratios are validated on upload.
 
 ## iOS
 
@@ -34,15 +50,25 @@ DKMadsNativeAd("NATIVE_UUID").apply {
 
 ## Asset fields
 
-| Field | Source |
-|-------|--------|
-| `headline` | Bid `meta` or root keys (`headline`, `native_title`) |
-| `body` | `body`, `native_body` |
-| `callToAction` | `cta_label` |
-| `imageUrl` | `image_url` or `creativeUrl` |
-| `clickUrl` | `click_url` |
+Served on `winner.native_assets` (normalized for house + external DSP wins) and
+exposed on each SDK's native asset model (`DKMadsNativeAdAssets` / `nativeAssets`).
 
-Populate `meta` on creatives in the dashboard when you need richer native layouts.
+| Field | OpenRTB Native 1.2 source | Notes |
+|-------|---------------------------|-------|
+| `headline` | title asset | Required |
+| `body` | data type 2 (`desc`) | |
+| `callToAction` / `cta` | data type 12 (`ctatext`) | e.g. "Install" |
+| `advertiser` | data type 1 (`sponsored`) | brand / sponsored-by |
+| `iconUrl` / `icon_url` | image type 1 (icon, 1:1) | |
+| `imageUrl` / `image_url` | image type 3 (main, 1.91:1) | largest image wins |
+| `rating` | data type 3 (`rating`) | 0–5 |
+| `price` | data type 6/7 (`price`/`saleprice`) | |
+| `downloads` | data type 5 (`downloads`) | |
+| `likes` | data type 4 (`likes`) | |
+| `clickUrl` / `click_url` | `link.url` | |
+
+External DSP wins return the OpenRTB Native response object in `adm`; the server
+parses it into the same shape so SDK rendering is identical for house and exchange demand.
 
 ## Web
 
