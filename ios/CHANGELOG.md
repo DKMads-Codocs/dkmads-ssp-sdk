@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.24
+
+- **GitHub mirror parity** — publisher-repo release sync (Phase 15 + S2). See monorepo notes if you were on stale `sdk-0.5.23` tag.
+- **`linkDmpIdentity` / `coInitDmp` / `dmpAppKey`:** identity bridge + `identitySourceLabel()` for support.
+- **`hasFill`:** structured `native_assets` without `adm` / `creativeUrl` count as fill.
+- **DMP integration docs** shipped under `docs/integration/`.
+
 ## 0.5.23
 
 - **DMP co-init:** `SSPSDKConfig.dmpAppKey` / `dmpApiHost` — async DMP init when `DKMadsDMP` is linked, then `linkDmpIdentity`.

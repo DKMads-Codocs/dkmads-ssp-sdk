@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.24
+
+- `DKMadsSdk.LinkDmpIdentity` + `dmpAppKey` co-init (mirror parity with native 0.5.24).
+- DMP integration docs + `samples/dmp-ssp-identity/` in publisher repo.
+
 ## 0.5.23
 
 - `DKMadsSdk.Initialize(..., dmpAppKey, dmpApiHost)` — DMP co-init on native init.

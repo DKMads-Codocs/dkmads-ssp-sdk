@@ -1021,4 +1021,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.23"
+const val SDK_VERSION = "0.5.24"

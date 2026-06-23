@@ -71,10 +71,13 @@ Publish to GitHub Releases on a **minimal public repo** that contains no server 
 3. Run the release exporter (local or CI):
 
    ```bash
-   chmod +x scripts/publish-sdk-release.sh
+   chmod +x scripts/publish-sdk-release.sh scripts/fetch-sdk.sh
+
+   # Demo apps: pin vendor copy to a GitHub tag (do not patch SDK in demos)
+   ./scripts/fetch-sdk.sh 0.5.24 ./vendor/dkmads-ssp-sdk
 
    # Preview
-   ./scripts/publish-sdk-release.sh 0.5.22 --dry-run
+   ./scripts/publish-sdk-release.sh 0.5.24 --dry-run
 
    # Build dist/sdk-release/sdk-0.5.22/ + tarball + SHA256
    ./scripts/publish-sdk-release.sh 0.5.22 --archive-only

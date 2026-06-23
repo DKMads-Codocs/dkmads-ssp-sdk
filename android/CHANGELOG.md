@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.24
+
+- **GitHub mirror parity:** first publisher-repo release containing Phase 15 + S2 identity bridge (prior tag `sdk-0.5.23` on GitHub was stale).
+- **`linkDmpIdentity` / `useDmpIdentity` / `dmpAppKey`:** DMP ↔ SSP identity for bid-time audience eval.
+- **`hasFill`:** structured `native_assets` without `adm` / `creativeUrl` count as fill.
+- **DMP docs:** `docs/integration/dmp-identity.md`, `dmp-co-init.md`, and related guides included in publisher repo.
+- **Sample:** `samples/dmp-ssp-identity/` — `DMP.getSharedIdentity()` → `linkDmpIdentity()`.
+
 ## 0.5.23
 
 - **DMP co-init:** optional `dmpAppKey` / `dmpApiHost` on `Config` — reflection-based DMP init + `linkDmpIdentity`.
