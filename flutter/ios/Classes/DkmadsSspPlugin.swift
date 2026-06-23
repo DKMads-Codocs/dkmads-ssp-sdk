@@ -99,8 +99,29 @@ public class DkmadsSspPlugin: NSObject, FlutterPlugin {
       if let debug = args["debug"] as? Bool {
         cfg.debug = debug
       }
+      if let useDmpIdentity = args["useDmpIdentity"] as? Bool {
+        cfg.useDmpIdentity = useDmpIdentity
+      }
+      if let dmpAppKey = args["dmpAppKey"] as? String, !dmpAppKey.isEmpty {
+        cfg.dmpAppKey = dmpAppKey
+      }
+      if let dmpApiHost = args["dmpApiHost"] as? String, !dmpApiHost.isEmpty {
+        cfg.dmpApiHost = dmpApiHost
+      }
       SSPSDK.shared.initialize(with: cfg)
       result(nil)
+    case "linkDmpIdentity":
+      let args = call.arguments as? [String: Any]
+      let devicePid = (args?["devicePid"] as? String) ?? (args?["device_pid"] as? String)
+      let userPid = (args?["userPid"] as? String) ?? (args?["user_pid"] as? String)
+      let linked = SSPSDK.shared.linkDmpIdentity(devicePid: devicePid, userPid: userPid)
+      result(linked)
+    case "coInitDmp":
+      let args = call.arguments as? [String: Any]
+      let appKey = (args?["dmpAppKey"] as? String) ?? (args?["appKey"] as? String)
+      let apiHost = (args?["dmpApiHost"] as? String) ?? (args?["apiHost"] as? String)
+      let linked = SSPSDK.shared.coInitDmp(appKey: appKey, apiHost: apiHost)
+      result(linked)
     case "setUserData":
       let args = call.arguments as? [String: Any]
       let userData = (args?["userData"] as? [String: Any]) ?? [:]

@@ -10,11 +10,28 @@ private var pendingRewardedAds: [String: DKMadsRewardedAd] = [:]
 public func dkmads_initialize(_ integrationKeyPtr: UnsafePointer<CChar>?,
                               _ propertyIdPtr: UnsafePointer<CChar>?,
                               _ propertyCodePtr: UnsafePointer<CChar>?) {
+  dkmads_initialize_ex(integrationKeyPtr, propertyIdPtr, propertyCodePtr, nil, nil)
+}
+
+@_cdecl("dkmads_initialize_ex")
+public func dkmads_initialize_ex(_ integrationKeyPtr: UnsafePointer<CChar>?,
+                                 _ propertyIdPtr: UnsafePointer<CChar>?,
+                                 _ propertyCodePtr: UnsafePointer<CChar>?,
+                                 _ dmpAppKeyPtr: UnsafePointer<CChar>?,
+                                 _ dmpApiHostPtr: UnsafePointer<CChar>?) {
   guard let integrationKeyPtr else { return }
   let integrationKey = String(cString: integrationKeyPtr)
   let propertyId = propertyIdPtr.map { String(cString: $0) }
   let propertyCode = propertyCodePtr.map { String(cString: $0) }
   let cfg = SSPSDKConfig(integrationKey: integrationKey, propertyId: propertyId, propertyCode: propertyCode)
+  if let dmpAppKeyPtr {
+    let key = String(cString: dmpAppKeyPtr)
+    if !key.isEmpty { cfg.dmpAppKey = key }
+  }
+  if let dmpApiHostPtr {
+    let host = String(cString: dmpApiHostPtr)
+    if !host.isEmpty { cfg.dmpApiHost = host }
+  }
   SSPSDK.shared.initialize(with: cfg)
 }
 
@@ -22,6 +39,17 @@ public func dkmads_initialize(_ integrationKeyPtr: UnsafePointer<CChar>?,
 public func dkmads_set_user_data(_ jsonPayloadPtr: UnsafePointer<CChar>?) {
   let payload = parseJsonDictionary(jsonPayloadPtr)
   SSPSDK.shared.setUserData(payload)
+}
+
+@_cdecl("dkmads_link_dmp_identity")
+public func dkmads_link_dmp_identity(_ devicePidPtr: UnsafePointer<CChar>?,
+                                     _ userPidPtr: UnsafePointer<CChar>?) -> Bool {
+  let devicePid = devicePidPtr.map { String(cString: $0) }
+  let userPid = userPidPtr.map { String(cString: $0) }
+  return SSPSDK.shared.linkDmpIdentity(
+    devicePid: devicePid?.isEmpty == false ? devicePid : nil,
+    userPid: userPid?.isEmpty == false ? userPid : nil
+  )
 }
 
 @_cdecl("dkmads_set_targeting_signals")

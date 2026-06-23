@@ -54,20 +54,38 @@ object SSPSDK {
     var lastBidDiagnostics: DKMadsBidDiagnostics? = null
         private set
 
+    @Volatile
+    private var identitySource: String = "ssp"
+
     /**
      * Initialize the SDK with configuration
      */
     fun initialize(context: Context, config: Config) {
-        this.config = config
+        val effectiveConfig = when {
+            !config.dmpAppKey.isNullOrBlank() && !config.useDmpIdentity -> config.copy(useDmpIdentity = true)
+            else -> config
+        }
+        this.config = effectiveConfig
         val appContext = context.applicationContext
         applicationContext = appContext
-        val defaultDevicePid = DeviceIdentity.getOrCreateDevicePid(appContext)
-        if (targetingSignals.devicePid.isNullOrBlank()) {
-            targetingSignals = targetingSignals.copy(devicePid = defaultDevicePid)
+        var resolvedDevicePid = targetingSignals.devicePid?.trim()?.takeIf { it.isNotEmpty() }
+        if (resolvedDevicePid == null) {
+            if (effectiveConfig.useDmpIdentity) {
+                DmpIdentityBridge.readDevicePid(appContext)?.let {
+                    resolvedDevicePid = it
+                    identitySource = "dmp_storage"
+                }
+            }
+            if (resolvedDevicePid == null) {
+                resolvedDevicePid = DeviceIdentity.getOrCreateDevicePid(appContext)
+                identitySource = "ssp"
+            }
+            targetingSignals = targetingSignals.copy(devicePid = resolvedDevicePid)
         }
+        val defaultDevicePid = resolvedDevicePid!!
 
         telemetryManager.setApplicationContext(appContext)
-        telemetryManager.configure(config)
+        telemetryManager.configure(effectiveConfig)
         refreshCmpConsent(appContext)
         telemetryManager.setIdentityProvider {
             val platformUid = userData["platform_uid"]?.toString()
@@ -92,8 +110,12 @@ object SSPSDK {
             ),
         )
 
-        if (config.debug) {
-            android.util.Log.d("DKMads SSP", "SDK initialized with key: ${config.integrationKey}")
+        if (effectiveConfig.debug) {
+            android.util.Log.d("DKMads SSP", "SDK initialized with key: ${effectiveConfig.integrationKey}")
+        }
+
+        if (!effectiveConfig.dmpAppKey.isNullOrBlank()) {
+            DmpCoInit.coInit(appContext, effectiveConfig)
         }
     }
 
@@ -281,6 +303,42 @@ object SSPSDK {
             android.util.Log.d("DKMads SSP", "Targeting signals updated")
         }
     }
+
+    fun linkDmpIdentity(devicePid: String? = null, userPid: String? = null): Boolean {
+        val ctx = applicationContext ?: return false
+        val pid = devicePid?.trim()?.takeIf { it.isNotEmpty() }
+            ?: DmpIdentityBridge.readDevicePid(ctx)
+            ?: return false
+        val linkedUserPid = userPid?.trim()?.takeIf { it.isNotEmpty() }
+        targetingSignals = targetingSignals.copy(
+            devicePid = pid,
+            userPid = linkedUserPid ?: targetingSignals.userPid,
+        )
+        userData = userData + mapOf("device_pid" to pid) + (
+            linkedUserPid?.let { mapOf("user_pid" to it) } ?: emptyMap()
+        )
+        identitySource = if (devicePid != null) "dmp_explicit" else "dmp_storage"
+        if (config?.debug == true) {
+            android.util.Log.d("DKMads SSP", "DMP identity linked (source=$identitySource)")
+        }
+        return true
+    }
+
+    /** Initialize DMP when [Config.dmpAppKey] is set (or pass appKey explicitly). */
+    fun coInitDmp(appKey: String? = null, apiHost: String? = null): Boolean {
+        val cfg = config ?: return false
+        val ctx = applicationContext ?: return false
+        val resolvedKey = appKey?.trim()?.takeIf { it.isNotEmpty() } ?: cfg.dmpAppKey?.trim()?.takeIf { it.isNotEmpty() }
+            ?: return false
+        val coConfig = cfg.copy(
+            dmpAppKey = resolvedKey,
+            dmpApiHost = apiHost?.trim()?.takeIf { it.isNotEmpty() } ?: cfg.dmpApiHost,
+            useDmpIdentity = true,
+        )
+        return DmpCoInit.coInit(ctx, coConfig)
+    }
+
+    fun identitySource(): String = identitySource
 
     /** POST /api/public/v1/fpd/mobile — builds profile for audience rules (requires device_pid). */
     suspend fun syncFirstPartyProfile(context: Context, appBundle: String? = null): Result<Unit> =
@@ -651,6 +709,11 @@ data class Config(
     val baseUrl: String = "https://ssp.dkmads.com",
     val requireConsentBeforeAds: Boolean = false,
     val useTestAds: Boolean = false,
+    /** When true, prefer DMP SharedPreferences device_pid over generating an SSP-only id. */
+    val useDmpIdentity: Boolean = false,
+    /** When set, SSP co-inits DMP SDK (reflection) and links device_pid. */
+    val dmpAppKey: String? = null,
+    val dmpApiHost: String? = null,
 ) {
     val effectiveDebug: Boolean get() = debug || useTestAds
 }
@@ -908,6 +971,7 @@ data class Ad(
             if (isAudio) return audioUrl.isNotBlank() || adm.contains("<audio", ignoreCase = true)
             if (creativeUrl.isNotBlank()) return true
             if (adm.isNotBlank()) return true
+            if (nativeAssets?.hasRenderableContent() == true) return true
             return false
         }
 

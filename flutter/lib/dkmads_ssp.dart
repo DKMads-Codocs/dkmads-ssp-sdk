@@ -184,6 +184,9 @@ class DkmadsSsp {
     String? propertyCode,
     String? baseUrl,
     bool debug = false,
+    bool useDmpIdentity = false,
+    String? dmpAppKey,
+    String? dmpApiHost,
   }) async {
     await _channel.invokeMethod('initialize', {
       'integrationKey': integrationKey,
@@ -191,7 +194,28 @@ class DkmadsSsp {
       'propertyCode': propertyCode,
       'baseUrl': baseUrl,
       'debug': debug,
+      'useDmpIdentity': useDmpIdentity,
+      if (dmpAppKey != null) 'dmpAppKey': dmpAppKey,
+      if (dmpApiHost != null) 'dmpApiHost': dmpApiHost,
     });
+  }
+
+  /// Share DMP device_pid / user_pid with SSP (reads DMP storage when devicePid omitted).
+  static Future<bool> linkDmpIdentity({String? devicePid, String? userPid}) async {
+    final linked = await _channel.invokeMethod<bool>('linkDmpIdentity', {
+      if (devicePid != null) 'devicePid': devicePid,
+      if (userPid != null) 'userPid': userPid,
+    });
+    return linked == true;
+  }
+
+  /// Initialize DMP from SSP when dmpAppKey is set on [initialize] or passed here.
+  static Future<bool> coInitDmp({String? dmpAppKey, String? dmpApiHost}) async {
+    final linked = await _channel.invokeMethod<bool>('coInitDmp', {
+      if (dmpAppKey != null) 'dmpAppKey': dmpAppKey,
+      if (dmpApiHost != null) 'dmpApiHost': dmpApiHost,
+    });
+    return linked == true;
   }
 
   /// Register IAB sizes for an ad unit (used when load calls omit explicit dimensions).

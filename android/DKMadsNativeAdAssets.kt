@@ -16,6 +16,11 @@ data class DKMadsNativeAdAssets(
     val downloads: String? = null,
     val likes: String? = null,
 ) {
+    fun hasRenderableContent(): Boolean = listOf(
+        headline, body, callToAction, advertiser, iconUrl, imageUrl, clickUrl,
+        rating, price, downloads, likes,
+    ).any { !it.isNullOrBlank() }
+
     companion object {
         fun from(ad: Ad): DKMadsNativeAdAssets = ad.nativeAssets ?: DKMadsNativeAdAssets(
             headline = null,

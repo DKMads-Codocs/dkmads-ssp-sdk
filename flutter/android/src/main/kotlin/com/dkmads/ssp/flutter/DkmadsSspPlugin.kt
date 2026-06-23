@@ -108,9 +108,26 @@ class DkmadsSspPlugin : FlutterPlugin, MethodCallHandler {
           propertyCode = call.argument<String>("propertyCode"),
           debug = call.argument<Boolean>("debug") ?: false,
           baseUrl = call.argument<String>("baseUrl") ?: "https://ssp.dkmads.com",
+          useDmpIdentity = call.argument<Boolean>("useDmpIdentity") ?: false,
+          dmpAppKey = call.argument<String>("dmpAppKey"),
+          dmpApiHost = call.argument<String>("dmpApiHost"),
         )
         SSPSDK.initialize(appContext, cfg)
         result.success(null)
+      }
+      "linkDmpIdentity" -> {
+        val linked = SSPSDK.linkDmpIdentity(
+          devicePid = call.argument<String>("devicePid") ?: call.argument<String>("device_pid"),
+          userPid = call.argument<String>("userPid") ?: call.argument<String>("user_pid"),
+        )
+        result.success(linked)
+      }
+      "coInitDmp" -> {
+        val linked = SSPSDK.coInitDmp(
+          appKey = call.argument<String>("dmpAppKey") ?: call.argument<String>("appKey"),
+          apiHost = call.argument<String>("dmpApiHost") ?: call.argument<String>("apiHost"),
+        )
+        result.success(linked)
       }
       "setUserData" -> {
         val userData = (call.argument<Map<String, Any?>>("userData") ?: emptyMap())

@@ -219,6 +219,8 @@ SSP.init({ integrationKey: '...', requireConsentBeforeAds: true });
 if (!SSP.canRequestAds()) return; // wait for CMP / SSP.setConsent
 ```
 
+**DMP + SSP dual SDK:** when you also run the DKMads DMP SDK, share `device_pid` via `SSP.linkDmpIdentity()` or `useDmpIdentity: true` so bid-time audience eval matches DMP ingest. See [DMP identity bridge](./dmp-identity.md).
+
 On the dashboard, confirm:
 
 - **Inventory → Properties**: "Last SDK seen" updates within a minute.

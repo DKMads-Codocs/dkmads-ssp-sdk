@@ -232,6 +232,7 @@ class DKMadsInterstitialActivity : Activity() {
             }
             if (bitmap != null) {
                 imageView.setImageBitmap(bitmap)
+                startOmidNativeSession()
                 startViewability()
             } else {
                 failAndFinish("Failed to load interstitial image")
@@ -411,6 +412,17 @@ class DKMadsInterstitialActivity : Activity() {
             creativeId = ad.creativeId,
             dspSource = ad.dsp,
         )
+    }
+
+    private fun startOmidNativeSession() {
+        if (omidSession != null || !DKMadsOmid.isAvailable) return
+        val host = if (imageView.visibility == View.VISIBLE) imageView else root
+        omidSession = DKMadsOmid.provider
+            ?.createNativeDisplaySession(this, host, ad.omidVerifications)
+            ?.also {
+                it.start()
+                it.signalLoaded()
+            }
     }
 
     private fun startViewability() {

@@ -2,7 +2,7 @@
 
 Canonical **request, response, and lifecycle** contract for web, iOS, Android, Flutter, Unity, and React Native integrations.
 
-All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.22**).
+All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.23**).
 
 **Use with:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · platform integration guides
 
@@ -29,13 +29,23 @@ Do **not** use workspace ID as ad unit ID.
 ```text
 initialize(config)
   -> setConsent(optional)
-  -> setTargetingSignals(optional)   // recommended: demographics, geo, interests
-  -> setUserData(optional)          // legacy flat map; merged with targeting
-  -> syncFirstPartyProfile(optional) // mobile FPD for Audiences
+  -> setTargetingSignals(optional)   // recommended: demographics, geo, interests — merges into bid signals
+  -> setUserData(optional)          // legacy flat map — replaces prior user data (see below)
+  -> linkDmpIdentity(optional)      // when using DMP + SSP dual SDK
+  -> syncFirstPartyProfile(optional) // mobile FPD for Audiences / DMP forward
   -> loadAd(request) OR BannerAdView.load()
   -> render winner (adm or image URL)
   -> auto metrics (banner view / video attach) + trackUserEvent
 ```
+
+### `setUserData` vs `setTargetingSignals`
+
+| API | Behavior | Prefer for |
+|-----|----------|------------|
+| `setTargetingSignals` | **Merges** structured fields into the internal user-data map used on bids | Demographics, geo, interests, `device_pid` / `user_pid` |
+| `setUserData` | **Replaces** the entire legacy flat map | Migrating old integrations only |
+
+Calling `setUserData` after `setTargetingSignals` can wipe merged targeting fields. Prefer `setTargetingSignals` (and `linkDmpIdentity` for DMP identity).
 
 Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
 
@@ -54,6 +64,7 @@ Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
 | Ad Inspector | `DKMadsMobileAds.presentAdInspector` | `DKMadsAdInspector` | `presentAdInspector` | `PresentAdInspector` | `SSP.lastBidDiagnostics` |
 | Consent gate | `canRequestAds()` | `canRequestAds()` | via native | via native | `SSP.canRequestAds()` |
 | Native assets | `DKMadsNativeAdAssets` | `DKMadsNativeAdAssets` | `loadNative` fields | `LoadNative` JSON | `winner.native_assets` / auto native card |
+| DMP identity | `linkDmpIdentity` / `coInitDmp` | same | `DkmadsSsp.linkDmpIdentity` | `LinkDmpIdentity` | `linkDmpIdentity` / `dmpAppKey` co-init |
 | Video metrics | `DKMadsVideoAdController` | `DKMadsVideoAdView` | `trackVideoLifecycle` | `EmitVideoEvent` | `SSP.bindVideo` |
 | Audio metrics | `DKMadsAudioAdView` / events | `DKMadsAudioAdView` | manual events | manual events | `SSP.bindAudio` |
 | Load ad (raw) | `loadAd(...)` | `loadAd(...)` | `loadBanner(...)` | `LoadAd` / `LoadAdWithFormat` | `SSP.requestAd` |

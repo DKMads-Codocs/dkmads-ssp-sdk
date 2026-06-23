@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.23
+
+- Tracks native SDK **0.5.23** (DMP `dmpAppKey` co-init, `linkDmpIdentity`, `native_assets` `hasFill`, eval identity diagnostics).
+- `DkmadsSsp.coInitDmp()` bridges to native DMP co-init.
+
 ## 0.5.22
 
 - Tracks native SDK **0.5.22** (server `render_mode` hint, MRAID 2.0, OMID measurement seam, structured native assets).

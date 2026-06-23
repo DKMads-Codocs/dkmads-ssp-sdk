@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.23
+
+- **DMP co-init:** `SSPSDKConfig.dmpAppKey` / `dmpApiHost` — async DMP init when `DKMadsDMP` is linked, then `linkDmpIdentity`.
+- **`linkDmpIdentity` / `coInitDmp`:** identity bridge + `identitySourceLabel()` for support.
+- **`hasFill`:** structured `native_assets` without `adm` / `creativeUrl` count as fill.
+- **OMID:** image interstitial already had native display sessions (unchanged).
+
 ## 0.5.22
 
 - **Render mode contract:** banner/native/interstitial honor the server `render_mode` hint as the primary render fork, with existing heuristics as fallback.

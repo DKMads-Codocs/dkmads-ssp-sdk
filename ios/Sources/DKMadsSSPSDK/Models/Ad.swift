@@ -136,6 +136,7 @@ import Foundation
         if isAudio { return !(audioUrl ?? "").isEmpty || (adm?.lowercased().contains("<audio") == true) }
         if !creativeUrl.isEmpty { return true }
         if let adm, !adm.isEmpty { return true }
+        if nativeAssets.hasRenderableContent { return true }
         return false
     }
 

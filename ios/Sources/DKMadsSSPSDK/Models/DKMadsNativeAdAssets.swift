@@ -42,6 +42,11 @@ public final class DKMadsNativeAdAssets: NSObject {
         self.likes = likes
     }
 
+    @objc public var hasRenderableContent: Bool {
+        [headline, body, callToAction, advertiser, iconUrl, imageUrl, clickUrl, rating, price, downloads, likes]
+            .contains { ($0?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) }
+    }
+
     @objc public static func from(ad: Ad) -> DKMadsNativeAdAssets {
         ad.nativeAssets
     }

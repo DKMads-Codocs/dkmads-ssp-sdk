@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.23
+
+- **DMP co-init:** optional `dmpAppKey` / `dmpApiHost` on `Config` — reflection-based DMP init + `linkDmpIdentity`.
+- **`linkDmpIdentity` / `coInitDmp`:** share DMP `device_pid` / `user_pid` with SSP for bid-time eval.
+- **`hasFill`:** `native_assets`-only wins (no `adm` / `creativeUrl`) count as fill.
+- **OMID:** image interstitial path starts native display OMID session (parity with banner + iOS).
+
 ## 0.5.22
 
 - **Render mode contract:** banner/native/interstitial honor the server `render_mode` hint as the primary render fork, with existing heuristics as fallback.

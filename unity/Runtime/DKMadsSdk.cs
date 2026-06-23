@@ -57,8 +57,10 @@ namespace DKMads.SSP
     {
         #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern void dkmads_initialize(string integrationKey, string propertyId, string propertyCode);
+        [DllImport("__Internal")] private static extern void dkmads_initialize_ex(string integrationKey, string propertyId, string propertyCode, string dmpAppKey, string dmpApiHost);
         [DllImport("__Internal")] private static extern void dkmads_set_consent(string jsonPayload);
         [DllImport("__Internal")] private static extern void dkmads_set_user_data(string jsonPayload);
+        [DllImport("__Internal")] private static extern bool dkmads_link_dmp_identity(string devicePid, string userPid);
         [DllImport("__Internal")] private static extern void dkmads_set_targeting_signals(string jsonPayload);
         [DllImport("__Internal")] private static extern void dkmads_track_user_event(string name, string jsonPayload);
         [DllImport("__Internal")] private static extern void dkmads_emit_video_event(string adUnitId, string eventName, string jsonPayload);
@@ -77,25 +79,26 @@ namespace DKMads.SSP
 
         public static void Initialize(string integrationKey, string propertyId = null, string propertyCode = null)
         {
+            Initialize(integrationKey, propertyId, propertyCode, null, null);
+        }
+
+        /// <summary>Initialize SSP; optional dmpAppKey co-inits DMP SDK and links device_pid.</summary>
+        public static void Initialize(string integrationKey, string propertyId, string propertyCode, string dmpAppKey, string dmpApiHost)
+        {
             #if UNITY_ANDROID && !UNITY_EDITOR
-            using (var sdk = new AndroidJavaClass("com.dkmads.ssp.SSPSDK"))
-            using (var config = new AndroidJavaObject(
-                "com.dkmads.ssp.Config",
-                integrationKey,
-                propertyId,
-                propertyCode,
-                false,
-                "https://ssp.dkmads.com"
-            ))
+            using (var bridge = new AndroidJavaClass("com.dkmads.ssp.unity.DKMadsUnityBridge"))
             using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
             {
                 var context = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-                sdk.CallStatic("initialize", context, config);
+                bridge.CallStatic("initialize", context, integrationKey, propertyId, propertyCode, dmpAppKey, dmpApiHost);
             }
             #elif UNITY_IOS && !UNITY_EDITOR
-            dkmads_initialize(integrationKey, propertyId, propertyCode);
+            if (!string.IsNullOrEmpty(dmpAppKey) || !string.IsNullOrEmpty(dmpApiHost))
+                dkmads_initialize_ex(integrationKey, propertyId, propertyCode, dmpAppKey, dmpApiHost);
+            else
+                dkmads_initialize(integrationKey, propertyId, propertyCode);
             #else
-            Debug.Log($"[DKMadsSdk] Initialize integrationKey={integrationKey} propertyId={propertyId} propertyCode={propertyCode}");
+            Debug.Log($"[DKMadsSdk] Initialize integrationKey={integrationKey} propertyId={propertyId} propertyCode={propertyCode} dmpAppKey={dmpAppKey}");
             #endif
         }
 
@@ -120,6 +123,22 @@ namespace DKMads.SSP
             dkmads_set_targeting_signals(jsonPayload ?? "{}");
             #else
             Debug.Log($"[DKMadsSdk] SetTargetingSignals {jsonPayload}");
+            #endif
+        }
+
+        /// <summary>Share DMP device_pid / user_pid with SSP (reads DMP storage when devicePid omitted).</summary>
+        public static bool LinkDmpIdentity(string devicePid = null, string userPid = null)
+        {
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            using (var bridge = new AndroidJavaClass("com.dkmads.ssp.unity.DKMadsUnityBridge"))
+            {
+                return bridge.CallStatic<bool>("linkDmpIdentity", devicePid, userPid);
+            }
+            #elif UNITY_IOS && !UNITY_EDITOR
+            return dkmads_link_dmp_identity(devicePid, userPid);
+            #else
+            Debug.Log($"[DKMadsSdk] LinkDmpIdentity devicePid={devicePid} userPid={userPid}");
+            return false;
             #endif
         }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.23
+
+- `DKMadsSdk.Initialize(..., dmpAppKey, dmpApiHost)` — DMP co-init on native init.
+- `DKMadsSdk.LinkDmpIdentity(devicePid, userPid)` — explicit identity handoff.
+
 ## 0.5.22
 
 - Tracks native SDK **0.5.22** (server `render_mode` hint, MRAID 2.0, OMID measurement seam, structured native assets).

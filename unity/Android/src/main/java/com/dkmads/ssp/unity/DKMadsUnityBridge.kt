@@ -27,12 +27,26 @@ object DKMadsUnityBridge {
 
   @JvmStatic
   fun initialize(activity: Activity, integrationKey: String, propertyId: String?, propertyCode: String?) {
+    initialize(activity, integrationKey, propertyId, propertyCode, null, null)
+  }
+
+  @JvmStatic
+  fun initialize(
+    activity: Activity,
+    integrationKey: String,
+    propertyId: String?,
+    propertyCode: String?,
+    dmpAppKey: String?,
+    dmpApiHost: String?,
+  ) {
     val config = Config(
       integrationKey = integrationKey,
       propertyId = propertyId,
       propertyCode = propertyCode,
       debug = false,
-      baseUrl = "https://ssp.dkmads.com"
+      baseUrl = "https://ssp.dkmads.com",
+      dmpAppKey = dmpAppKey,
+      dmpApiHost = dmpApiHost,
     )
     SSPSDK.initialize(activity.applicationContext, config)
   }
@@ -126,6 +140,10 @@ object DKMadsUnityBridge {
     val cleaned = raw.filterValues { it != null }.mapValues { (_, v) -> v as Any }
     SSPSDK.setUserData(cleaned)
   }
+
+  @JvmStatic
+  fun linkDmpIdentity(devicePid: String?, userPid: String?): Boolean =
+    SSPSDK.linkDmpIdentity(devicePid?.takeIf { it.isNotBlank() }, userPid?.takeIf { it.isNotBlank() })
 
   @JvmStatic
   fun trackUserEvent(name: String, jsonPayload: String) {

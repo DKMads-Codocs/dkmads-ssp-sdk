@@ -12,6 +12,7 @@ import AVFoundation
     private var consentConfigured = false
     private var adUnits: [String: AdUnit] = [:]
     private var sdkInitialized = false
+    private var identitySource = "ssp"
     @objc public private(set) var lastBidDiagnostics: DKMadsBidDiagnostics?
 
     private override init() {
@@ -22,11 +23,23 @@ import AVFoundation
     @objc public var isDebugEnabled: Bool { config?.debug == true }
 
     @objc public func initialize(with config: SSPSDKConfig) {
-        self.config = config
-        let defaultDevicePid = DeviceIdentity.getOrCreateDevicePid()
-        if (targetingSignals.devicePid ?? "").isEmpty {
-            targetingSignals.devicePid = defaultDevicePid
+        if let rawKey = config.dmpAppKey?.trimmingCharacters(in: .whitespacesAndNewlines), !rawKey.isEmpty {
+            config.useDmpIdentity = true
         }
+        self.config = config
+        var resolvedDevicePid = targetingSignals.devicePid?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if resolvedDevicePid?.isEmpty != false {
+            if config.useDmpIdentity, let dmpPid = DmpIdentityBridge.readDevicePid() {
+                resolvedDevicePid = dmpPid
+                identitySource = "dmp_storage"
+            }
+            if resolvedDevicePid?.isEmpty != false {
+                resolvedDevicePid = DeviceIdentity.getOrCreateDevicePid()
+                identitySource = "ssp"
+            }
+            targetingSignals.devicePid = resolvedDevicePid
+        }
+        let defaultDevicePid = resolvedDevicePid ?? DeviceIdentity.getOrCreateDevicePid()
         TelemetryManager.shared.configure(with: config)
         refreshCmpConsent()
         TelemetryManager.shared.setIdentityProvider { [weak self] in
@@ -56,6 +69,12 @@ import AVFoundation
 
         sdkInitialized = true
         log("SDK initialized")
+
+        if let rawKey = config.dmpAppKey?.trimmingCharacters(in: .whitespacesAndNewlines), !rawKey.isEmpty {
+            DmpCoInit.coInit(config: config) { [weak self] devicePid, userPid in
+                self?.linkDmpIdentity(devicePid: devicePid, userPid: userPid) ?? false
+            }
+        }
     }
 
     @objc public func canRequestAds() -> Bool {
@@ -303,6 +322,45 @@ import AVFoundation
         targetingSignals = signals
         userData = userData.merging(signals.toUserData()) { _, new in new }
     }
+
+    /// Share DMP device_pid / user_pid with SSP for bid-time audience eval.
+    /// Pass nil devicePid to read from DMP UserDefaults (`dkmads_dmp_device_pid`).
+    @objc @discardableResult
+    public func linkDmpIdentity(devicePid: String? = nil, userPid: String? = nil) -> Bool {
+        let explicitPid = devicePid?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pid = (explicitPid?.isEmpty == false ? explicitPid : nil) ?? DmpIdentityBridge.readDevicePid()
+        guard let pid, !pid.isEmpty else { return false }
+        let trimmedUser = userPid?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let linkedUserPid = (trimmedUser?.isEmpty == false ? trimmedUser : nil)
+        targetingSignals.devicePid = pid
+        if let linkedUserPid { targetingSignals.userPid = linkedUserPid }
+        userData["device_pid"] = pid
+        if let linkedUserPid { userData["user_pid"] = linkedUserPid }
+        identitySource = devicePid != nil ? "dmp_explicit" : "dmp_storage"
+        log("DMP identity linked (source=\(identitySource))")
+        return true
+    }
+
+    /// Initialize DMP when `dmpAppKey` is set on config (or pass appKey explicitly).
+    @objc @discardableResult
+    public func coInitDmp(appKey: String? = nil, apiHost: String? = nil) -> Bool {
+        guard var cfg = config else { return false }
+        let resolvedKey = appKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = (resolvedKey?.isEmpty == false ? resolvedKey : nil) ?? cfg.dmpAppKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let key, !key.isEmpty else { return false }
+        cfg.dmpAppKey = key
+        if let host = apiHost?.trimmingCharacters(in: .whitespacesAndNewlines), !host.isEmpty {
+            cfg.dmpApiHost = host
+        }
+        cfg.useDmpIdentity = true
+        config = cfg
+        DmpCoInit.coInit(config: cfg) { [weak self] devicePid, userPid in
+            self?.linkDmpIdentity(devicePid: devicePid, userPid: userPid) ?? false
+        }
+        return true
+    }
+
+    @objc public func identitySourceLabel() -> String { identitySource }
 
     /// Sync structured profile to `POST /api/public/v1/fpd/mobile` (requires `devicePid`).
     public func syncFirstPartyProfile(appBundle: String? = nil, completion: ((Result<Void, Error>) -> Void)? = nil) {

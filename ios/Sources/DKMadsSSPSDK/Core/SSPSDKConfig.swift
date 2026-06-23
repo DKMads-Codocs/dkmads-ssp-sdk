@@ -13,6 +13,11 @@ import Foundation
     @objc public var baseURL: String = "https://ssp.dkmads.com"
     /// When true, ad requests are blocked until setConsent is called.
     @objc public var requireConsentBeforeAds: Bool = false
+    /// When true, prefer DMP UserDefaults device_pid over generating an SSP-only id.
+    @objc public var useDmpIdentity: Bool = false
+    /// When set, SSP co-inits DMP SDK (when DKMadsDMP is linked) and links device_pid.
+    @objc public var dmpAppKey: String?
+    @objc public var dmpApiHost: String?
 
     @objc public init(integrationKey: String, propertyId: String? = nil, propertyCode: String? = nil) {
         self.integrationKey = integrationKey
