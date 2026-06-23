@@ -1,0 +1,124 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.dkmads.ssp",
+    "module": "ssp-android",
+    "version": "0.5.15",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.10.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.9.25"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ssp-android-0.5.15.aar",
+          "url": "ssp-android-0.5.15.aar",
+          "size": 353747,
+          "sha512": "6a3ad57263bcb50ed401a76c4c034a349bfdde335f0011f3128bd0e45be2fabe488ebde058fbeddd632e0ec40ef58c1ad5135f77b4e7ce72c3e730878a3fa40f",
+          "sha256": "fbc89664bd14d9b64d2945415186645cf14cdc5ff8d057db472762ec61a52d01",
+          "sha1": "259ec5ffa29b0c01a90072854f047a870eb02267",
+          "md5": "a9c34e67cb8ce27d7bdcb7788024d13f"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.1"
+          }
+        },
+        {
+          "group": "androidx.media3",
+          "module": "media3-exoplayer",
+          "version": {
+            "requires": "1.4.1"
+          }
+        },
+        {
+          "group": "androidx.media3",
+          "module": "media3-exoplayer-hls",
+          "version": {
+            "requires": "1.4.1"
+          }
+        },
+        {
+          "group": "androidx.media3",
+          "module": "media3-ui",
+          "version": {
+            "requires": "1.4.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.9.25"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ssp-android-0.5.15.aar",
+          "url": "ssp-android-0.5.15.aar",
+          "size": 353747,
+          "sha512": "6a3ad57263bcb50ed401a76c4c034a349bfdde335f0011f3128bd0e45be2fabe488ebde058fbeddd632e0ec40ef58c1ad5135f77b4e7ce72c3e730878a3fa40f",
+          "sha256": "fbc89664bd14d9b64d2945415186645cf14cdc5ff8d057db472762ec61a52d01",
+          "sha1": "259ec5ffa29b0c01a90072854f047a870eb02267",
+          "md5": "a9c34e67cb8ce27d7bdcb7788024d13f"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseSourcePublication",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "ssp-android-0.5.15-sources.jar",
+          "url": "ssp-android-0.5.15-sources.jar",
+          "size": 56342,
+          "sha512": "1085c15b9f6f7c1febf1ebbffb1807eeb9cf00fcd766b212275b35adbeb7f209c55ca9406b9886facc5816f21ba17f8981bf06f18bdcda5a523b573a0374de37",
+          "sha256": "7a84664d51c1997a0454c8a1d476ae51afece87c3ecc61d609a413e4dea278a2",
+          "sha1": "155ecb543ea9fab7bba4c07d400c49a52d2b2784",
+          "md5": "68e837b523fc82f0cb6d001db408878c"
+        }
+      ]
+    }
+  ]
+}

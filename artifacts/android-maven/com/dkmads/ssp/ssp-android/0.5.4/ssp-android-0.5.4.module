@@ -1,0 +1,103 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.dkmads.ssp",
+    "module": "ssp-android",
+    "version": "0.5.4",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.10.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.9.25"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ssp-android-0.5.4.aar",
+          "url": "ssp-android-0.5.4.aar",
+          "size": 327110,
+          "sha512": "dbb957990ca20b2869327f5be234e2ebf9002cd7602fd4e582173c234d8f67efd146a2d7e07c6d9619667f5886db3eb27bba5708e610b11a8632f14e697c61fe",
+          "sha256": "63e659891804c614acac14c4dd36d3e29514d0ac6263f1366fe68ef2e1fc53f2",
+          "sha1": "b59277db64806067351b2e2b15b36859f745436b",
+          "md5": "1715503fbc6779d5c2f8ae318abe22da"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.9.25"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ssp-android-0.5.4.aar",
+          "url": "ssp-android-0.5.4.aar",
+          "size": 327110,
+          "sha512": "dbb957990ca20b2869327f5be234e2ebf9002cd7602fd4e582173c234d8f67efd146a2d7e07c6d9619667f5886db3eb27bba5708e610b11a8632f14e697c61fe",
+          "sha256": "63e659891804c614acac14c4dd36d3e29514d0ac6263f1366fe68ef2e1fc53f2",
+          "sha1": "b59277db64806067351b2e2b15b36859f745436b",
+          "md5": "1715503fbc6779d5c2f8ae318abe22da"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseSourcePublication",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "ssp-android-0.5.4-sources.jar",
+          "url": "ssp-android-0.5.4-sources.jar",
+          "size": 50795,
+          "sha512": "197327e438fc2a5f1f10d258b4939115b5fb8644be66cd59404a7e5ef0c7da1ff827f26df9249661d19eb720bc74013030b36c38738105be10842ec34a6a0e3e",
+          "sha256": "455dce98ff81696340547fb99cc9257d9110587afea76df57a027486df143d15",
+          "sha1": "8984b9ad2750ee00f3ef5941d2831ebb729d698d",
+          "md5": "81d133b70600b8c83e6b60dde98bf248"
+        }
+      ]
+    }
+  ]
+}
