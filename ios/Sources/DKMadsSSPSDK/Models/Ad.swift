@@ -29,6 +29,10 @@ import Foundation
     @objc public let unitFormat: String?
     @objc public let placementContext: String?
     @objc public let omidVerifications: [DKMadsOmidVerification]
+    /// `contain` | `cover` | `exact` | `contain_blur` from bid `slot_fit`.
+    @objc public let slotFit: String?
+    @objc public let slotW: Int
+    @objc public let slotH: Int
 
     private let bidPayload: [String: Any]
 
@@ -93,7 +97,15 @@ import Foundation
         self.unitFormat = format.isEmpty ? nil : format
         let context = (dictionary["placement_context"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.placementContext = context.isEmpty ? nil : context
+        let fit = (dictionary["slot_fit"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.slotFit = fit.isEmpty ? nil : fit
+        self.slotW = (dictionary["slot_w"] as? Int) ?? (dictionary["slotW"] as? Int) ?? 0
+        self.slotH = (dictionary["slot_h"] as? Int) ?? (dictionary["slotH"] as? Int) ?? 0
         self.omidVerifications = Ad.parseOmidVerifications(from: dictionary)
+    }
+
+    @objc public var usesContainBlurLayout: Bool {
+        DKMadsVideoSlotFit.isContainBlur(slotFit)
     }
 
     private static func parseOmidVerifications(from dictionary: [String: Any]) -> [DKMadsOmidVerification] {

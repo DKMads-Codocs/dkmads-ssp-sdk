@@ -38,10 +38,12 @@ enum AdVideoPlayback {
             && url.host?.lowercased() == AdVideoWebEvents.completeHost
     }
 
-    static func loadWebMarkup(ad: Ad, in webView: WKWebView, autoplay: Bool, slotSize: CGSize? = nil) {
+    static func loadWebMarkup(ad: Ad, in webView: WKWebView, autoplay: Bool, slotSize: CGSize? = nil, preservePackagedBlur: Bool = false) {
         let html: String
         if let adm = ad.adm, !adm.isEmpty {
-            if let slotSize, slotSize.width > 0, slotSize.height > 0 {
+            if preservePackagedBlur || DKMadsVideoSlotFit.admIncludesBlurStage(adm) {
+                html = adm
+            } else if let slotSize, slotSize.width > 0, slotSize.height > 0 {
                 html = DKMadsBannerCreativeLayout.htmlForBanner(adm: adm, slotSize: slotSize)
             } else {
                 html = adm

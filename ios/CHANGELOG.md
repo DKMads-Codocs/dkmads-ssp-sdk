@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.25
+
+- **`contain_blur` instream fit:** 1:1 (and other) creatives center inside the player with a glass-blur video backdrop (`slot_fit: contain_blur` from ad unit targeting).
+- **Bid parity:** parses `slot_fit`, `slot_w`, `slot_h` on video wins; native MP4 uses dual-player blur; packaged HTML ADM with `dkmads-slot-fit-blur` loads as-is.
+
 ## 0.5.24
 
 - **GitHub mirror parity** — publisher-repo release sync (Phase 15 + S2). See monorepo notes if you were on stale `sdk-0.5.23` tag.

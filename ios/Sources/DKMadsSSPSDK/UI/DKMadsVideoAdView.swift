@@ -57,6 +57,7 @@ import WebKit
     private var webPlaybackCompleted = false
     private var nativePlaybackHandle: AdNativePlaybackHandle?
     private var omidSession: DKMadsOmidSession?
+    private var blurBackground: DKMadsVideoBlurBackground?
 
     @objc public init(adUnitID: String, frame: CGRect = .zero) {
         self.adUnitID = adUnitID
@@ -168,7 +169,9 @@ import WebKit
     public override func layoutSubviews() {
         super.layoutSubviews()
         playerLayer?.frame = playerView.bounds
-        playerLayer?.videoGravity = prefersAspectFill ? .resizeAspectFill : .resizeAspect
+        let useBlur = loadedAd?.usesContainBlurLayout == true
+        playerLayer?.videoGravity = (prefersAspectFill && !useBlur) ? .resizeAspectFill : .resizeAspect
+        blurBackground?.layoutBlurLayer()
         if loadedAd != nil, window != nil {
             startViewabilityIfNeeded()
         }
@@ -197,9 +200,6 @@ import WebKit
         webView.translatesAutoresizingMaskIntoConstraints = false
 
         playerView.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
-        playerView.translatesAutoresizingMaskIntoConstraints = false
-
-        addSubview(playerView)
         addSubview(webView)
         NSLayoutConstraint.activate([
             playerView.topAnchor.constraint(equalTo: topAnchor),
@@ -221,6 +221,18 @@ import WebKit
     private func render(ad: Ad) {
         webPlaybackStarted = false
         webPlaybackCompleted = false
+        let useBlur = ad.usesContainBlurLayout
+        if useBlur {
+            playerView.backgroundColor = .clear
+            playerLayer?.backgroundColor = UIColor.clear.cgColor
+            if blurBackground == nil { blurBackground = DKMadsVideoBlurBackground() }
+            blurBackground?.attach(in: self, below: playerView)
+        } else {
+            blurBackground?.release()
+            blurBackground = nil
+            playerView.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
+            playerLayer?.backgroundColor = UIColor.black.cgColor
+        }
         switch ad.preferredRenderer {
         case .nativeMP4:
             webView.isHidden = true
@@ -247,6 +259,9 @@ import WebKit
                     self.isPlaybackMuted = muted
                     let durationSec = Float(CMTimeGetSeconds(self.player.currentItem?.duration ?? .zero))
                     self.startOmidVideoSession(durationSec: durationSec.isFinite ? durationSec : 0, muted: muted)
+                    if useBlur {
+                        self.blurBackground?.bind(mainPlayer: self.player)
+                    }
                     self.attachVideoClickOverlay(ad: ad)
                     self.attachVideoChrome(ad: ad)
                     self.delegate?.videoAdViewDidStartPlayback?(self)
@@ -278,9 +293,22 @@ import WebKit
                     DKMadsBannerCreativeLayout.htmlForFullscreen(adm: adm, slotSize: slot),
                     baseURL: AdVideoPlayback.baseURL
                 )
+            } else if useBlur, let adm = ad.adm, !adm.isEmpty,
+                      DKMadsVideoSlotFit.admIncludesBlurStage(adm) {
+                webView.loadHTMLString(adm, baseURL: AdVideoPlayback.baseURL)
             } else {
-                lastVideoRenderSize = DKMadsBannerCreativeLayout.renderSlotSize(adSize: lastBidVideoSize, bounds: bounds.size)
-                AdVideoPlayback.loadWebMarkup(ad: ad, in: webView, autoplay: autoplay, slotSize: lastVideoRenderSize)
+                let stage = DKMadsVideoSlotFit.playerStageSize(
+                    containerBounds: bounds.size,
+                    bidSize: lastBidVideoSize
+                )
+                lastVideoRenderSize = stage
+                AdVideoPlayback.loadWebMarkup(
+                    ad: ad,
+                    in: webView,
+                    autoplay: autoplay,
+                    slotSize: stage,
+                    preservePackagedBlur: useBlur
+                )
             }
         }
     }
@@ -478,6 +506,8 @@ import WebKit
         nativePlaybackHandle = nil
         omidSession?.finish()
         omidSession = nil
+        blurBackground?.release()
+        blurBackground = nil
         player.pause()
         player.replaceCurrentItem(with: nil)
         webView.loadHTMLString("", baseURL: nil)

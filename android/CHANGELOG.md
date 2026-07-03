@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.25
+
+- **`contain_blur` instream fit:** centered creative + blurred zoomed backdrop for square instream in responsive players (`slot_fit` from bid).
+- **Bid parity:** `slot_fit` / `slot_w` / `slot_h` on `Ad`; API 31+ uses `RenderEffect` blur, older devices use zoom + dim fallback.
+
 ## 0.5.24
 
 - **GitHub mirror parity:** first publisher-repo release containing Phase 15 + S2 identity bridge (prior tag `sdk-0.5.23` on GitHub was stale).

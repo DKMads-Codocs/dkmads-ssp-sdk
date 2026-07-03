@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.25
+
+- Tracks native SDK **0.5.25** (`contain_blur` instream glass-blur player fit for 1:1 creatives).
+
 ## 0.5.24
 
 - Tracks native SDK **0.5.24** (GitHub mirror parity — Phase 15 identity bridge, `native_assets` `hasFill`, DMP docs).

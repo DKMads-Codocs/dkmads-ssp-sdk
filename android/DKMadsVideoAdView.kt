@@ -63,6 +63,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private val videoContainer = FrameLayout(context)
     private val webView: WebView
     private var nativeVideo: DKMadsNativeVideoSurface? = null
+    private var blurNative: DKMadsVideoBlurNativeSurface? = null
     private var chromeControlsRow: LinearLayout? = null
     private var chromeSkipSlot: FrameLayout? = null
     private var chromeScrim: View? = null
@@ -212,11 +213,20 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
     private fun renderNative(ad: Ad) {
         val playbackUrl = ad.playableVideoUrl ?: return
-            webView.visibility = GONE
+        webView.visibility = GONE
         videoContainer.visibility = VISIBLE
         isPrepared = false
         cancelPlaybackTimeouts()
         nativeVideo?.release()
+        nativeVideo = null
+        blurNative?.release()
+        blurNative = null
+
+        if (ad.usesContainBlurLayout) {
+            renderNativeBlur(ad, playbackUrl)
+            return
+        }
+
         nativeVideo = DKMadsNativeVideoSurface(context, videoContainer).also { surface ->
             isMuted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
             prepareTimeoutRunnable = Runnable {
@@ -277,13 +287,74 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         }
     }
 
+    private fun renderNativeBlur(ad: Ad, playbackUrl: String) {
+        blurNative = DKMadsVideoBlurNativeSurface(context, videoContainer).also { surface ->
+            isMuted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
+            prepareTimeoutRunnable = Runnable {
+                if (!isPrepared && !playbackCompleted) {
+                    listener?.onAdFailed(this, "Video playback timed out while loading", responseInfo)
+                }
+            }.also { postDelayed(it, INITIAL_LOAD_TIMEOUT_MS) }
+            surface.play(
+                url = playbackUrl,
+                autoplay = autoplay,
+                muted = isMuted,
+                callbacks = object : DKMadsVideoBlurNativeSurface.Callbacks {
+                    override fun onReady(durationMs: Long) {
+                        isPrepared = true
+                        cancelPrepareTimeout()
+                        attachVideoClickOverlay(ad)
+                        setupVideoChrome(ad)
+                        attachCompanion(ad)
+                        startOmidVideoSession(ad, durationMs, isMuted)
+                        videoTracker = SSPSDK.trackVideoLifecycle(
+                            adUnitId = adUnitId,
+                            campaignId = ad.campaignId,
+                            creativeId = ad.creativeId ?: ad.id,
+                            containerView = this@DKMadsVideoAdView,
+                            durationMsProvider = { surface.durationMs() },
+                            currentPositionMsProvider = { surface.currentPositionMs() },
+                            isPlayingProvider = { surface.isPlaying() },
+                            skippable = isSkippable,
+                            eventListener = { event, _ -> forwardOmidVideoEvent(event) },
+                        )
+                        if (autoplay) {
+                            listener?.onPlaybackStarted(this@DKMadsVideoAdView)
+                        }
+                        startBlurProgressUpdates(surface)
+                        post { startViewability() }
+                    }
+
+                    override fun onBuffering(buffering: Boolean) {
+                        listener?.onPlaybackBuffering(this@DKMadsVideoAdView, buffering)
+                    }
+
+                    override fun onComplete() {
+                        completePlayback(skipped = false)
+                    }
+
+                    override fun onError(message: String) {
+                        cancelPlaybackTimeouts()
+                        listener?.onAdFailed(this@DKMadsVideoAdView, message, responseInfo)
+                    }
+                },
+            )
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun renderWeb(ad: Ad) {
         videoContainer.visibility = GONE
         nativeVideo?.release()
         nativeVideo = null
-            webView.visibility = VISIBLE
-        val renderSlot = DKMadsBannerCreativeLayout.renderSlotSize(lastBidWidth, lastBidHeight, width, height)
+        blurNative?.release()
+        blurNative = null
+        webView.visibility = VISIBLE
+        val renderSlot = if (ad.usesContainBlurLayout) {
+            DKMadsVideoSlotFit.playerStageSize(width, height, lastBidWidth, lastBidHeight)
+        } else {
+            DKMadsBannerCreativeLayout.renderSlotSize(lastBidWidth, lastBidHeight, width, height)
+        }
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                 webContentReady = true
@@ -312,16 +383,21 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 }
             }
         webContentReady = false
-            if (ad.adm.isNotBlank()) {
+        if (ad.adm.isNotBlank()) {
+            val html = if (ad.usesContainBlurLayout && DKMadsVideoSlotFit.admIncludesBlurStage(ad.adm)) {
+                ad.adm
+            } else {
+                DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second)
+            }
             webView.loadDataWithBaseURL(
                 "https://ssp.dkmads.com",
-                DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second),
+                html,
                 "text/html",
                 "UTF-8",
                 null,
             )
-            } else if (ad.html5EntryUrl.isNotBlank()) {
-                webView.loadUrl(ad.html5EntryUrl)
+        } else if (ad.html5EntryUrl.isNotBlank()) {
+            webView.loadUrl(ad.html5EntryUrl)
         }
     }
 
@@ -340,6 +416,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         videoTracker?.stop()
         videoTracker = null
         nativeVideo?.stop()
+        blurNative?.stop()
         listener?.onAdComplete(this, skipped)
     }
 
@@ -413,9 +490,9 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         if (!DKMadsVideoChrome.showsMute(ad.videoTemplate)) return
         val btn = DKMadsVideoChrome.muteIconButton(context, isMuted)
         btn.setOnClickListener {
-            val surface = nativeVideo ?: return@setOnClickListener
             isMuted = !isMuted
-            surface.setMuted(isMuted)
+            nativeVideo?.setMuted(isMuted)
+            blurNative?.setMuted(isMuted)
             DKMadsVideoChrome.updateMuteIcon(btn, isMuted)
         }
         row.addView(
@@ -442,6 +519,24 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
     private fun attachVideoChrome(ad: Ad) {
         setupVideoChrome(ad)
+    }
+
+    private fun startBlurProgressUpdates(surface: DKMadsVideoBlurNativeSurface) {
+        progressRunnable?.let { removeCallbacks(it) }
+        val runnable = object : Runnable {
+            override fun run() {
+                val bar = progressBar
+                if (bar != null && !playbackCompleted) {
+                    val dur = surface.durationMs()
+                    if (dur > 0) {
+                        bar.progress = ((surface.currentPositionMs() * 100) / dur).toInt().coerceIn(0, 100)
+                    }
+                    postDelayed(this, 200)
+                }
+            }
+        }
+        progressRunnable = runnable
+        post(runnable)
     }
 
     private fun startProgressUpdates(surface: DKMadsNativeVideoSurface) {
@@ -724,6 +819,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         SSPSDK.stopVideoLifecycleTracking(adUnitId)
         nativeVideo?.release()
         nativeVideo = null
+        blurNative?.release()
+        blurNative = null
         videoContainer.visibility = GONE
         webView.loadDataWithBaseURL(null, "", "text/html", "UTF-8", null)
         webView.visibility = GONE

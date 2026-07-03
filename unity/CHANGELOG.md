@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.25
+
+- Tracks native SDK **0.5.25** (`contain_blur` instream glass-blur player fit).
+
 ## 0.5.24
 
 - `DKMadsSdk.LinkDmpIdentity` + `dmpAppKey` co-init (mirror parity with native 0.5.24).

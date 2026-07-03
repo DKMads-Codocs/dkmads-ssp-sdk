@@ -217,6 +217,9 @@ object SSPSDK {
                     unitFormat = adData.optString("unit_format").takeIf { it.isNotBlank() },
                     placementContext = adData.optString("placement_context").takeIf { it.isNotBlank() },
                     refreshIntervalSec = refreshSec,
+                    slotFit = adData.optString("slot_fit").takeIf { it.isNotBlank() },
+                    slotW = adData.optInt("slot_w", adData.optInt("slotW", 0)),
+                    slotH = adData.optInt("slot_h", adData.optInt("slotH", 0)),
                 )
 
                 recordBidDiagnostics(adUnitCode, format.name.lowercase(), ad, latencyMs, refreshSec)
@@ -881,9 +884,15 @@ data class Ad(
     val unitFormat: String? = null,
     val placementContext: String? = null,
     val refreshIntervalSec: Int? = null,
+    /** `contain` | `cover` | `exact` | `contain_blur` from bid `slot_fit`. */
+    val slotFit: String? = null,
+    val slotW: Int = 0,
+    val slotH: Int = 0,
     /** Set after [recordAdImpression] (avoids duplicate on [DKMadsVideoAdView.display] / interstitial). */
     val impressionRecorded: Boolean = false,
 ) {
+    val usesContainBlurLayout: Boolean
+        get() = DKMadsVideoSlotFit.isContainBlur(slotFit)
     /** Normalized server render hint, or null when absent (older servers). */
     val renderModeHint: String?
         get() = renderMode?.lowercase()?.takeIf { it.isNotBlank() }
@@ -1021,4 +1030,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.24"
+const val SDK_VERSION = "0.5.25"
