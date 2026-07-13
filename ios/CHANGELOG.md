@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.29
+
+- **Skip stays visible:** companion image and click overlay no longer cover Skip/mute; chrome is kept on top for the entire ad.
+- Companion sits above the chrome bar with clearance so Skip remains tappable after the image loads.
+
 ## 0.5.28
 
 - **Single chrome owner:** if WebView ADM already includes packaged `.dkmads-chrome-*` (skip/mute/progress), do not add native Skip/mute/progress.

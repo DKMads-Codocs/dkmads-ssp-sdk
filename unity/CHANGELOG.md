@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.29
+
+- Tracks native SDK **0.5.29** (Skip stays above companion / click overlay for the entire ad).
+
 ## 0.5.28
 
 - Tracks native SDK **0.5.28** (single video chrome owner; iOS Skip countdown).

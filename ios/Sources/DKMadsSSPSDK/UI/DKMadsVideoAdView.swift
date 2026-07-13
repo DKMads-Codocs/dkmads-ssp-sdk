@@ -280,6 +280,7 @@ import WebKit
                 self.delegate?.videoAdViewDidStartPlayback?(self)
                 self.attachClickThroughCta(ad: ad)
                 self.attachCompanion(ad: ad)
+                self.bringControlsToFront()
             },
             onBuffering: { [weak self] buffering in
                 guard let self else { return }
@@ -461,9 +462,9 @@ import WebKit
 
     private func ensureSkipButton() {
         if skipButton != nil { return }
-        let button = UIButton(type: .system)
+        let button = UIButton(type: .custom)
         button.setTitleColor(.white, for: .normal)
-        button.setTitleColor(UIColor.white.withAlphaComponent(0.55), for: .disabled)
+        button.setTitleColor(UIColor.white.withAlphaComponent(0.7), for: .disabled)
         button.backgroundColor = UIColor(red: 18 / 255, green: 18 / 255, blue: 18 / 255, alpha: 0.55)
         button.layer.cornerRadius = 16
         button.layer.borderWidth = 1
@@ -473,6 +474,7 @@ import WebKit
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
         addSubview(button)
+        bringControlsToFront()
         let bottomInset = DKMadsVideoChrome.chromeBottomInset(
             hasProgress: DKMadsVideoChrome.showsProgress(template: loadedAd?.videoTemplate)
         )
@@ -503,6 +505,14 @@ import WebKit
         skipTimer = nil
     }
 
+    /// Keep Skip / mute above companions, CTA, and the full-bleed click overlay for the whole ad.
+    private func bringControlsToFront() {
+        if let ctaButton { bringSubviewToFront(ctaButton) }
+        if let muteButton { bringSubviewToFront(muteButton) }
+        // Skip last so it stays tappable for the entire ad.
+        if let skipButton { bringSubviewToFront(skipButton) }
+    }
+
     private func attachVideoChrome(ad: Ad) {
         removeVideoChrome()
         guard DKMadsVideoChrome.showsMute(template: ad.videoTemplate) else { return }
@@ -517,6 +527,7 @@ import WebKit
             button.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
         ])
         muteButton = button
+        bringControlsToFront()
     }
 
     private func removeVideoChrome() {
@@ -719,20 +730,26 @@ extension DKMadsVideoAdView: WKNavigationDelegate {
         if imageView.isUserInteractionEnabled {
             imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(companionTapped)))
         }
+        // Sit above the chrome bar so Skip/mute stay visible for the entire ad.
+        let chromeClearance = DKMadsVideoChrome.chromeBottomInset(
+            hasProgress: DKMadsVideoChrome.showsProgress(template: ad.videoTemplate)
+        ) + 36
         addSubview(imageView)
         NSLayoutConstraint.activate([
             imageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
             imageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
-            imageView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
+            imageView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -chromeClearance),
             imageView.heightAnchor.constraint(lessThanOrEqualToConstant: 96),
         ])
         companionImageView = imageView
-        URLSession.shared.dataTask(with: url) { [weak imageView] data, _, _ in
+        URLSession.shared.dataTask(with: url) { [weak self, weak imageView] data, _, _ in
             guard let data, let image = UIImage(data: data) else { return }
             DispatchQueue.main.async {
                 imageView?.image = image
+                self?.bringControlsToFront()
             }
         }.resume()
+        bringControlsToFront()
     }
 
     @objc private func companionTapped() {

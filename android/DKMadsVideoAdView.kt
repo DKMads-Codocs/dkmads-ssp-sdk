@@ -288,7 +288,10 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                             listener?.onPlaybackStarted(this@DKMadsVideoAdView)
                 }
                         startProgressUpdates(surface)
-                post { startViewability() }
+                post {
+                    startViewability()
+                    bringControlsToFront()
+                }
             }
 
                     override fun onBuffering(buffering: Boolean) {
@@ -353,7 +356,10 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                             listener?.onPlaybackStarted(this@DKMadsVideoAdView)
                         }
                         startBlurProgressUpdates(surface)
-                        post { startViewability() }
+                        post {
+                            startViewability()
+                            bringControlsToFront()
+                        }
                     }
 
                     override fun onBuffering(buffering: Boolean) {
@@ -403,7 +409,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     setupVideoChrome(ad)
                 }
                 attachVideoClickOverlay(ad)
-                    post { startViewability() }
+                bringControlsToFront()
+                post { startViewability() }
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -621,6 +628,15 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         progressBar = null
     }
 
+    /** Keep Skip / mute / progress above companions and the click overlay for the whole ad. */
+    private fun bringControlsToFront() {
+        ctaButton?.bringToFront()
+        chromeScrim?.bringToFront()
+        progressBar?.bringToFront()
+        // Chrome row (Skip + mute) last so Skip stays visible/tappable for the entire ad.
+        chromeControlsRow?.bringToFront()
+    }
+
     private fun scheduleSkip(ad: Ad) {
         if (!DKMadsVideoChrome.showsSkip(ad.videoTemplate, isSkippable)) return
         cancelSkip()
@@ -690,6 +706,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         val lp = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         addView(overlay, lp)
         clickOverlay = overlay
+        // Overlay is full-bleed; chrome must stay above it for the whole ad.
+        bringControlsToFront()
     }
 
     private fun removeVideoClickOverlay() {
@@ -744,12 +762,18 @@ class DKMadsVideoAdView @JvmOverloads constructor(
             scaleType = ImageView.ScaleType.FIT_CENTER
             setBackgroundColor(Color.TRANSPARENT)
         }
+        // Sit above the chrome bar so Skip/mute stay visible for the entire ad.
+        val chromeClearance = DKMadsVideoChrome.chromeBottomInsetPx(
+            context,
+            DKMadsVideoChrome.showsProgress(ad.videoTemplate),
+        ) + (36 * resources.displayMetrics.density).toInt()
         val lp = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
             val m = (4 * resources.displayMetrics.density).toInt()
-            setMargins(m, m, m, m)
+            setMargins(m, m, m, chromeClearance)
         }
         addView(image, lp)
         companionView = image
+        bringControlsToFront()
         scope.launch {
             val bitmap = withContext(Dispatchers.IO) {
                 runCatching { URL(companionUrl).openStream().use { android.graphics.BitmapFactory.decodeStream(it) } }.getOrNull()
@@ -763,6 +787,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ad.clickUrl)))
                     }
                 }
+                bringControlsToFront()
             } else {
                 removeCompanion()
             }
