@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.27
+
+- Tracks native SDK **0.5.27** (video load timeout, native→web fallback, iOS video crash fix).
+
 ## 0.5.26
 
 - Tracks native SDK **0.5.26** (interstitial HTML5 package center + scale letterbox).

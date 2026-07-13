@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.27
+
+- **P0:** Fix `DKMadsVideoAdView` crash — `playerView` is added to the hierarchy before Auto Layout constraints (was missing `addSubview`).
+- **P0:** Raise initial video load timeout to **45s** (stall timeout **20s**) for large progressive house MP4s.
+- **P1:** `DKMadsAdError.nsError(userInfo:)` preserves caller `NSLocalizedDescriptionKey` (timeouts no longer show as generic “Video playback failed.”).
+- **P1:** Native MP4/HLS failure falls back to WebView when `adm` contains `<video>`.
+
 ## 0.5.26
 
 - **Interstitial HTML5 packages:** center + scale hosted `html5_entry_url` creatives to fit the screen (outer WebView transform / letterbox). Package-sized viewport only — creative DOM is not rewritten. Fixes top-left 320×480 on fullscreen.

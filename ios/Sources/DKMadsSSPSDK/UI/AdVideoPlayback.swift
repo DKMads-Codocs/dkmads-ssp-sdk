@@ -3,8 +3,8 @@ import Foundation
 import WebKit
 
 enum AdVideoPlayback {
-    static let initialLoadTimeout: TimeInterval = 15
-    static let bufferStallTimeout: TimeInterval = 12
+    static let initialLoadTimeout: TimeInterval = 45
+    static let bufferStallTimeout: TimeInterval = 20
     static let baseURL = URL(string: "https://ssp.dkmads.com")
 
     static func makeWebViewConfiguration(bridge: AdVideoWebPlaybackBridge) -> WKWebViewConfiguration {

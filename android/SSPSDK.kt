@@ -962,6 +962,10 @@ data class Ad(
             return DKMadsCreativeRenderer.WEB_MARKUP
         }
 
+    /** True when HTML `adm` contains a playable `<video>` — used to fall back if native MP4 fails. */
+    val hasWebVideoFallback: Boolean
+        get() = AdMediaParsing.hasVideoMarkup(adm)
+
     val isAudio: Boolean
         get() {
             renderModeHint?.let { return it == "audio" }
@@ -1030,4 +1034,4 @@ sealed class SDKError : Exception() {
 }
 
 // SDK version
-const val SDK_VERSION = "0.5.26"
+const val SDK_VERSION = "0.5.27"

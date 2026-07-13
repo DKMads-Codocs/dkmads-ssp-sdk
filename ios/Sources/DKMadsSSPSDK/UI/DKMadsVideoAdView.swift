@@ -58,6 +58,7 @@ import WebKit
     private var nativePlaybackHandle: AdNativePlaybackHandle?
     private var omidSession: DKMadsOmidSession?
     private var blurBackground: DKMadsVideoBlurBackground?
+    private var didAttemptWebFallback = false
 
     @objc public init(adUnitID: String, frame: CGRect = .zero) {
         self.adUnitID = adUnitID
@@ -200,6 +201,9 @@ import WebKit
         webView.translatesAutoresizingMaskIntoConstraints = false
 
         playerView.backgroundColor = DKMadsCreativeChrome.letterboxBackgroundColor
+        playerView.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(playerView)
         addSubview(webView)
         NSLayoutConstraint.activate([
             playerView.topAnchor.constraint(equalTo: topAnchor),
@@ -221,6 +225,7 @@ import WebKit
     private func render(ad: Ad) {
         webPlaybackStarted = false
         webPlaybackCompleted = false
+        didAttemptWebFallback = false
         let useBlur = ad.usesContainBlurLayout
         if useBlur {
             playerView.backgroundColor = .clear
@@ -235,82 +240,125 @@ import WebKit
         }
         switch ad.preferredRenderer {
         case .nativeMP4:
-            webView.isHidden = true
-            playerView.isHidden = false
-            attachVideoTelemetry(skippable: isSkippable)
-            scheduleSkipIfNeeded()
-            nativePlaybackHandle?.invalidate()
-            nativePlaybackHandle = AdVideoPlayback.loadNative(
-                ad: ad,
-                player: player,
-                autoplay: autoplay,
-                onReady: { [weak self] error in
-                    guard let self else { return }
-                    if let error {
-                        self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: error)
-                        return
-                    }
-                    let muted = DKMadsVideoChrome.defaultPlaybackMuted(
-                        unitFormat: ad.unitFormat,
-                        placementContext: self.effectivePlacementContext(for: ad),
-                        videoTemplate: ad.videoTemplate
-                    )
-                    self.player.isMuted = muted
-                    self.isPlaybackMuted = muted
-                    let durationSec = Float(CMTimeGetSeconds(self.player.currentItem?.duration ?? .zero))
-                    self.startOmidVideoSession(durationSec: durationSec.isFinite ? durationSec : 0, muted: muted)
-                    if useBlur {
-                        self.blurBackground?.bind(mainPlayer: self.player)
-                    }
-                    self.attachVideoClickOverlay(ad: ad)
-                    self.attachVideoChrome(ad: ad)
-                    self.delegate?.videoAdViewDidStartPlayback?(self)
-                    self.attachClickThroughCta(ad: ad)
-                    self.attachCompanion(ad: ad)
-                },
-                onBuffering: { [weak self] buffering in
-                    guard let self else { return }
-                    if buffering {
-                        self.delegate?.videoAdViewDidStartBuffering?(self)
-                    } else {
-                        self.delegate?.videoAdViewDidEndBuffering?(self)
-                    }
-                },
-                onStallFailed: { [weak self] error in
-                    guard let self else { return }
-                    self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: error)
-                }
-            )
+            renderNativeMP4(ad: ad, useBlur: useBlur)
         case .webMarkup:
-            playerView.isHidden = true
-            webView.isHidden = false
-            scheduleSkipIfNeeded()
-            if wrapsWebMarkupForFullscreen, let adm = ad.adm, !adm.isEmpty {
-                let slot = bounds.width > 0 && bounds.height > 0
-                    ? bounds.size
-                    : CGSize(width: 320, height: 480)
-                webView.loadHTMLString(
-                    DKMadsBannerCreativeLayout.htmlForFullscreen(adm: adm, slotSize: slot),
-                    baseURL: AdVideoPlayback.baseURL
-                )
-            } else if useBlur, let adm = ad.adm, !adm.isEmpty,
-                      DKMadsVideoSlotFit.admIncludesBlurStage(adm) {
-                webView.loadHTMLString(adm, baseURL: AdVideoPlayback.baseURL)
-            } else {
-                let stage = DKMadsVideoSlotFit.playerStageSize(
-                    containerBounds: bounds.size,
-                    bidSize: lastBidVideoSize
-                )
-                lastVideoRenderSize = stage
-                AdVideoPlayback.loadWebMarkup(
-                    ad: ad,
-                    in: webView,
-                    autoplay: autoplay,
-                    slotSize: stage,
-                    preservePackagedBlur: useBlur
-                )
-            }
+            renderWebMarkup(ad: ad, useBlur: useBlur)
         }
+    }
+
+    private func renderNativeMP4(ad: Ad, useBlur: Bool) {
+        webView.isHidden = true
+        playerView.isHidden = false
+        attachVideoTelemetry(skippable: isSkippable)
+        scheduleSkipIfNeeded()
+        nativePlaybackHandle?.invalidate()
+        nativePlaybackHandle = AdVideoPlayback.loadNative(
+            ad: ad,
+            player: player,
+            autoplay: autoplay,
+            onReady: { [weak self] error in
+                guard let self else { return }
+                if let error {
+                    self.failOrFallbackToWeb(ad: ad, error: error)
+                    return
+                }
+                let muted = DKMadsVideoChrome.defaultPlaybackMuted(
+                    unitFormat: ad.unitFormat,
+                    placementContext: self.effectivePlacementContext(for: ad),
+                    videoTemplate: ad.videoTemplate
+                )
+                self.player.isMuted = muted
+                self.isPlaybackMuted = muted
+                let durationSec = Float(CMTimeGetSeconds(self.player.currentItem?.duration ?? .zero))
+                self.startOmidVideoSession(durationSec: durationSec.isFinite ? durationSec : 0, muted: muted)
+                if useBlur {
+                    self.blurBackground?.bind(mainPlayer: self.player)
+                }
+                self.attachVideoClickOverlay(ad: ad)
+                self.attachVideoChrome(ad: ad)
+                self.delegate?.videoAdViewDidStartPlayback?(self)
+                self.attachClickThroughCta(ad: ad)
+                self.attachCompanion(ad: ad)
+            },
+            onBuffering: { [weak self] buffering in
+                guard let self else { return }
+                if buffering {
+                    self.delegate?.videoAdViewDidStartBuffering?(self)
+                } else {
+                    self.delegate?.videoAdViewDidEndBuffering?(self)
+                }
+            },
+            onStallFailed: { [weak self] error in
+                guard let self else { return }
+                // Mid-playback stalls after start should not restart in WebView.
+                if self.webPlaybackStarted || self.player.currentTime().seconds > 0.5 {
+                    self.delegate?.videoAdView?(self, didFailToReceiveAdWithError: error)
+                    return
+                }
+                self.failOrFallbackToWeb(ad: ad, error: error)
+            }
+        )
+    }
+
+    private func renderWebMarkup(ad: Ad, useBlur: Bool) {
+        playerView.isHidden = true
+        webView.isHidden = false
+        scheduleSkipIfNeeded()
+        if wrapsWebMarkupForFullscreen, let adm = ad.adm, !adm.isEmpty {
+            let slot = bounds.width > 0 && bounds.height > 0
+                ? bounds.size
+                : CGSize(width: 320, height: 480)
+            webView.loadHTMLString(
+                DKMadsBannerCreativeLayout.htmlForFullscreen(adm: adm, slotSize: slot),
+                baseURL: AdVideoPlayback.baseURL
+            )
+        } else if useBlur, let adm = ad.adm, !adm.isEmpty,
+                  DKMadsVideoSlotFit.admIncludesBlurStage(adm) {
+            webView.loadHTMLString(adm, baseURL: AdVideoPlayback.baseURL)
+        } else {
+            let stage = DKMadsVideoSlotFit.playerStageSize(
+                containerBounds: bounds.size,
+                bidSize: lastBidVideoSize
+            )
+            lastVideoRenderSize = stage
+            AdVideoPlayback.loadWebMarkup(
+                ad: ad,
+                in: webView,
+                autoplay: autoplay,
+                slotSize: stage,
+                preservePackagedBlur: useBlur
+            )
+        }
+    }
+
+    private func failOrFallbackToWeb(ad: Ad, error: Error) {
+        if tryFallbackToWebMarkup(ad: ad) { return }
+        delegate?.videoAdView?(self, didFailToReceiveAdWithError: error)
+    }
+
+    /// If native MP4/HLS fails but `adm` has `<video>`, retry in WebView instead of hard-failing.
+    private func tryFallbackToWebMarkup(ad: Ad) -> Bool {
+        guard !didAttemptWebFallback, ad.hasWebVideoFallback else { return false }
+        didAttemptWebFallback = true
+        nativePlaybackHandle?.invalidate()
+        nativePlaybackHandle = nil
+        if videoEventsAttached {
+            SSPSDK.shared.stopVideoLifecycleTracking(adUnitId: adUnitID)
+            videoEventsAttached = false
+        }
+        omidSession?.finish()
+        omidSession = nil
+        player.pause()
+        player.replaceCurrentItem(with: nil)
+        blurBackground?.release()
+        blurBackground = nil
+        cancelSkipTimer()
+        removeVideoChrome()
+        removeVideoClickOverlay()
+        skipButton?.removeFromSuperview()
+        skipButton = nil
+        renderWebMarkup(ad: ad, useBlur: ad.usesContainBlurLayout)
+        return true
     }
 
     private func attachVideoTelemetry(skippable: Bool) {
@@ -516,6 +564,7 @@ import WebKit
         loadedAd = nil
         webPlaybackStarted = false
         webPlaybackCompleted = false
+        didAttemptWebFallback = false
     }
 
     private func startViewabilityIfNeeded() {

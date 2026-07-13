@@ -254,6 +254,11 @@ import Foundation
         return .webMarkup
     }
 
+    /// True when HTML `adm` contains a playable `<video>` — used to fall back if native MP4 fails.
+    @objc public var hasWebVideoFallback: Bool {
+        AdMediaParsing.hasVideoMarkup(adm)
+    }
+
     private static func resolveCreativeUrl(from winner: [String: Any], meta: [String: Any]?) -> String {
         let dt = (winner["delivery_type"] as? String) ?? (winner["creative_type"] as? String) ?? ""
         if dt.lowercased() == "html5" { return "" }

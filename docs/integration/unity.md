@@ -15,7 +15,7 @@ The **com.dkmads.ssp** package bridges Unity to native iOS and Android SDKs for 
 | Component | Package / coordinates |
 |-----------|------------------------|
 | Unity bridge | `com.dkmads.ssp` (`sdk/unity`) |
-| Android | `com.dkmads.ssp:ssp-android:0.5.26` |
+| Android | `com.dkmads.ssp:ssp-android:0.5.27` |
 | iOS | `DKMadsSSPSDK` |
 
 For web, use the [Web SDK](./web.md).
@@ -111,7 +111,7 @@ string json = DKMadsSdk.LoadAd("BANNER_UUID", 300, 250);
 
 ### Interstitial (recommended)
 
-Dashboard format **interstitial**. IAB sizes (320×480), not display pixels. **Pin native SDK `sdk-0.5.26`** — interstitial fit, click-through, 90% letterbox chrome, MRAID 2.0, and the OMID measurement seam are implemented in native iOS/Android (Unity bridge inherits automatically).
+Dashboard format **interstitial**. IAB sizes (320×480), not display pixels. **Pin native SDK `sdk-0.5.27`** — interstitial fit, click-through, 90% letterbox chrome, MRAID 2.0, and the OMID measurement seam are implemented in native iOS/Android (Unity bridge inherits automatically).
 
 ```csharp
 string json = DKMadsSdk.LoadInterstitial("INTERSTITIAL_UUID", 320, 480);

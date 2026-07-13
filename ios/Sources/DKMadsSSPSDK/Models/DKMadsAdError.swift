@@ -30,7 +30,10 @@ import Foundation
 
     public func nsError(userInfo extra: [String: Any] = [:]) -> NSError {
         var info = extra
-        info[NSLocalizedDescriptionKey] = errorDescription
+        // Prefer caller-supplied description (e.g. timeout / stall reason) over the generic case string.
+        if info[NSLocalizedDescriptionKey] == nil {
+            info[NSLocalizedDescriptionKey] = errorDescription
+        }
         return NSError(domain: "DKMadsSSPSDK", code: rawValue, userInfo: info)
     }
 

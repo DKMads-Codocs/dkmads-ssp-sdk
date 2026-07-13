@@ -18,8 +18,8 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| ||||**Version** | `0.5.26` |
-| **Release tag** | `sdk-0.5.26` |
+| |||||**Version** | `0.5.27` |
+| **Release tag** | `sdk-0.5.27` |
 
 > **Distribution:** the podspec is **CocoaPods trunk-lintable** and a `pod trunk push` job is wired in CI. Until a trunk release is live, install via the Git/`:tag` source below.
 
@@ -31,7 +31,7 @@ use_frameworks!
 
 pod 'DKMadsSSPSDK',
     :git => 'https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git',
-    :tag => 'sdk-0.5.26',
+    :tag => 'sdk-0.5.27',
     :podspec => 'ios/DKMadsSSPSDK.podspec'
 ```
 

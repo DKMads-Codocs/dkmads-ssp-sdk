@@ -89,10 +89,11 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private var lastBidHeight: Int = 360
     private var prepareTimeoutRunnable: Runnable? = null
     private var bufferTimeoutRunnable: Runnable? = null
+    private var didAttemptWebFallback = false
 
     private companion object {
-        const val INITIAL_LOAD_TIMEOUT_MS = 15_000L
-        const val BUFFER_STALL_TIMEOUT_MS = 12_000L
+        const val INITIAL_LOAD_TIMEOUT_MS = 45_000L
+        const val BUFFER_STALL_TIMEOUT_MS = 20_000L
     }
 
     init {
@@ -204,11 +205,36 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     @SuppressLint("SetJavaScriptEnabled")
     private fun render(ad: Ad) {
         playbackCompleted = false
+        didAttemptWebFallback = false
         cancelSkip()
         when (ad.preferredRenderer) {
             DKMadsCreativeRenderer.NATIVE_MP4 -> renderNative(ad)
             DKMadsCreativeRenderer.WEB_MARKUP -> renderWeb(ad)
         }
+    }
+
+    private fun failOrFallbackToWeb(ad: Ad, message: String) {
+        if (tryFallbackToWebMarkup(ad)) return
+        listener?.onAdFailed(this, message, responseInfo)
+    }
+
+    /** If native MP4/HLS fails but `adm` has `<video>`, retry in WebView instead of hard-failing. */
+    private fun tryFallbackToWebMarkup(ad: Ad): Boolean {
+        if (didAttemptWebFallback || !ad.hasWebVideoFallback) return false
+        didAttemptWebFallback = true
+        cancelPlaybackTimeouts()
+        videoTracker?.stop()
+        videoTracker = null
+        omidSession?.finish()
+        omidSession = null
+        nativeVideo?.release()
+        nativeVideo = null
+        blurNative?.release()
+        blurNative = null
+        removeVideoChrome()
+        removeVideoClickOverlay()
+        renderWeb(ad)
+        return true
     }
 
     private fun renderNative(ad: Ad) {
@@ -231,7 +257,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
             isMuted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
             prepareTimeoutRunnable = Runnable {
                 if (!isPrepared && !playbackCompleted) {
-                    listener?.onAdFailed(this, "Video playback timed out while loading", responseInfo)
+                    failOrFallbackToWeb(ad, "Video playback timed out while loading")
                 }
             }.also { postDelayed(it, INITIAL_LOAD_TIMEOUT_MS) }
             surface.play(
@@ -280,7 +306,11 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
                     override fun onError(message: String) {
                         cancelPlaybackTimeouts()
-                        listener?.onAdFailed(this@DKMadsVideoAdView, message, responseInfo)
+                        if (!isPrepared) {
+                            failOrFallbackToWeb(ad, message)
+                        } else {
+                            listener?.onAdFailed(this@DKMadsVideoAdView, message, responseInfo)
+                        }
                     }
                 },
             )
@@ -292,7 +322,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
             isMuted = DKMadsVideoChrome.defaultPlaybackMuted(ad.unitFormat, ad.placementContext, ad.videoTemplate)
             prepareTimeoutRunnable = Runnable {
                 if (!isPrepared && !playbackCompleted) {
-                    listener?.onAdFailed(this, "Video playback timed out while loading", responseInfo)
+                    failOrFallbackToWeb(ad, "Video playback timed out while loading")
                 }
             }.also { postDelayed(it, INITIAL_LOAD_TIMEOUT_MS) }
             surface.play(
@@ -335,7 +365,11 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
                     override fun onError(message: String) {
                         cancelPlaybackTimeouts()
-                        listener?.onAdFailed(this@DKMadsVideoAdView, message, responseInfo)
+                        if (!isPrepared) {
+                            failOrFallbackToWeb(ad, message)
+                        } else {
+                            listener?.onAdFailed(this@DKMadsVideoAdView, message, responseInfo)
+                        }
                     }
                 },
             )
@@ -827,6 +861,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
         loadedAd = null
         playbackCompleted = false
         isPrepared = false
+        didAttemptWebFallback = false
     }
 
     fun destroy() {
