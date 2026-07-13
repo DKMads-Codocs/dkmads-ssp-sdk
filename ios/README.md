@@ -1,4 +1,4 @@
-# DKMads SSP iOS SDK (v0.5.29)
+# DKMads SSP iOS SDK (v0.5.30)
 
 Production-oriented iOS SDK kit for DKMads SSP integration.
 

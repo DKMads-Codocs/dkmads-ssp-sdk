@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.30
+
+- **Skip stays for the whole ad (real fix):** WebView viewport injection no longer rewrites `<video>` styles inside `.dkmads-video-stage`, which was collapsing packaged Skip/mute chrome a few seconds after load.
+- Native: Skip stays above CTA/companion; countdown no longer uses disabled styling that can hide the label.
+
 ## 0.5.29
 
 - **Skip stays visible:** companion image and click overlay no longer cover Skip/mute; chrome is kept on top for the entire ad.

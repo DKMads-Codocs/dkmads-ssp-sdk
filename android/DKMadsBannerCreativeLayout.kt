@@ -146,6 +146,10 @@ internal object DKMadsBannerCreativeLayout {
 
     const val FULLSCREEN_VIEWPORT_INJECTION_SCRIPT = """
         (function(){
+          function dkmadsSkipVideoStageMedia(el){
+            if(!el||!el.closest)return false;
+            return !!el.closest('.dkmads-video-stage,.dkmads-video-blur-stack,.dkmads-chrome');
+          }
           var meta = document.querySelector('meta[name=viewport]');
           if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
           meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
@@ -164,16 +168,25 @@ internal object DKMadsBannerCreativeLayout {
           }
           var media = document.querySelectorAll('#dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root canvas,#dkmads-root svg,img,iframe,video,canvas,svg');
           for (var i = 0; i < media.length; i++) {
+            if (dkmadsSkipVideoStageMedia(media[i])) continue;
             media[i].style.cssText = 'display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0';
           }
         })();
     """
 
+    /**
+     * Slot-sized viewport + contain for banner/HTML slots.
+     * Does not rewrite media inside `.dkmads-video-stage` — that was wiping packaged Skip/mute chrome.
+     */
     fun viewportInjectionScript(slotWidth: Int, slotHeight: Int): String {
         val w = slotWidth.coerceAtLeast(1)
         val h = slotHeight.coerceAtLeast(1)
         return """
             (function(){
+              function dkmadsSkipVideoStageMedia(el){
+                if(!el||!el.closest)return false;
+                return !!el.closest('.dkmads-video-stage,.dkmads-video-blur-stack,.dkmads-chrome');
+              }
               var meta = document.querySelector('meta[name=viewport]');
               if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
               meta.content = 'width=$w, height=$h, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
@@ -185,6 +198,7 @@ internal object DKMadsBannerCreativeLayout {
               }
               var media = document.querySelectorAll('#dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root canvas,#dkmads-root svg,img,iframe,video,canvas,svg');
               for (var i = 0; i < media.length; i++) {
+                if (dkmadsSkipVideoStageMedia(media[i])) continue;
                 media[i].style.cssText = 'display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0';
               }
             })();

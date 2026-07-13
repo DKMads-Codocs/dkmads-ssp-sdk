@@ -649,11 +649,15 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 if (skipButton == null) {
                     val label = if (left <= 0) "Skip" else "Skip in ${left}s"
                     val btn = DKMadsVideoChrome.chromeButton(context, label).apply {
-                        isEnabled = left <= 0
+                        // Keep enabled so theme disabled-text color never hides the label.
+                        isEnabled = true
+                        isClickable = left <= 0
                         alpha = if (left <= 0) 1f else 0.85f
+                        elevation = 24f
+                        translationZ = 24f
                         if (left <= 0) {
-                setOnClickListener { completePlayback(skipped = true) }
-            }
+                            setOnClickListener { completePlayback(skipped = true) }
+                        }
                     }
                     slot.addView(
                         btn,
@@ -668,6 +672,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     skipButton?.text = if (left <= 0) "Skip" else "Skip in ${left}s"
                     if (left <= 0) {
                         skipButton?.isEnabled = true
+                        skipButton?.isClickable = true
                         skipButton?.alpha = 1f
                         skipButton?.setOnClickListener { completePlayback(skipped = true) }
                         return
@@ -757,18 +762,20 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private fun attachCompanion(ad: Ad) {
         removeCompanion()
         val companionUrl = ad.companionImageUrl ?: return
+        val density = resources.displayMetrics.density
         val image = ImageView(context).apply {
             adjustViewBounds = true
             scaleType = ImageView.ScaleType.FIT_CENTER
             setBackgroundColor(Color.TRANSPARENT)
+            maxHeight = (96 * density).toInt()
         }
         // Sit above the chrome bar so Skip/mute stay visible for the entire ad.
         val chromeClearance = DKMadsVideoChrome.chromeBottomInsetPx(
             context,
             DKMadsVideoChrome.showsProgress(ad.videoTemplate),
-        ) + (36 * resources.displayMetrics.density).toInt()
+        ) + (36 * density).toInt()
         val lp = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
-            val m = (4 * resources.displayMetrics.density).toInt()
+            val m = (4 * density).toInt()
             setMargins(m, m, m, chromeClearance)
         }
         addView(image, lp)

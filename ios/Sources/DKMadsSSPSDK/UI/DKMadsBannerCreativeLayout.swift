@@ -114,12 +114,22 @@ enum DKMadsBannerCreativeLayout {
         """
     }
 
+    /// True when rewriting this media node would break packaged video chrome / blur stage.
+    private static let skipVideoStageMediaJS = """
+    function dkmadsSkipVideoStageMedia(el){
+      if(!el||!el.closest)return false;
+      return !!el.closest('.dkmads-video-stage,.dkmads-video-blur-stack,.dkmads-chrome');
+    }
+    """
+
     /// Banner slots — slot-sized viewport + contain (no device-width rescale).
+    /// Does not rewrite media inside `.dkmads-video-stage` (that would hide Skip/mute chrome).
     static func viewportInjectionScript(slotSize: CGSize) -> String {
         let w = max(1, Int(slotSize.width.rounded()))
         let h = max(1, Int(slotSize.height.rounded()))
         return """
         (function(){
+          \(skipVideoStageMediaJS)
           var meta = document.querySelector('meta[name=viewport]');
           if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
           meta.content = 'width=\(w), height=\(h), initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
@@ -131,6 +141,7 @@ enum DKMadsBannerCreativeLayout {
           }
           var media = document.querySelectorAll('#dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root canvas,#dkmads-root svg,img,iframe,video,canvas,svg');
           for (var i = 0; i < media.length; i++) {
+            if (dkmadsSkipVideoStageMedia(media[i])) continue;
             media[i].style.cssText = 'display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0';
           }
         })();
@@ -158,8 +169,13 @@ enum DKMadsBannerCreativeLayout {
     }
 
     /// Fullscreen interstitial — fit creative inside the slot, 90% letterbox fill.
+    /// Preserves `.dkmads-video-stage` media so packaged Skip/mute chrome stay visible.
     static let fullscreenViewportInjectionScript = """
     (function(){
+      function dkmadsSkipVideoStageMedia(el){
+        if(!el||!el.closest)return false;
+        return !!el.closest('.dkmads-video-stage,.dkmads-video-blur-stack,.dkmads-chrome');
+      }
       var meta = document.querySelector('meta[name=viewport]');
       if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; (document.head||document.documentElement).appendChild(meta); }
       meta.content = 'width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
@@ -178,6 +194,7 @@ enum DKMadsBannerCreativeLayout {
       }
       var media = document.querySelectorAll('#dkmads-root img,#dkmads-root iframe,#dkmads-root video,#dkmads-root canvas,#dkmads-root svg,img,iframe,video,canvas,svg');
       for (var i = 0; i < media.length; i++) {
+        if (dkmadsSkipVideoStageMedia(media[i])) continue;
         media[i].style.cssText = 'display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border:0;margin:0;padding:0';
       }
     })();

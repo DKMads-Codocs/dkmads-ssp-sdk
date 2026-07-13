@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.30
+
+- Tracks native SDK **0.5.30** (Skip no longer disappears when WebView viewport injection runs).
+
 ## 0.5.29
 
 - Tracks native SDK **0.5.29** (Skip stays above companion / click overlay for the entire ad).

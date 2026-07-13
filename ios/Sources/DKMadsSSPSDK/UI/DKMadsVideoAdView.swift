@@ -437,7 +437,7 @@ import WebKit
     }
 
     @objc private func skipTapped() {
-        guard skipButton?.isEnabled == true, skipSecondsRemaining <= 0 else { return }
+        guard skipButton?.isUserInteractionEnabled == true, skipSecondsRemaining <= 0 else { return }
         completePlayback(skipped: true)
     }
 
@@ -464,11 +464,13 @@ import WebKit
         if skipButton != nil { return }
         let button = UIButton(type: .custom)
         button.setTitleColor(.white, for: .normal)
-        button.setTitleColor(UIColor.white.withAlphaComponent(0.7), for: .disabled)
+        button.setTitleColor(UIColor.white.withAlphaComponent(0.85), for: .disabled)
+        button.setTitleColor(.white, for: .highlighted)
         button.backgroundColor = UIColor(red: 18 / 255, green: 18 / 255, blue: 18 / 255, alpha: 0.55)
         button.layer.cornerRadius = 16
         button.layer.borderWidth = 1
         button.layer.borderColor = UIColor.white.withAlphaComponent(0.22).cgColor
+        button.layer.zPosition = 200
         button.titleLabel?.font = .systemFont(ofSize: 11, weight: .semibold)
         button.contentEdgeInsets = UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -487,17 +489,24 @@ import WebKit
 
     private func updateSkipButtonAppearance() {
         guard let skipButton else { return }
+        let title: String
         if skipSecondsRemaining > 0 {
-            skipButton.setTitle("Skip in \(skipSecondsRemaining)s", for: .normal)
-            skipButton.isEnabled = false
+            title = "Skip in \(skipSecondsRemaining)s"
+            // Keep enabled for visible title color; gate taps in skipTapped.
+            skipButton.isEnabled = true
+            skipButton.isUserInteractionEnabled = false
             skipButton.alpha = 0.85
             skipButton.accessibilityLabel = "Skip advertisement in \(skipSecondsRemaining) seconds"
         } else {
-            skipButton.setTitle("Skip", for: .normal)
+            title = "Skip"
             skipButton.isEnabled = true
+            skipButton.isUserInteractionEnabled = true
             skipButton.alpha = 1
             skipButton.accessibilityLabel = "Skip advertisement"
         }
+        skipButton.setTitle(title, for: .normal)
+        skipButton.setTitle(title, for: .disabled)
+        skipButton.setTitle(title, for: .highlighted)
     }
 
     private func cancelSkipTimer() {

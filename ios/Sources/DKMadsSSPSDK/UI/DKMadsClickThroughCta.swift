@@ -64,12 +64,12 @@ enum DKMadsClickThroughCta {
                 button.leadingAnchor.constraint(greaterThanOrEqualTo: parent.leadingAnchor, constant: 16),
                 button.trailingAnchor.constraint(lessThanOrEqualTo: parent.trailingAnchor, constant: -16),
                 button.centerXAnchor.constraint(equalTo: parent.centerXAnchor),
-                button.bottomAnchor.constraint(equalTo: parent.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+                button.bottomAnchor.constraint(equalTo: parent.safeAreaLayoutGuide.bottomAnchor, constant: -52),
                 button.widthAnchor.constraint(lessThanOrEqualToConstant: 420),
             ])
         case .endCard:
             NSLayoutConstraint.activate([
-                button.bottomAnchor.constraint(equalTo: parent.bottomAnchor, constant: -10),
+                button.bottomAnchor.constraint(equalTo: parent.bottomAnchor, constant: -52),
                 button.centerXAnchor.constraint(equalTo: parent.centerXAnchor),
             ])
         case .barBelow:
@@ -79,9 +79,12 @@ enum DKMadsClickThroughCta {
                 button.bottomAnchor.constraint(equalTo: parent.safeAreaLayoutGuide.bottomAnchor, constant: -8),
             ])
         case .default:
+            // Sit above the Skip/mute chrome bar so Skip stays visible for the entire ad.
             NSLayoutConstraint.activate([
-                button.bottomAnchor.constraint(equalTo: parent.safeAreaLayoutGuide.bottomAnchor, constant: -12),
+                button.bottomAnchor.constraint(equalTo: parent.safeAreaLayoutGuide.bottomAnchor, constant: -52),
                 button.centerXAnchor.constraint(equalTo: parent.centerXAnchor),
+                button.leadingAnchor.constraint(greaterThanOrEqualTo: parent.leadingAnchor, constant: 48),
+                button.trailingAnchor.constraint(lessThanOrEqualTo: parent.trailingAnchor, constant: -72),
             ])
         }
         return button

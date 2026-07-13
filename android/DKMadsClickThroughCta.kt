@@ -58,20 +58,26 @@ object DKMadsClickThroughCta {
                     val lp = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT,
-                    )
+                    ).apply {
+                        // Leave room for Skip on the trailing edge.
+                        weight = 0f
+                    }
+                    btn.maxWidth = (parent.width.takeIf { it > 0 } ?: parent.resources.displayMetrics.widthPixels) / 2
+                    btn.ellipsize = android.text.TextUtils.TruncateAt.END
+                    btn.maxLines = 1
                     chromeRow.addView(btn, lp)
                 } else {
                     val bottom = DKMadsVideoChrome.chromeBottomInsetPx(
                         parent.context,
                         hasProgress = true,
-                    )
+                    ) + (40 * density).toInt()
                     val lp = FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.WRAP_CONTENT,
                         FrameLayout.LayoutParams.WRAP_CONTENT,
                         Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL,
                     ).apply {
-                        val side = (12 * density).toInt()
-                        setMargins(side, side, side, bottom)
+                        val side = (48 * density).toInt()
+                        setMargins(side, side, side + (72 * density).toInt(), bottom)
                     }
                     parent.addView(btn, lp)
                 }

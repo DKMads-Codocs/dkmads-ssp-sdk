@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.30
+
+- **Skip stays for the whole ad (real fix):** WebView viewport injection no longer rewrites `<video>` styles inside `.dkmads-video-stage` (was hiding packaged Skip after page finish).
+- Native: companion max height, CTA clearance, Skip elevation; countdown keeps visible text (not theme-disabled).
+
 ## 0.5.29
 
 - **Skip stays visible:** companion image and full-bleed click overlay no longer cover Skip/mute; chrome is kept on top for the entire ad.
