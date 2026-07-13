@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.26
+
+- Tracks native SDK **0.5.26** (interstitial HTML5 package center + scale letterbox).
+
 ## 0.5.25
 
 - Tracks native SDK **0.5.25** (`contain_blur` instream glass-blur player fit for 1:1 creatives).

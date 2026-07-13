@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.26
+
+- **Interstitial HTML5 packages:** center + scale hosted `html5_entry_url` creatives to fit the screen (outer WebView scale / letterbox). Package-sized viewport only — creative DOM is not rewritten. Fixes top-left 320×480 on fullscreen (also app open / rewarded presenters).
+
 ## 0.5.25
 
 - **`contain_blur` instream fit:** centered creative + blurred zoomed backdrop for square instream in responsive players (`slot_fit` from bid).

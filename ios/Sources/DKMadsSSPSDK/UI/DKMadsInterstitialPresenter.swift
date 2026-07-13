@@ -23,6 +23,8 @@ final class DKMadsInterstitialPresenter: UIViewController {
     private var didPresentStaticContent = false
     private var webContentReady = false
     private var html5DirectLoad = false
+    private var webViewEdgeConstraints: [NSLayoutConstraint] = []
+    private var html5PackageSize: CGSize = .zero
 
     init(adUnitID: String, ad: Ad) {
         self.adUnitID = adUnitID
@@ -72,6 +74,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
         if !ad.isVideo, canRenderStatic(), !didPresentStaticContent, view.bounds.width > 0, view.bounds.height > 0 {
             presentStatic()
         }
+        applyHtml5PackageFitIfNeeded()
         if videoView == nil, canRenderStatic(), !viewabilityActive {
             startViewabilityIfNeeded()
         }
@@ -134,6 +137,12 @@ final class DKMadsInterstitialPresenter: UIViewController {
         contentContainer.addSubview(webView)
         contentContainer.addSubview(imageView)
 
+        webViewEdgeConstraints = [
+            webView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+        ]
         NSLayoutConstraint.activate([
             contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -143,10 +152,7 @@ final class DKMadsInterstitialPresenter: UIViewController {
             closeButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
             closeButton.widthAnchor.constraint(equalToConstant: 36),
             closeButton.heightAnchor.constraint(equalToConstant: 36),
-            webView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            webView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
-            webView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+        ] + webViewEdgeConstraints + [
             imageView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
             imageView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
             imageView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
@@ -194,9 +200,13 @@ final class DKMadsInterstitialPresenter: UIViewController {
             let base = URL(string: "https://ssp.dkmads.com")
             if let entry = html5Entry, let entryURL = URL(string: entry) {
                 html5DirectLoad = true
+                html5PackageSize = DKMadsHtml5PackageFit.packageSize(for: ad)
+                applyHtml5PackageFitIfNeeded()
                 webView.load(URLRequest(url: entryURL))
             } else if let adm = ad.adm, !adm.isEmpty {
                 html5DirectLoad = false
+                html5PackageSize = .zero
+                resetWebViewToEdgePinnedLayout()
                 webView.loadHTMLString(
                     DKMadsBannerCreativeLayout.htmlForFullscreen(adm: adm, slotSize: slotSize),
                     baseURL: base
@@ -291,6 +301,31 @@ final class DKMadsInterstitialPresenter: UIViewController {
         onRenderFailed?(error)
         dismiss(animated: true)
     }
+
+    /// Scale + center the WebView to the bid package size without rewriting creative DOM.
+    private func applyHtml5PackageFitIfNeeded() {
+        guard html5DirectLoad, !webView.isHidden else { return }
+        let package = html5PackageSize.width > 0 && html5PackageSize.height > 0
+            ? html5PackageSize
+            : DKMadsHtml5PackageFit.packageSize(for: ad)
+        html5PackageSize = package
+        let bounds = contentContainer.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+
+        NSLayoutConstraint.deactivate(webViewEdgeConstraints)
+        webView.translatesAutoresizingMaskIntoConstraints = true
+        let scale = DKMadsHtml5PackageFit.containScale(package: package, container: bounds.size)
+        webView.transform = .identity
+        webView.bounds = CGRect(origin: .zero, size: package)
+        webView.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        webView.transform = CGAffineTransform(scaleX: scale, y: scale)
+    }
+
+    private func resetWebViewToEdgePinnedLayout() {
+        webView.transform = .identity
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate(webViewEdgeConstraints)
+    }
 }
 
 extension DKMadsInterstitialPresenter: DKMadsVideoAdViewDelegate {
@@ -314,10 +349,20 @@ extension DKMadsInterstitialPresenter: DKMadsVideoAdViewDelegate {
 extension DKMadsInterstitialPresenter: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         webContentReady = true
-        let script = html5DirectLoad
-            ? DKMadsBannerCreativeLayout.html5FullscreenViewportInjectionScript
-            : DKMadsBannerCreativeLayout.fullscreenViewportInjectionScript
-        webView.evaluateJavaScript(script, completionHandler: nil)
+        if html5DirectLoad {
+            applyHtml5PackageFitIfNeeded()
+            // Package-sized viewport so the creative lays out at bid WxH; outer transform letterboxes.
+            let package = html5PackageSize.width > 0 ? html5PackageSize : DKMadsHtml5PackageFit.packageSize(for: ad)
+            webView.evaluateJavaScript(
+                DKMadsBannerCreativeLayout.html5PackageViewportInjectionScript(slotSize: package),
+                completionHandler: nil
+            )
+        } else {
+            webView.evaluateJavaScript(
+                DKMadsBannerCreativeLayout.fullscreenViewportInjectionScript,
+                completionHandler: nil
+            )
+        }
         if let script = DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(clickUrl: ad.clickUrl) {
             webView.evaluateJavaScript(script, completionHandler: nil)
         }

@@ -60,6 +60,9 @@ class DKMadsInterstitialActivity : Activity() {
     private var webContentReady = false
     private var mraid: DKMadsMraidController? = null
     private var omidSession: DKMadsOmidSession? = null
+    private var html5DirectLoad = false
+    private var html5PackageW = 320
+    private var html5PackageH = 480
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,6 +98,9 @@ class DKMadsInterstitialActivity : Activity() {
             else -> failAndFinish("Interstitial creative is not video, image, or HTML5")
         }
         callbacks.onPresented()
+        root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (html5DirectLoad) applyHtml5PackageFitIfNeeded()
+        }
     }
 
     override fun onDestroy() {
@@ -156,6 +162,15 @@ class DKMadsInterstitialActivity : Activity() {
         webContentReady = false
         webView.visibility = View.VISIBLE
         val html5Entry = DKMadsBannerCreativeLayout.resolveHtml5EntryUrl(ad)
+        html5DirectLoad = html5Entry != null
+        if (html5DirectLoad) {
+            val packageSize = DKMadsHtml5PackageFit.packageSize(ad)
+            html5PackageW = packageSize.first
+            html5PackageH = packageSize.second
+            root.post { applyHtml5PackageFitIfNeeded() }
+        } else {
+            resetWebViewToFullscreenLayout()
+        }
         DKMadsBannerCreativeLayout.configureWebViewForRichMedia(webView.settings)
         val mraidController = if (ad.isMraidCreative) {
             DKMadsMraidController(webView, "interstitial", interstitialMraidHost()).also {
@@ -181,12 +196,19 @@ class DKMadsInterstitialActivity : Activity() {
             }
             override fun onPageFinished(view: WebView?, url: String?) {
                 webContentReady = true
-                val injectScript = if (html5Entry != null) {
-                    DKMadsBannerCreativeLayout.HTML5_FULLSCREEN_VIEWPORT_SCRIPT
+                if (html5DirectLoad) {
+                    applyHtml5PackageFitIfNeeded()
+                    // Package-sized viewport so the creative lays out at bid WxH; outer scale letterboxes.
+                    view?.evaluateJavascript(
+                        DKMadsBannerCreativeLayout.html5PackageViewportScript(html5PackageW, html5PackageH),
+                        null,
+                    )
                 } else {
-                    DKMadsBannerCreativeLayout.FULLSCREEN_VIEWPORT_INJECTION_SCRIPT
+                    view?.evaluateJavascript(
+                        DKMadsBannerCreativeLayout.FULLSCREEN_VIEWPORT_INJECTION_SCRIPT,
+                        null,
+                    )
                 }
-                view?.evaluateJavascript(injectScript, null)
                 DKMadsBannerCreativeLayout.fullscreenClickThroughInjectionScript(ad.clickUrl)
                     ?.let { view?.evaluateJavascript(it, null) }
                 mraidController?.notifyReady()
@@ -220,6 +242,43 @@ class DKMadsInterstitialActivity : Activity() {
             )
             else -> failAndFinish("HTML5 interstitial missing adm or html5_entry_url")
         }
+    }
+
+    /** Scale + center the WebView to the bid package size without rewriting creative DOM. */
+    private fun applyHtml5PackageFitIfNeeded() {
+        if (!html5DirectLoad || webView.visibility != View.VISIBLE) return
+        val containerW = root.width
+        val containerH = root.height
+        if (containerW <= 0 || containerH <= 0) return
+
+        val density = resources.displayMetrics.density
+        val packagePxW = (html5PackageW * density).toInt().coerceAtLeast(1)
+        val packagePxH = (html5PackageH * density).toInt().coerceAtLeast(1)
+        val scale = DKMadsHtml5PackageFit.containScale(
+            packagePxW.toFloat(),
+            packagePxH.toFloat(),
+            containerW.toFloat(),
+            containerH.toFloat(),
+        )
+
+        webView.scaleX = 1f
+        webView.scaleY = 1f
+        val lp = FrameLayout.LayoutParams(packagePxW, packagePxH, Gravity.CENTER)
+        webView.layoutParams = lp
+        webView.pivotX = packagePxW / 2f
+        webView.pivotY = packagePxH / 2f
+        webView.scaleX = scale
+        webView.scaleY = scale
+    }
+
+    private fun resetWebViewToFullscreenLayout() {
+        html5DirectLoad = false
+        webView.scaleX = 1f
+        webView.scaleY = 1f
+        webView.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT,
+        )
     }
 
     private fun presentImage() {
