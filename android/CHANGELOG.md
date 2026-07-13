@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.28
+
+- **Single chrome owner:** if WebView ADM already includes packaged `.dkmads-chrome-*`, load ADM as-is and skip native Skip/mute/progress (no duplicate Skip).
+- Native MP4 path unchanged — countdown Skip only.
+
 ## 0.5.27
 
 - **P0:** Raise initial video load timeout to **45s** (stall timeout **20s**) for large progressive house MP4s.

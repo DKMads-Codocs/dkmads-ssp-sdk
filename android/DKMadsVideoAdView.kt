@@ -94,6 +94,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
     private companion object {
         const val INITIAL_LOAD_TIMEOUT_MS = 45_000L
         const val BUFFER_STALL_TIMEOUT_MS = 20_000L
+        const val TAG_PACKAGED_CHROME = "dkmads_packaged_chrome"
     }
 
     init {
@@ -397,7 +398,10 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                     null,
                 )
                     listener?.onPlaybackStarted(this@DKMadsVideoAdView)
-                setupVideoChrome(ad)
+                // Packaged ADM chrome owns skip/mute/progress — do not add a second native Skip.
+                if (webView.tag != TAG_PACKAGED_CHROME) {
+                    setupVideoChrome(ad)
+                }
                 attachVideoClickOverlay(ad)
                     post { startViewability() }
             }
@@ -417,12 +421,21 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 }
             }
         webContentReady = false
+        val packagedChrome = DKMadsVideoChrome.admHasPackagedChrome(ad.adm)
+        var loadsPackagedChrome = false
         if (ad.adm.isNotBlank()) {
-            val html = if (ad.usesContainBlurLayout && DKMadsVideoSlotFit.admIncludesBlurStage(ad.adm)) {
-                ad.adm
-            } else {
-                DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second)
+            val html = when {
+                packagedChrome -> {
+                    loadsPackagedChrome = true
+                    ad.adm // keep house/VAST chrome as the single owner
+                }
+                ad.usesContainBlurLayout && DKMadsVideoSlotFit.admIncludesBlurStage(ad.adm) -> {
+                    loadsPackagedChrome = packagedChrome
+                    ad.adm
+                }
+                else -> DKMadsBannerCreativeLayout.htmlForBanner(ad.adm, renderSlot.first, renderSlot.second)
             }
+            webView.tag = if (loadsPackagedChrome) TAG_PACKAGED_CHROME else null
             webView.loadDataWithBaseURL(
                 "https://ssp.dkmads.com",
                 html,
@@ -431,6 +444,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 null,
             )
         } else if (ad.html5EntryUrl.isNotBlank()) {
+            webView.tag = null
             webView.loadUrl(ad.html5EntryUrl)
         }
     }

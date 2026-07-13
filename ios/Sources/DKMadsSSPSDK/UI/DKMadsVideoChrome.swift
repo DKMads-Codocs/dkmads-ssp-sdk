@@ -28,6 +28,16 @@ enum DKMadsVideoChrome {
 
     static func showsProgress(template: String?) -> Bool { true }
 
+    /// House/VAST ADM may already embed `.dkmads-chrome-*` — native chrome must not double up.
+    static func admHasPackagedChrome(_ adm: String?) -> Bool {
+        let lower = (adm ?? "").lowercased()
+        return lower.contains("dkmads-chrome-skip")
+            || lower.contains("dkmads-chrome-mute")
+            || lower.contains("class=\"dkmads-chrome\"")
+            || lower.contains("class='dkmads-chrome'")
+            || lower.contains("dkmads-chrome-progress")
+    }
+
     static func chromeBottomInset(hasProgress: Bool = true) -> CGFloat {
         hasProgress ? 22 : 12
     }

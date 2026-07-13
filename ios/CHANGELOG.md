@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.28
+
+- **Single chrome owner:** if WebView ADM already includes packaged `.dkmads-chrome-*` (skip/mute/progress), do not add native Skip/mute/progress.
+- **iOS native Skip UX:** countdown parity with Android (`Skip in Xs` → `Skip`).
+
 ## 0.5.27
 
 - **P0:** Fix `DKMadsVideoAdView` crash — `playerView` is added to the hierarchy before Auto Layout constraints (was missing `addSubview`).

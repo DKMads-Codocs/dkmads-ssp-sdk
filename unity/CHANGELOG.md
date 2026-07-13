@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.28
+
+- Tracks native SDK **0.5.28** (single video chrome owner; iOS Skip countdown).
+
 ## 0.5.27
 
 - Tracks native SDK **0.5.27** (video load timeout, native→web fallback, iOS video crash fix).

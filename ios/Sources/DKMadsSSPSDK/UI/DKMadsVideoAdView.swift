@@ -45,6 +45,7 @@ import WebKit
     private var ctaButton: UIButton?
     private var companionImageView: UIImageView?
     private var skipTimer: Timer?
+    private var skipSecondsRemaining: Int = 0
     private var isPlaybackMuted = true
     private var isLoading = false
     private var loadGeneration: UInt = 0
@@ -303,8 +304,11 @@ import WebKit
     private func renderWebMarkup(ad: Ad, useBlur: Bool) {
         playerView.isHidden = true
         webView.isHidden = false
-        scheduleSkipIfNeeded()
+        let packagedChrome = DKMadsVideoChrome.admHasPackagedChrome(ad.adm)
+        var loadsPackagedChrome = false
+
         if wrapsWebMarkupForFullscreen, let adm = ad.adm, !adm.isEmpty {
+            // Fullscreen re-wrap strips packaged chrome — use native Skip instead.
             let slot = bounds.width > 0 && bounds.height > 0
                 ? bounds.size
                 : CGSize(width: 320, height: 480)
@@ -312,8 +316,13 @@ import WebKit
                 DKMadsBannerCreativeLayout.htmlForFullscreen(adm: adm, slotSize: slot),
                 baseURL: AdVideoPlayback.baseURL
             )
+        } else if packagedChrome, let adm = ad.adm, !adm.isEmpty {
+            // Keep house/VAST chrome as the single owner.
+            loadsPackagedChrome = true
+            webView.loadHTMLString(adm, baseURL: AdVideoPlayback.baseURL)
         } else if useBlur, let adm = ad.adm, !adm.isEmpty,
                   DKMadsVideoSlotFit.admIncludesBlurStage(adm) {
+            loadsPackagedChrome = packagedChrome
             webView.loadHTMLString(adm, baseURL: AdVideoPlayback.baseURL)
         } else {
             let stage = DKMadsVideoSlotFit.playerStageSize(
@@ -328,6 +337,10 @@ import WebKit
                 slotSize: stage,
                 preservePackagedBlur: useBlur
             )
+        }
+
+        if !loadsPackagedChrome {
+            scheduleSkipIfNeeded()
         }
     }
 
@@ -423,22 +436,34 @@ import WebKit
     }
 
     @objc private func skipTapped() {
+        guard skipButton?.isEnabled == true, skipSecondsRemaining <= 0 else { return }
         completePlayback(skipped: true)
     }
 
     private func scheduleSkipIfNeeded() {
-        guard isSkippable, skipOffsetSeconds >= 0 else { return }
+        guard DKMadsVideoChrome.showsSkip(template: loadedAd?.videoTemplate, skippable: isSkippable) else { return }
         cancelSkipTimer()
-        skipTimer = Timer.scheduledTimer(withTimeInterval: skipOffsetSeconds, repeats: false) { [weak self] _ in
-            self?.showSkipButton()
+        skipSecondsRemaining = max(0, Int(ceil(skipOffsetSeconds)))
+        ensureSkipButton()
+        updateSkipButtonAppearance()
+        guard skipSecondsRemaining > 0 else { return }
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.skipSecondsRemaining -= 1
+            self.updateSkipButtonAppearance()
+            if self.skipSecondsRemaining <= 0 {
+                self.cancelSkipTimer()
+            }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        skipTimer = timer
     }
 
-    private func showSkipButton() {
-        guard isSkippable, skipButton == nil else { return }
+    private func ensureSkipButton() {
+        if skipButton != nil { return }
         let button = UIButton(type: .system)
-        button.setTitle("Skip", for: .normal)
         button.setTitleColor(.white, for: .normal)
+        button.setTitleColor(UIColor.white.withAlphaComponent(0.55), for: .disabled)
         button.backgroundColor = UIColor(red: 18 / 255, green: 18 / 255, blue: 18 / 255, alpha: 0.55)
         button.layer.cornerRadius = 16
         button.layer.borderWidth = 1
@@ -456,6 +481,21 @@ import WebKit
             button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
         ])
         skipButton = button
+    }
+
+    private func updateSkipButtonAppearance() {
+        guard let skipButton else { return }
+        if skipSecondsRemaining > 0 {
+            skipButton.setTitle("Skip in \(skipSecondsRemaining)s", for: .normal)
+            skipButton.isEnabled = false
+            skipButton.alpha = 0.85
+            skipButton.accessibilityLabel = "Skip advertisement in \(skipSecondsRemaining) seconds"
+        } else {
+            skipButton.setTitle("Skip", for: .normal)
+            skipButton.isEnabled = true
+            skipButton.alpha = 1
+            skipButton.accessibilityLabel = "Skip advertisement"
+        }
     }
 
     private func cancelSkipTimer() {

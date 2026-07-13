@@ -83,6 +83,16 @@ object DKMadsVideoChrome {
 
     fun showsProgress(template: String?): Boolean = true
 
+    /** House/VAST ADM may already embed `.dkmads-chrome-*` — native chrome must not double up. */
+    fun admHasPackagedChrome(adm: String?): Boolean {
+        val lower = adm?.lowercase().orEmpty()
+        return lower.contains("dkmads-chrome-skip")
+            || lower.contains("dkmads-chrome-mute")
+            || lower.contains("class=\"dkmads-chrome\"")
+            || lower.contains("class='dkmads-chrome'")
+            || lower.contains("dkmads-chrome-progress")
+    }
+
     fun chromeBottomInsetPx(context: Context, hasProgress: Boolean = true): Int {
         val density = context.resources.displayMetrics.density
         val progress = if (hasProgress) 3f else 0f
