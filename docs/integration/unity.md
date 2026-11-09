@@ -81,7 +81,7 @@ See `Samples~/QuickstartSample/QuickstartSample.cs`.
 ```csharp
 DKMadsSdk.Initialize("YOUR_INTEGRATION_KEY");
 
-// After UMP/CMP — native SDK also auto-reads IAB storage on each load:
+// After IAB CMP — native SDK also auto-reads TCF storage on each load:
 DKMadsSdk.SetConsent(new DKMadsConsent {
     gdpr = true,
     consentString = tcfFromCmp,

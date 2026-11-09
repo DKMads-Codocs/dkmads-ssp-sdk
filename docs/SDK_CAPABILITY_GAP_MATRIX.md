@@ -1,7 +1,7 @@
 # SDK capability gap matrix
 
 Last updated: 2026-06-17  
-**Version:** unified **`sdk/VERSION`** — web, iOS, Android, Flutter, Unity, React Native (currently **0.5.22**)
+**Version:** unified **`sdk/VERSION`** — web, iOS, Android, Flutter, Unity, React Native (currently **0.5.30**)
 
 Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (large network SDKs and mediation hubs). This is a capability map, not a competitor feature list.
 
@@ -53,7 +53,7 @@ Compares **DKMads SSP SDKs** to typical **top-tier publisher mobile SDKs** (larg
 | Gap | DKMads | Typical leader |
 |-----|--------|----------------|
 | OMID in-app SDK | **Adapter seam shipped** (0.5.22) — host plugs in IAB OM SDK; see [OMID_VIEWABILITY](./OMID_VIEWABILITY.md) | OM SDK bundled in-box |
-| VAST / IMA player kit | MP4/WebView + lifecycle events | Official player adapters |
+| VAST player kit | MP4/WebView + lifecycle events (`DKMadsVideoAdView`) | Broader VAST adapter pack |
 | SKAN helper APIs | Policy docs + ATT | Conversion value helpers |
 | Unified `preload(token)` | Per-format `load` | Single preload API |
 

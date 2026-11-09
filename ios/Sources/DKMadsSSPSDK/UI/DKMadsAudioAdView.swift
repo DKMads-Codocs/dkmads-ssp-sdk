@@ -65,8 +65,10 @@ import UIKit
                     adId: ad.id,
                     campaignId: ad.campaignId,
                     creativeId: ad.creativeId,
-                    dspSource: ad.dsp
-                )
+                    dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
+        )
                 self.delegate?.audioAdViewDidReceiveAd?(self)
                 self.delegate?.audioAdViewDidRecordImpression?(self)
                 if self.autoplay {

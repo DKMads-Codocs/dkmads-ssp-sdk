@@ -146,7 +146,11 @@ import AVFoundation
                 let reason = http.json["reason"] as? String
                 let requestId = http.json["request_id"] as? String
                 let refreshSec = http.json["refresh_interval_sec"] as? Int
-                if let adData = http.json["winner"] as? [String: Any], !adData.isEmpty {
+                if var adData = http.json["winner"] as? [String: Any], !adData.isEmpty {
+                    if let requestId, adData["request_id"] == nil { adData["request_id"] = requestId }
+                    if let proof = http.json["event_proof"] as? String, adData["event_proof"] == nil {
+                        adData["event_proof"] = proof
+                    }
                     let parsedAd = Ad(from: adData)
                     let dsp = adData["dsp"] as? String
                     let price = adData["price"] as? Double
@@ -405,7 +409,8 @@ import AVFoundation
     }
 
     private func mergedKeyValues(_ keyValues: [String: Any]) -> [String: Any] {
-        guard config?.useTestAds == true else { return keyValues }
+        // useTestAds only applies when debug is also enabled.
+        guard config?.useTestAds == true, config?.debug == true else { return keyValues }
         if keyValues["test_mode"] != nil { return keyValues }
         var merged = keyValues
         merged["test_mode"] = true
@@ -422,14 +427,22 @@ import AVFoundation
         adUnitId: String? = nil,
         campaignId: String? = nil,
         creativeId: String? = nil,
-        dspSource: String? = nil
+        dspSource: String? = nil,
+            requestId: String? = nil,
+        eventProof: String? = nil
     ) {
-        var data: [String: Any] = ["adId": adId]
-        if let adUnitId, !adUnitId.isEmpty { data["ad_unit_id"] = adUnitId }
-        if let campaignId, !campaignId.isEmpty { data["campaign_id"] = campaignId }
-        if let creativeId, !creativeId.isEmpty { data["creative_id"] = creativeId }
-        if let dspSource, !dspSource.isEmpty { data["dsp_source"] = dspSource }
-        TelemetryManager.shared.trackEvent(type: "ad_click", data: data)
+        TelemetryManager.shared.trackEvent(
+            type: "ad_click",
+            data: billableEventPayload(
+                adId: adId,
+                adUnitId: adUnitId,
+                campaignId: campaignId,
+                creativeId: creativeId,
+                dspSource: dspSource,
+            requestId: requestId,
+                eventProof: eventProof
+            )
+        )
     }
 
     public func trackEvent(name: String, data: [String: Any] = [:]) {
@@ -441,13 +454,44 @@ import AVFoundation
         adId: String,
         campaignId: String? = nil,
         creativeId: String? = nil,
-        dspSource: String? = nil
+        dspSource: String? = nil,
+            requestId: String? = nil,
+        eventProof: String? = nil
     ) {
-        var data: [String: Any] = ["ad_unit_id": adUnitId, "adId": adId]
+        TelemetryManager.shared.trackEvent(
+            type: "ad_impression",
+            data: billableEventPayload(
+                adId: adId,
+                adUnitId: adUnitId,
+                campaignId: campaignId,
+                creativeId: creativeId,
+                dspSource: dspSource,
+            requestId: requestId,
+                eventProof: eventProof
+            )
+        )
+    }
+
+    private func billableEventPayload(
+        adId: String,
+        adUnitId: String?,
+        campaignId: String?,
+        creativeId: String?,
+        dspSource: String?,
+            requestId: String?,
+        eventProof: String?
+    ) -> [String: Any] {
+        var data: [String: Any] = ["adId": adId]
+        if let adUnitId, !adUnitId.isEmpty { data["ad_unit_id"] = adUnitId }
         if let campaignId, !campaignId.isEmpty { data["campaign_id"] = campaignId }
         if let creativeId, !creativeId.isEmpty { data["creative_id"] = creativeId }
         if let dspSource, !dspSource.isEmpty { data["dsp_source"] = dspSource }
-        TelemetryManager.shared.trackEvent(type: "ad_impression", data: data)
+        if let requestId, !requestId.isEmpty { data["request_id"] = requestId }
+        if let eventProof, !eventProof.isEmpty {
+            data["event_proof"] = eventProof
+            data["metadata"] = ["event_proof": eventProof, "request_id": requestId as Any]
+        }
+        return data
     }
 
     private func trackError(event: String, error: Error) {

@@ -127,8 +127,10 @@ import SafariServices
                     adId: ad.id,
                     campaignId: ad.campaignId,
                     creativeId: ad.creativeId,
-                    dspSource: ad.dsp
-                )
+                    dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
+        )
                 ad.impressionRecorded = true
                 DispatchQueue.main.async {
                     self.delegate?.bannerAdViewDidReceiveAd?(self)
@@ -308,10 +310,12 @@ import SafariServices
             adUnitId: adUnitID,
             campaignId: ad.campaignId,
             creativeId: ad.creativeId,
-            dspSource: ad.dsp
+            dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
         )
         delegate?.bannerAdViewDidRecordClick?(self)
-        guard !ad.clickUrl.isEmpty, let url = URL(string: ad.clickUrl) else { return }
+        guard let url = ClickThroughNavigation.allowedExternalURL(candidate: nil, clickUrl: ad.clickUrl) else { return }
         rootViewController?.present(SFSafariViewController(url: url), animated: true)
     }
 }
@@ -336,15 +340,24 @@ extension DKMadsBannerAdView: WKNavigationDelegate {
         if navigationAction.navigationType == .linkActivated,
            let url = navigationAction.request.url {
             let ad = loadedAd
+            guard let target = ClickThroughNavigation.allowedExternalURL(
+                candidate: url.absoluteString,
+                clickUrl: ad?.clickUrl
+            ) else {
+                decisionHandler(.cancel)
+                return
+            }
             SSPSDK.shared.recordAdClick(
                 adId: ad?.id ?? "",
                 adUnitId: adUnitID,
                 campaignId: ad?.campaignId,
                 creativeId: ad?.creativeId,
-                dspSource: ad?.dsp
-            )
+                dspSource: ad?.dsp,
+            requestId: ad?.requestId,
+            eventProof: ad?.eventProof
+        )
             delegate?.bannerAdViewDidRecordClick?(self)
-            rootViewController?.present(SFSafariViewController(url: url), animated: true)
+            rootViewController?.present(SFSafariViewController(url: target), animated: true)
             decisionHandler(.cancel)
             return
         }
@@ -354,14 +367,18 @@ extension DKMadsBannerAdView: WKNavigationDelegate {
 
 extension DKMadsBannerAdView: DKMadsMraidHost {
     func mraidOpen(url: String) {
-        guard let target = URL(string: url) else { return }
         let ad = loadedAd
+        guard let target = ClickThroughNavigation.allowedExternalURL(candidate: url, clickUrl: ad?.clickUrl) else {
+            return
+        }
         SSPSDK.shared.recordAdClick(
             adId: ad?.id ?? "",
             adUnitId: adUnitID,
             campaignId: ad?.campaignId,
             creativeId: ad?.creativeId,
-            dspSource: ad?.dsp
+            dspSource: ad?.dsp,
+            requestId: ad?.requestId,
+            eventProof: ad?.eventProof
         )
         delegate?.bannerAdViewDidRecordClick?(self)
         rootViewController?.present(SFSafariViewController(url: target), animated: true)

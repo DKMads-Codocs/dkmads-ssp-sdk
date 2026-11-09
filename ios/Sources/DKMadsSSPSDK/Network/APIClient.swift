@@ -52,7 +52,7 @@ final class APIClient {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
 
         if debug {
-            let bodyPreview = (request.httpBody.flatMap { String(data: $0, encoding: .utf8) }) ?? "{}"
+            let bodyPreview = redactDebugPayload((request.httpBody.flatMap { String(data: $0, encoding: .utf8) }) ?? "{}")
             print("[DKMads SSP] POST \(url.absoluteString)")
             print("[DKMads SSP] Request body: \(bodyPreview)")
         }
@@ -69,7 +69,7 @@ final class APIClient {
             let rawBody = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
 
             if debug {
-                print("[DKMads SSP] Response HTTP \(statusCode): \(rawBody.prefix(2000))")
+                print("[DKMads SSP] Response HTTP \(statusCode): \(redactDebugPayload(String(rawBody.prefix(2000))))")
             }
 
             let trimmedBody = rawBody.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -109,4 +109,27 @@ final class APIClient {
             )))
         }.resume()
     }
+}
+
+private func redactDebugPayload(_ raw: String) -> String {
+    var out = raw
+    // Strip long ADM / HTML blobs and integration key material from debug logs.
+    if let regex = try? NSRegularExpression(pattern: #""adm"\s*:\s*"(?:\\.|[^"\\])*""#, options: []) {
+        out = regex.stringByReplacingMatches(
+            in: out,
+            range: NSRange(out.startIndex..., in: out),
+            withTemplate: #""adm":"[redacted]""#
+        )
+    }
+    if let regex = try? NSRegularExpression(
+        pattern: #"(integration_key|X-Integration-Key)"\s*:\s*"[^"]*""#,
+        options: [.caseInsensitive]
+    ) {
+        out = regex.stringByReplacingMatches(
+            in: out,
+            range: NSRange(out.startIndex..., in: out),
+            withTemplate: #"$1":"[redacted]""#
+        )
+    }
+    return out
 }

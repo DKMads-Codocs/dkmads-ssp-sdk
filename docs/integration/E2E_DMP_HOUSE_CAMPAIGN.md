@@ -7,7 +7,7 @@ Operator QA checklist for production sign-off of the DMP ↔ SSP integration (Ph
 - DMP workspace linked to SSP workspace (`workspace_dmp_links.status = active`, mutual verify complete).
 - Property on SSP has `dmp_property_id` / `dmp_app_key` set (Integrations → DMP or Properties form).
 - House campaign with line item targeting a **DMP audience ID** (not SSP-only FPD audience).
-- Test device with SSP SDK **0.5.23+** using `dmpAppKey` co-init or `linkDmpIdentity()`.
+- Test device with SSP SDK **0.5.30+** using `dmpAppKey` co-init or `linkDmpIdentity()`.
 
 ## Steps
 

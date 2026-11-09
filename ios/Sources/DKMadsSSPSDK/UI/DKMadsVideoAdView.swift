@@ -101,8 +101,10 @@ import WebKit
                 adId: ad.id,
                 campaignId: ad.campaignId,
                 creativeId: ad.creativeId,
-                dspSource: ad.dsp
-            )
+                dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
+        )
             ad.impressionRecorded = true
         }
         delegate?.videoAdViewDidReceiveAd?(self)
@@ -157,8 +159,10 @@ import WebKit
                     adId: ad.id,
                     campaignId: ad.campaignId,
                     creativeId: ad.creativeId,
-                    dspSource: ad.dsp
-                )
+                    dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
+        )
                 ad.impressionRecorded = true
                 self.delegate?.videoAdViewDidReceiveAd?(self)
                 self.delegate?.videoAdViewDidRecordImpression?(self)
@@ -577,7 +581,8 @@ import WebKit
     }
 
     @objc private func videoSurfaceTapped() {
-        guard let ad = loadedAd, !ad.clickUrl.isEmpty, let url = URL(string: ad.clickUrl) else { return }
+        guard let ad = loadedAd,
+              let url = ClickThroughNavigation.allowedExternalURL(candidate: nil, clickUrl: ad.clickUrl) else { return }
         recordClick()
         rootViewController?.present(SFSafariViewController(url: url), animated: true)
     }
@@ -677,9 +682,12 @@ extension DKMadsVideoAdView: WKNavigationDelegate {
         if navigationAction.navigationType == .linkActivated,
            let url = navigationAction.request.url,
            let ad = loadedAd,
-           ClickThroughNavigation.matches(clickUrl: ad.clickUrl, navigationUrl: url.absoluteString) {
+           let target = ClickThroughNavigation.allowedExternalURL(
+               candidate: url.absoluteString,
+               clickUrl: ad.clickUrl
+           ) {
             recordClick()
-            rootViewController?.present(SFSafariViewController(url: url), animated: true)
+            rootViewController?.present(SFSafariViewController(url: target), animated: true)
             decisionHandler(.cancel)
             return
         }
@@ -693,7 +701,9 @@ extension DKMadsVideoAdView: WKNavigationDelegate {
             adUnitId: adUnitID,
             campaignId: ad.campaignId,
             creativeId: ad.creativeId,
-            dspSource: ad.dsp
+            dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
         )
         delegate?.videoAdViewDidRecordClick?(self)
     }
@@ -762,7 +772,8 @@ extension DKMadsVideoAdView: WKNavigationDelegate {
     }
 
     @objc private func companionTapped() {
-        guard let ad = loadedAd, !ad.clickUrl.isEmpty, let url = URL(string: ad.clickUrl) else { return }
+        guard let ad = loadedAd,
+              let url = ClickThroughNavigation.allowedExternalURL(candidate: nil, clickUrl: ad.clickUrl) else { return }
         recordClick()
         rootViewController?.present(SFSafariViewController(url: url), animated: true)
     }

@@ -18,7 +18,7 @@ Official SDK repository: **https://github.com/DKMads-Codocs/dkmads-ssp-sdk**
 | | |
 |---|---|
 | **Package** | `DKMadsSSPSDK` |
-| ||||||||**Version** | `0.5.30` |
+| **Version** | `0.5.30` |
 | **Release tag** | `sdk-0.5.30` |
 
 > **Distribution:** the podspec is **CocoaPods trunk-lintable** and a `pod trunk push` job is wired in CI. Until a trunk release is live, install via the Git/`:tag` source below.
@@ -69,6 +69,10 @@ import DKMadsSSPSDK
 let config = SSPSDKConfig(integrationKey: "YOUR_INTEGRATION_KEY")
 config.baseURL = "https://ssp.dkmads.com"
 config.debug = true
+// Optional:
+// config.propertyId = "YOUR_PROPERTY_UUID"   // dashboard property
+// config.useTestAds = true                  // verbose bid logging
+// config.dmpAppKey = "dmp_live_..."         // co-init DMP — see DMP guides
 DKMadsMobileAds.shared.start(with: config)
 ```
 
@@ -114,18 +118,67 @@ Delegate callbacks:
 - `bannerAdView(_:didFailToReceiveAdWithError:)` — show error / retry
 - `bannerAdViewDidRecordViewableImpression` (50% visible ≥1s)
 
-## 2b) Video ads (your player required)
+## 2b) Video / instream (drop-in)
+
+Three options — same order as the [iOS kit README](https://github.com/DKMads-Codocs/dkmads-ssp-sdk/blob/main/ios/README.md). Prefer **A** unless you already own the player.
+
+| Option | API | Use when |
+|--------|-----|----------|
+| **A (recommended)** | `DKMadsVideoAdView` | Drop-in view: native MP4/HLS, packaged HTML video, Skip/mute/progress chrome, `contain_blur` slot fit |
+| **B** | `DKMadsInstreamAdsLoader` | Pause host content → play ad → resume |
+| **C** | `DKMadsVideoAdController` | Bring your own `AVPlayer`; SDK loads bid + telemetry |
+
+### Option A — `DKMadsVideoAdView` (recommended)
+
+```swift
+let videoView = DKMadsVideoAdView(adUnitID: "YOUR_VIDEO_AD_UNIT", frame: adFrame)
+videoView.delegate = self
+videoView.isSkippable = true          // default true
+videoView.skipOffsetSeconds = 5       // countdown then tappable Skip
+parentView.addSubview(videoView)
+
+let req = DKMadsAdRequest()
+req.placementCode = "YOUR_VIDEO_AD_UNIT"
+req.placementContext = "instream_preroll"
+videoView.load(req)
+```
+
+**Behavior (0.5.25–0.5.30):**
+
+- Honors bid `slot_fit` / `contain_blur` (1:1 and other creatives center with glass-blur backdrop).
+- Packaged ADM chrome (`.dkmads-chrome-*`) is the single Skip/mute owner — native chrome is not doubled (0.5.28).
+- Skip stays visible for the whole ad (viewport injection no longer collapses video-stage chrome — 0.5.30).
+- `Ad.preferredRenderer` chooses `.nativeMP4` vs `.webMarkup`; native failure can fall back to WebView when `adm` has `<video>`.
+
+Delegate: `videoAdViewDidReceiveAd`, `videoAdViewDidStartPlayback`, `videoAdViewDidComplete`, `videoAdViewDidSkip`, `videoAdView(_:didFailToReceiveAdWithError:)`.
+
+### Option B — Instream loader (pause content → ad → resume)
+
+```swift
+let loader = DKMadsInstreamAdsLoader(contentPlayer: contentPlayer, adContainer: adOverlay)
+loader.delegate = self
+loader.pauseContentAutomatically = true
+loader.resumeContentAfterAd = true
+loader.requestAds(adUnitID: "YOUR_VIDEO_AD_UNIT", contentPosition: "instream_preroll")
+```
+
+Read `loader.loadedAd` / `loader.responseInfo` in `instreamAdsLoaderDidStartAd` — one bid per `requestAds`.
+
+### Option C — Your player + telemetry
 
 ```swift
 let video = DKMadsVideoAdController(adUnitID: "YOUR_VIDEO_AD_UNIT")
 video.delegate = self
 video.load { result in
-  // Set player item from video.loadedAd, then:
-  video.attach(player: avPlayer, containerView: playerContainer, skippable: true)
+  if case .success = result, let ad = video.loadedAd {
+    video.play(in: avPlayer, containerView: playerContainer)
+  }
 }
 ```
 
-Emits `video_start`, `video_25`…`video_100`, `video_skip`, `video_viewable`, etc. See `docs/SDK_METRICS_REFERENCE.md`.
+Emits `video_start`, `video_25`…`video_100`, `video_skip`, `video_viewable` on the native path. See [SDK metrics](../SDK_METRICS_REFERENCE.md).
+
+**Instream audio:** contexts containing `instream` (or `video_template == video_instream`) start unmuted; outstream stays muted for autoplay policy.
 
 ## 2c) Interstitial (fullscreen)
 
@@ -159,12 +212,17 @@ DKMadsInterstitialAd.load(
 }
 ```
 
-**Interstitial behavior (0.5.12+):**
+ObjC: `+[DKMadsInterstitialAd loadInterstitialWithAdUnitID:request:completion:]` then `presentFromRootViewController:`.
 
-- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.16+).
-- Tap anywhere on the creative or embedded links opens the landing page in Safari.
+**Interstitial behavior:**
+
+- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox uses **90% opaque black** (`rgba(0,0,0,0.9)`).
+- **HTML5 packages** (`html5_entry_url`) are centered and scaled to fit the screen (0.5.26) — not pinned top-left at package size.
+- Tap on the creative or embedded links opens the landing page in Safari.
 - SDK defaults `placementCode` → ad unit UUID and `placementContext` → `"interstitial"` when omitted.
-- Use the top-trailing **✕** to dismiss (video interstitials do not show a separate skip chip).
+- Top-trailing **✕** dismisses the unit. **Video Skip** chrome (countdown → Skip) appears when the creative/template is skippable (packaged or native chrome, 0.5.28–0.5.30) — separate from the close control.
+
+Delegate: `interstitialAdDidReceiveAd`, `interstitialAdDidPresent`, `interstitialAdDidDismiss`, `interstitialAd(_:didFailToReceiveAdWithError:)`.
 
 ## 2d) Rewarded (fullscreen with reward callback)
 
@@ -178,11 +236,12 @@ DKMadsRewardedAd.load(adUnitID: "YOUR_REWARDED_AD_UNIT_UUID") { ad, error in
 
 ObjC: `+[DKMadsRewardedAd loadRewardedWithAdUnitID:request:completion:]` (no optional `CGSize` on `@objc` load).
 
-Delegate callback to grant reward: `rewardedAdDidEarnReward`.
+Delegate (`DKMadsRewardedAdDelegate`):
 
-Delegate: `interstitialAdDidReceiveAd`, `interstitialAdDidPresent`, `interstitialAdDidDismiss`, `interstitialAd(_:didFailToReceiveAdWithError:)`.
-
-ObjC: `+[DKMadsInterstitialAd loadInterstitialWithAdUnitID:request:completion:]` then `presentFromRootViewController:`.
+- `rewardedAdDidReceiveAd`
+- `rewardedAdDidPresent` / `rewardedAdDidDismiss`
+- `rewardedAdDidEarnReward` — grant the reward here
+- `rewardedAd(_:didFailToReceiveAdWithError:)`
 
 ## 2e) App open (splash)
 
@@ -193,6 +252,29 @@ DKMadsAppOpenAd.load(adUnitID: "YOUR_SPLASH_AD_UNIT_UUID") { ad, error in
   guard let ad = ad else { return }
   ad.present(from: self) // on cold start or resume
 }
+```
+
+## 2f) Native
+
+```swift
+let native = DKMadsNativeAdView(
+  adUnitID: "YOUR_NATIVE_AD_UNIT_UUID",
+  adSize: CGSize(width: 300, height: 250)
+)
+native.rootViewController = self
+native.delegate = self
+parentView.addSubview(native)
+native.load(DKMadsAdRequest())
+```
+
+For custom in-feed layouts, use `DKMadsNativeAd` + `DKMadsNativeAdAssets` — see [Native ad SDK](../NATIVE_AD_SDK.md).
+
+## 2g) Audio
+
+```swift
+let audio = DKMadsAudioAdView(adUnitID: "YOUR_AUDIO_AD_UNIT_UUID")
+audio.delegate = self
+audio.load(DKMadsAdRequest()) // autoplay when prepared
 ```
 
 ## Ad Inspector
@@ -211,21 +293,23 @@ SSPSDK.shared.loadAd(
   format: .banner,
   sizes: [CGSize(width: 300, height: 250)]
 ) { result in
-    switch result {
+  switch result {
   case .success(let response):
     print(response.responseInfo.summary)
-    if response.success, let ad = response.ad {
-      // ad.isVideo, ad.isHTML5, ad.creativeUrl, ad.adm, ad.videoUrl
-        }
-    case .failure(let error):
-    print(error.localizedDescription)
+    if let ad = response.ad, ad.hasFill {
+      // ad.isVideo, ad.isHTML5, ad.creativeUrl, ad.adm, ad.videoUrl, ad.renderMode
     }
+  case .failure(let error):
+    print(error.localizedDescription)
+  }
 }
 ```
 
+Use **`ad.hasFill`** for fill checks — house wins may omit a creative `id`.
+
 ## Consent + user data
 
-The SDK **auto-reads IAB CMP storage** (Google UMP) on init and before each ad request:
+The SDK **auto-reads IAB CMP / TCF storage** on init and before each ad request:
 
 - `IABTCF_TCString`, `IABTCF_gdprApplies`
 - `IABUSPrivacy_String`
@@ -235,7 +319,7 @@ The SDK **auto-reads IAB CMP storage** (Google UMP) on init and before each ad r
 Explicit `setConsent` values take precedence when non-blank. Do **not** use `syncFirstPartyProfile` on exchange inventory (server blocks when exchange strict mode is on).
 
 ```swift
-// Optional after UMP — SDK merges CMP automatically:
+// Optional — SDK already merges CMP storage when present:
 SSPSDK.shared.setConsent(ConsentData(
   gdpr: true,
   consentString: tcfFromCmp,
@@ -296,4 +380,4 @@ See `ios/Sample/README.md` in the SDK repository.
 
 ## Kit layout
 
-See `ios/README.md` in [dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk), [SDK_CONTRACT.md](../SDK_CONTRACT.md), [TARGETING_SIGNALS.md](../TARGETING_SIGNALS.md), [SDK_METRICS_REFERENCE.md](../SDK_METRICS_REFERENCE.md).
+See `ios/README.md` in [dkmads-ssp-sdk](https://github.com/DKMads-Codocs/dkmads-ssp-sdk), [SDK_CONTRACT.md](../SDK_CONTRACT.md), [TARGETING_SIGNALS.md](../TARGETING_SIGNALS.md), [SDK_METRICS_REFERENCE.md](../SDK_METRICS_REFERENCE.md), [DMP identity](./dmp-identity.md), [DMP co-init](./dmp-co-init.md).

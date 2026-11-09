@@ -151,6 +151,8 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                         creativeId = ad.creativeId,
                         dspSource = ad.dsp,
                         reason = ad.reason,
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
                     )
                     listener?.onAdLoaded(this@DKMadsBannerAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsBannerAdView)
@@ -213,6 +215,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
                             request?.url,
                             request?.isForMainFrame == true,
                             webContentReady,
+                            loadedAd?.clickUrl,
                         )
                     ) {
                         return false
@@ -272,9 +275,14 @@ class DKMadsBannerAdView @JvmOverloads constructor(
             campaignId = ad.campaignId,
             creativeId = ad.creativeId,
             dspSource = ad.dsp,
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
         )
         listener?.onAdClicked(this)
-        val destination = openUri ?: ad.clickUrl.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+        val destination = ClickThroughNavigation.resolveExternalUri(
+            openUri?.toString(),
+            ad.clickUrl,
+        )
         if (destination != null) {
             context.startActivity(Intent(Intent.ACTION_VIEW, destination))
         }
@@ -306,7 +314,7 @@ class DKMadsBannerAdView @JvmOverloads constructor(
 
     private fun bannerMraidHost(): DKMadsMraidHost = object : DKMadsMraidHost {
         override fun onMraidOpen(url: String) {
-            onBannerClicked(Uri.parse(url))
+            onBannerClicked(ClickThroughNavigation.resolveExternalUri(url, loadedAd?.clickUrl))
         }
         override fun onMraidClose() {
             mraid?.setViewable(false)

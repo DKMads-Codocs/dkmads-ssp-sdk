@@ -111,7 +111,7 @@ object SSPSDK {
         )
 
         if (effectiveConfig.debug) {
-            android.util.Log.d("DKMads SSP", "SDK initialized with key: ${effectiveConfig.integrationKey}")
+            android.util.Log.d("DKMads SSP", "SDK initialized with key: ${redactSecret(effectiveConfig.integrationKey)}")
         }
 
         if (!effectiveConfig.dmpAppKey.isNullOrBlank()) {
@@ -127,6 +127,9 @@ object SSPSDK {
         if (cfg.requireConsentBeforeAds) return consentConfigured
         return true
     }
+
+    /** True when publisher enabled debug (required for Ad Inspector / test_mode). */
+    fun isDebugEnabled(): Boolean = config?.debug == true
 
     suspend fun loadAd(
         context: Context,
@@ -186,6 +189,9 @@ object SSPSDK {
                 } else if (resolvedId.isBlank() && adm.isNotBlank()) {
                     resolvedId = "html-creative"
                 }
+                val eventProof = response.optString("event_proof")
+                    .takeIf { it.isNotBlank() }
+                    ?: adData.optString("event_proof").takeIf { it.isNotBlank() }
                 val ad = Ad(
                     id = resolvedId,
                     creativeUrl = creativeUrl,
@@ -203,6 +209,7 @@ object SSPSDK {
                     omidVerifications = parseOmidVerifications(adData),
                     reason = reason ?: "won",
                     requestId = requestId,
+                    eventProof = eventProof,
                     dsp = adData.optString("dsp").takeIf { it.isNotBlank() },
                     price = adData.optDouble("price").takeIf { !it.isNaN() },
                     campaignId = adData.optString("cid").takeIf { it.isNotBlank() },
@@ -521,16 +528,15 @@ object SSPSDK {
         creativeId: String? = null,
         dspSource: String? = null,
         reason: String? = null,
+        requestId: String? = null,
+        eventProof: String? = null,
     ) {
-        val extra = mutableMapOf<String, Any?>(
-            "ad_unit_id" to adUnitId,
-            "adId" to adId,
+        telemetryManager.trackEvent(
+            type = "ad_impression",
+            data = billableEventPayload(
+                adUnitId, adId, campaignId, creativeId, dspSource, reason, requestId, eventProof,
+            ),
         )
-        campaignId?.takeIf { it.isNotBlank() }?.let { extra["campaign_id"] = it }
-        creativeId?.takeIf { it.isNotBlank() }?.let { extra["creative_id"] = it }
-        dspSource?.takeIf { it.isNotBlank() }?.let { extra["dsp_source"] = it }
-        reason?.takeIf { it.isNotBlank() }?.let { extra["reason"] = it }
-        telemetryManager.trackEvent(type = "ad_impression", data = extra)
     }
 
     fun recordAdClick(
@@ -539,7 +545,27 @@ object SSPSDK {
         campaignId: String? = null,
         creativeId: String? = null,
         dspSource: String? = null,
+        requestId: String? = null,
+        eventProof: String? = null,
     ) {
+        telemetryManager.trackEvent(
+            type = "ad_click",
+            data = billableEventPayload(
+                adUnitId, adId, campaignId, creativeId, dspSource, null, requestId, eventProof,
+            ),
+        )
+    }
+
+    private fun billableEventPayload(
+        adUnitId: String,
+        adId: String,
+        campaignId: String?,
+        creativeId: String?,
+        dspSource: String?,
+        reason: String?,
+        requestId: String?,
+        eventProof: String?,
+    ): Map<String, Any?> {
         val extra = mutableMapOf<String, Any?>(
             "ad_unit_id" to adUnitId,
             "adId" to adId,
@@ -547,7 +573,13 @@ object SSPSDK {
         campaignId?.takeIf { it.isNotBlank() }?.let { extra["campaign_id"] = it }
         creativeId?.takeIf { it.isNotBlank() }?.let { extra["creative_id"] = it }
         dspSource?.takeIf { it.isNotBlank() }?.let { extra["dsp_source"] = it }
-        telemetryManager.trackEvent(type = "ad_click", data = extra)
+        reason?.takeIf { it.isNotBlank() }?.let { extra["reason"] = it }
+        requestId?.takeIf { it.isNotBlank() }?.let { extra["request_id"] = it }
+        eventProof?.takeIf { it.isNotBlank() }?.let {
+            extra["event_proof"] = it
+            extra["metadata"] = mapOf("event_proof" to it, "request_id" to requestId)
+        }
+        return extra
     }
 
     // Private helper functions
@@ -558,7 +590,8 @@ object SSPSDK {
     }
 
     private fun mergedKeyValues(keyValues: Map<String, Any>): Map<String, Any> {
-        if (config?.useTestAds != true) return keyValues
+        // useTestAds only applies when debug is also enabled (blocks accidental production test traffic).
+        if (config?.useTestAds != true || config?.debug != true) return keyValues
         if (keyValues.containsKey("test_mode")) return keyValues
         return keyValues + ("test_mode" to true)
     }
@@ -869,6 +902,8 @@ data class Ad(
     val omidVerifications: List<DKMadsOmidVerification> = emptyList(),
     val reason: String? = null,
     val requestId: String? = null,
+    /** HMAC proof from bid win; attach to billable telemetry events. */
+    val eventProof: String? = null,
     val dsp: String? = null,
     val price: Double? = null,
     val campaignId: String? = null,
@@ -1031,6 +1066,13 @@ sealed class SDKError : Exception() {
         override val message: String
             get() = serverMessage?.takeIf { it.isNotBlank() } ?: "Network error ($statusCode)"
     }
+}
+
+internal fun redactSecret(value: String?): String {
+    val v = value?.trim().orEmpty()
+    if (v.isEmpty()) return "(empty)"
+    if (v.length <= 8) return "***"
+    return "${v.take(4)}…${v.takeLast(2)} (len=${v.length})"
 }
 
 // SDK version

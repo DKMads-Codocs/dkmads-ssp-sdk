@@ -440,8 +440,9 @@ class DKMadsInterstitialActivity : Activity() {
 
     private fun interstitialMraidHost(): DKMadsMraidHost = object : DKMadsMraidHost {
         override fun onMraidOpen(url: String) {
+            val destination = ClickThroughNavigation.resolveExternalUri(url, ad.clickUrl) ?: return
             recordClick()
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            startActivity(Intent(Intent.ACTION_VIEW, destination))
         }
         override fun onMraidClose() {
             closeFromUser()
@@ -449,9 +450,12 @@ class DKMadsInterstitialActivity : Activity() {
     }
 
     private fun handleWebClickThrough(uri: Uri?, isMainFrame: Boolean): Boolean {
-        if (!ClickThroughNavigation.shouldOpenLandingUri(uri, isMainFrame, webContentReady)) return false
+        if (!ClickThroughNavigation.shouldOpenLandingUri(uri, isMainFrame, webContentReady, ad.clickUrl)) {
+            return false
+        }
+        val destination = ClickThroughNavigation.resolveExternalUri(uri?.toString(), ad.clickUrl) ?: return false
         recordClick()
-        startActivity(Intent(Intent.ACTION_VIEW, uri))
+        startActivity(Intent(Intent.ACTION_VIEW, destination))
         return true
     }
 
@@ -470,7 +474,9 @@ class DKMadsInterstitialActivity : Activity() {
             campaignId = ad.campaignId,
             creativeId = ad.creativeId,
             dspSource = ad.dsp,
-        )
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
+                    )
     }
 
     private fun startOmidNativeSession() {
@@ -498,7 +504,9 @@ class DKMadsInterstitialActivity : Activity() {
                 creativeId = ad.creativeId,
                 dspSource = ad.dsp,
                 reason = ad.reason,
-            )
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
+                    )
         }
         SSPSDK.attachBannerViewability(
             adUnitId = adUnitId,

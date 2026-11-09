@@ -116,6 +116,8 @@ class DKMadsNativeAdView @JvmOverloads constructor(
                         creativeId = ad.creativeId,
                         dspSource = ad.dsp,
                         reason = ad.reason,
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
                     )
                     listener?.onAdLoaded(this@DKMadsNativeAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsNativeAdView)
@@ -164,9 +166,22 @@ class DKMadsNativeAdView @JvmOverloads constructor(
                     post { startViewability() }
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                    val uri = request?.url ?: return false
-                    context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                    onClicked()
+                    val ad = loadedAd ?: return false
+                    val destination = ClickThroughNavigation.resolveExternalUri(
+                        request?.url?.toString(),
+                        ad.clickUrl,
+                    ) ?: return false
+                    SSPSDK.recordAdClick(
+                        adUnitId,
+                        ad.id,
+                        campaignId = ad.campaignId,
+                        creativeId = ad.creativeId,
+                        dspSource = ad.dsp,
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
+                    )
+                    listener?.onAdClicked(this@DKMadsNativeAdView)
+                    context.startActivity(Intent(Intent.ACTION_VIEW, destination))
                     return true
                 }
             }
@@ -196,11 +211,11 @@ class DKMadsNativeAdView @JvmOverloads constructor(
 
     private fun onClicked() {
         val ad = loadedAd ?: return
-        SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp)
+        SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp, requestId = ad.requestId, eventProof = ad.eventProof)
         listener?.onAdClicked(this)
-        val click = ad.clickUrl
-        if (click.isNotBlank()) {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(click)))
+        val destination = ClickThroughNavigation.resolveExternalUri(null, ad.clickUrl)
+        if (destination != null) {
+            context.startActivity(Intent(Intent.ACTION_VIEW, destination))
         }
     }
 
@@ -221,8 +236,19 @@ class DKMadsNativeAdView @JvmOverloads constructor(
 
     private fun nativeMraidHost(): DKMadsMraidHost = object : DKMadsMraidHost {
         override fun onMraidOpen(url: String) {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            onClicked()
+            val ad = loadedAd ?: return
+            val destination = ClickThroughNavigation.resolveExternalUri(url, ad.clickUrl) ?: return
+            SSPSDK.recordAdClick(
+                adUnitId,
+                ad.id,
+                campaignId = ad.campaignId,
+                creativeId = ad.creativeId,
+                dspSource = ad.dsp,
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
+                    )
+            listener?.onAdClicked(this@DKMadsNativeAdView)
+            context.startActivity(Intent(Intent.ACTION_VIEW, destination))
         }
     }
 

@@ -2,7 +2,7 @@
 
 Canonical **request, response, and lifecycle** contract for web, iOS, Android, Flutter, Unity, and React Native integrations.
 
-All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.23**).
+All platforms share one semver (`sdk/VERSION` in the monorepo, currently **0.5.30**).
 
 **Use with:** [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) · platform integration guides
 
@@ -65,7 +65,7 @@ Full targeting schema: [TARGETING_SIGNALS.md](TARGETING_SIGNALS.md).
 | Consent gate | `canRequestAds()` | `canRequestAds()` | via native | via native | `SSP.canRequestAds()` |
 | Native assets | `DKMadsNativeAdAssets` | `DKMadsNativeAdAssets` | `loadNative` fields | `LoadNative` JSON | `winner.native_assets` / auto native card |
 | DMP identity | `linkDmpIdentity` / `coInitDmp` | same | `DkmadsSsp.linkDmpIdentity` | `LinkDmpIdentity` | `linkDmpIdentity` / `dmpAppKey` co-init |
-| Video metrics | `DKMadsVideoAdController` | `DKMadsVideoAdView` | `trackVideoLifecycle` | `EmitVideoEvent` | `SSP.bindVideo` |
+| Video / instream | `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader`, `DKMadsVideoAdController` | Same + ExoPlayer | `trackVideoLifecycle` | Native bridge | `SSP.bindVideo` / `createInstreamLoader` |
 | Audio metrics | `DKMadsAudioAdView` / events | `DKMadsAudioAdView` | manual events | manual events | `SSP.bindAudio` |
 | Load ad (raw) | `loadAd(...)` | `loadAd(...)` | `loadBanner(...)` | `LoadAd` / `LoadAdWithFormat` | `SSP.requestAd` |
 | App events | `trackUserEvent(...)` | `trackUserEvent(...)` | `trackUserEvent(...)` | `TrackUserEvent` | `SSP.track` |
@@ -225,7 +225,7 @@ lifecycleScope.launch {
     sizes = listOf(300 to 250)
   )
   result.onSuccess { ad ->
-    if (ad.id.isBlank()) println("no fill reason=${ad.reason}") else println("fill ${ad.id}")
+    if (!ad.hasFill) println("no fill reason=${ad.reason}") else println("fill ${ad.id}")
   }
 }
 ```

@@ -11,12 +11,12 @@ Supported creative formats across the dashboard, bid API, and SDKs.
 | **Banner** | `banner` | Image, tag, HTML5 | `SSP.bind` | `DKMadsBannerAdView` | `DKMadsBannerAdView` |
 | **Interstitial** | `interstitial` | Image, tag, HTML5, video | `SSP.displayInterstitial` | `DKMadsInterstitialAd` | `DKMadsInterstitialAd` |
 | **Native** | `native` | Component assets (headline, body, CTA, advertiser, icon, main image, rating/price/downloads/likes) | `SSP.bind` / fluid slot (`native_assets`) | `DKMadsNativeAd` / `DKMadsNativeAdView` | `DKMadsNativeAd` |
-| **Video** | `video` | MP4 upload | `SSP.bindVideo()` | `DKMadsVideoAdController` | `DKMadsVideoAdController` |
-| **Rewarded** | `rewarded` | Video creative | `bindVideo` + app logic | Video APIs | Video APIs |
-| **Splash** | `splash` | Video / image | Slot | `DKMadsAppOpenAd` | `DKMadsAppOpenAd` |
-| **Audio** | `audio` | MP3/M4A | `SSP.bindAudio()` | `loadAd(.audio)` | `loadAd` |
+| **Video** | `video` | MP4 / HLS / HTML video | `SSP.bindVideo()` / `createInstreamLoader` | `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader`, `DKMadsVideoAdController` | Same + ExoPlayer |
+| **Rewarded** | `rewarded` | Video creative | `bindVideo` + app logic | `DKMadsRewardedAd` | `DKMadsRewardedAd` |
+| **Splash** | `splash` | Video / image | `SSP.displaySplash` | `DKMadsAppOpenAd` | `DKMadsAppOpenAd` |
+| **Audio** | `audio` | MP3/M4A | `SSP.bindAudio()` | `DKMadsAudioAdView` | `DKMadsAudioAdView` |
 
-## Industry container & measurement support (SDK 0.5.22+)
+## Industry container & measurement support (SDK 0.5.22+, current **0.5.30**)
 
 | Format | MRAID 2.0 | OMID measurement | VAST |
 |--------|-----------|------------------|------|
@@ -80,8 +80,8 @@ See [integration/web.md](./integration/web.md).
 |--------|-----|---------|
 | Banner | `DKMadsBannerAdView` | `DKMadsBannerAdView` |
 | Interstitial | `DKMadsInterstitialAd` | `DKMadsInterstitialAd` |
-| Video / instream | `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader` | Same + `DKMadsContentPlayback` |
-| Audio | `loadAd` + player or `adm` | `DKMadsAudioAdView` |
+| Video / instream | `DKMadsVideoAdView` (A), `DKMadsInstreamAdsLoader` (B), `DKMadsVideoAdController` (C) | Same + `DKMadsContentPlayback` / ExoPlayer |
+| Audio | `DKMadsAudioAdView` | `DKMadsAudioAdView` |
 
 Flutter and Unity use native bridges — see [integration/flutter.md](./integration/flutter.md) and [integration/unity.md](./integration/unity.md).
 

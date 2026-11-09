@@ -86,6 +86,8 @@ class DKMadsAudioAdView @JvmOverloads constructor(
                         creativeId = ad.creativeId,
                         dspSource = ad.dsp,
                         reason = ad.reason,
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
                     )
                     listener?.onAdLoaded(this@DKMadsAudioAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsAudioAdView)
@@ -106,7 +108,7 @@ class DKMadsAudioAdView @JvmOverloads constructor(
 
     fun openClickUrl() {
         val ad = loadedAd ?: return
-        SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp)
+        SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp, requestId = ad.requestId, eventProof = ad.eventProof)
         listener?.onAdClicked(this)
         val click = ad.clickUrl
         if (click.isNotBlank()) {

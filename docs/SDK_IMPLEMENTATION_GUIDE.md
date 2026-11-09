@@ -6,7 +6,7 @@ The central reference for integrating DKMads across **web, iOS, Android, Flutter
 **Outcome:** a verified property, successful bid, rendered creative, and compliant telemetry  
 **Fast path:** [60-minute quickstart](./integration/QUICKSTART.md) · **In dashboard:** Developer → SDK guide
 
-**Current release:** **0.5.22** (`sdk-0.5.22`) — explicit server `render_mode` hint, MRAID 2.0, OMID measurement seam, structured native assets, plus a minimal React Native bridge and Maven Central / CocoaPods trunk distribution.
+**Current release:** **0.5.30** (`sdk-0.5.30`) — drop-in video (`DKMadsVideoAdView` / ExoPlayer), `contain_blur` slot fit, HTML5 interstitial center+scale, single Skip chrome owner, DMP co-init (`dmpAppKey`), plus `render_mode` / MRAID 2.0 / OMID seam and React Native bridge.
 
 ## Reference samples (copy-paste)
 
@@ -142,12 +142,14 @@ Use platform components that auto-fire IAB-aligned events where possible:
 |--------|-----|----------------|
 | Banner | `SSP.bind` | `DKMadsBannerAdView` |
 | Interstitial | `SSP.displayInterstitial` | `DKMadsInterstitialAd` |
-| Video | `SSP.bindVideo` | `DKMadsVideoAdController`, instream loader |
+| Video | `SSP.bindVideo` / `createInstreamLoader` | `DKMadsVideoAdView`, `DKMadsInstreamAdsLoader`, `DKMadsVideoAdController` |
 | Audio | `SSP.bindAudio` | `DKMadsAudioAdView` (Android) |
 
 Event catalog: [SDK metrics reference](./SDK_METRICS_REFERENCE.md).
 
-**Render hint & Open Measurement (0.5.22+):** the bid winner carries an explicit `render_mode` and optional `omid_verifications`. SDKs honor `render_mode` as the primary render fork (falling back to creative-type heuristics), run HTML/`adm` through the MRAID 2.0 bridge, and drive an OMID session when a host OMID provider is registered. See [OMID & viewability](./OMID_VIEWABILITY.md).
+**Render hint & Open Measurement:** the bid winner carries an explicit `render_mode` and optional `omid_verifications`. SDKs honor `render_mode` as the primary render fork (falling back to creative-type heuristics), run HTML/`adm` through the MRAID 2.0 bridge, and drive an OMID session when a host OMID provider is registered. See [OMID & viewability](./OMID_VIEWABILITY.md).
+
+**Video chrome & fit (0.5.25–0.5.30):** bid `slot_fit` / `contain_blur`; packaged `.dkmads-chrome-*` is the single Skip/mute owner; Skip stays visible for the whole ad. HTML5 interstitials center+scale to the screen (0.5.26).
 
 ---
 

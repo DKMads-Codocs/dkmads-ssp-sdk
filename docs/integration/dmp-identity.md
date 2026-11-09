@@ -2,7 +2,7 @@
 
 Publishers running **both** DKMads DMP and SSP SDKs must send the **same** `device_pid` (and `user_pid` when logged in) on DMP ingest and SSP bid requests. Otherwise bid-time audience evaluation returns empty results.
 
-**Prerequisites:** [DMP Phase 1 integration](../DMP_PROJECT_HANDOVER.md) — workspace link configured in SSP Integrations, eval token active.
+**Prerequisites:** DKMads DMP workspace linked under SSP **Integrations**, with an active audience eval token.
 
 **Shortcut (Phase 5):** pass `dmpAppKey` on SSP init to co-initialize DMP — see [DMP co-init](./dmp-co-init.md).
 
@@ -101,7 +101,7 @@ SSP.diagnostics();
 3. **Eval failure mode** — `fail open` (default) vs `fail closed` (blocks house campaigns that require DMP `audience_ids` when eval errors).
 4. Activating SSP link status requires mutual confirmation unless `require_mutual_for_active: false` is set in link settings.
 
-**SSP-only (Option B):** enable **SSP-only FPD forward** to send `syncFirstPartyProfile` / `fpd/*` data to DMP ingest. See [DMP FPD forward](./dmp-fpd-forward.md).
+**SSP-only (Option B):** enable **SSP-only FPD forward** in the dashboard to send `syncFirstPartyProfile` / `fpd/*` data to DMP ingest (contact DKMads support if the toggle is not visible).
 
 On the SSP dashboard, confirm DMP audiences apply to house campaigns after audience compute completes.
 

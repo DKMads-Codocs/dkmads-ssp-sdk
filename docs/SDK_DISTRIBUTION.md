@@ -79,16 +79,16 @@ Publish to GitHub Releases on a **minimal public repo** that contains no server 
    # Preview
    ./scripts/publish-sdk-release.sh 0.5.24 --dry-run
 
-   # Build dist/sdk-release/sdk-0.5.22/ + tarball + SHA256
-   ./scripts/publish-sdk-release.sh 0.5.22 --archive-only
+   # Build dist/sdk-release/sdk-0.5.30/ + tarball + SHA256
+   ./scripts/publish-sdk-release.sh 0.5.30 --archive-only
 
    # Tag this monorepo
-   ./scripts/publish-sdk-release.sh 0.5.22 --archive-only --tag-monorepo
-   git push origin sdk-0.5.22
+   ./scripts/publish-sdk-release.sh 0.5.30 --archive-only --tag-monorepo
+   git push origin sdk-0.5.30
 
    # Push to publisher repository
    export SDK_PUBLISH_TOKEN=ghp_...   # PAT with repo scope on dkmads-ssp-sdk
-   ./scripts/publish-sdk-release.sh 0.5.22 --skip-android-build
+   ./scripts/publish-sdk-release.sh 0.5.30 --skip-android-build
    # default push: https://github.com/DKMads-Codocs/dkmads-ssp-sdk.git
 
    Full release **with Android AAR** needs JDK 17+ locally (`sdk/android-module/gradlew`) or run the **SDK Release** GitHub Action (Java 17 on Ubuntu).
@@ -132,7 +132,7 @@ Artifacts uploaded: `sdk-release-<version>/` (folder, `.tar.gz`, `.sha256`).
 ### Release bundle contents
 
 ```text
-sdk-0.5.22/
+sdk-0.5.30/
   ios/ android/ android-module/ flutter/ unity/ react-native/
   docs/integration/ …
   artifacts/android-maven/   # when Gradle build ran

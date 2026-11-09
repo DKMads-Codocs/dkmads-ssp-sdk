@@ -2,8 +2,8 @@
 
 Native ads are **component assets** (not a single image): the publisher app renders
 the headline, body, CTA, advertiser, icon, main image and optional store data into
-its own layout. This follows **OpenRTB Native 1.2** and aligns with AdMob / Meta
-Audience Network native asset sets.
+its own layout. This follows **OpenRTB Native 1.2** asset conventions used across
+common publisher native SDKs.
 
 Use **`DKMadsNativeAd`** when you build custom in-feed layouts. Use **`DKMadsNativeAdView`** for default WebView/image rendering.
 

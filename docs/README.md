@@ -15,7 +15,8 @@ Official integration guides for monetizing web and app inventory with the DKMads
 | 1 | [60-minute quickstart](./integration/QUICKSTART.md) | ~1 hour |
 | 2 | [Implementation guide](./SDK_IMPLEMENTATION_GUIDE.md) | Reference |
 | 3 | Platform guide ([Web](./integration/web.md) · [iOS](./integration/ios.md) · [Android](./integration/android.md)) | As needed |
-| 4 | [Integration checklist](./SDK_INTEGRATION_CHECKLIST.md) | Before launch |
+| 4 | Optional DMP ([identity](./integration/dmp-identity.md) · [co-init](./integration/dmp-co-init.md)) | Dual-SDK apps |
+| 5 | [Integration checklist](./SDK_INTEGRATION_CHECKLIST.md) | Before launch |
 
 ---
 
@@ -32,6 +33,8 @@ Official integration guides for monetizing web and app inventory with the DKMads
 | [Publisher API map](./SDK_PUBLISHER_API_MAP.md) | DKMads SDK tasks and entry points |
 | [Native ad SDK](./NATIVE_AD_SDK.md) | `DKMadsNativeAd` and asset fields |
 | [Capability gap matrix](./SDK_CAPABILITY_GAP_MATRIX.md) | Parity vs remaining SDK gaps |
+| [DMP identity bridge](./integration/dmp-identity.md) | `linkDmpIdentity` / shared `device_pid` |
+| [DMP co-init](./integration/dmp-co-init.md) | `dmpAppKey` on SSP init |
 
 ---
 

@@ -10,6 +10,10 @@ import Foundation
     @objc public let campaignId: String?
     @objc public let creativeId: String?
     @objc public let dsp: String?
+    /// Bid request id from `/v1/bid` (`request_id`).
+    @objc public let requestId: String?
+    /// HMAC event proof from bid win for billable telemetry.
+    @objc public let eventProof: String?
     /// Set after `recordAdImpression` (avoids duplicate on `display(_:)` / interstitial).
     @objc public var impressionRecorded = false
     @objc public let html5EntryUrl: String?
@@ -82,6 +86,10 @@ import Foundation
         self.creativeId = crid.isEmpty ? nil : crid
         let dspVal = (dictionary["dsp"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.dsp = dspVal.isEmpty ? nil : dspVal
+        let rid = (dictionary["request_id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.requestId = rid.isEmpty ? nil : rid
+        let proof = (dictionary["event_proof"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.eventProof = proof.isEmpty ? nil : proof
         let tmpl = (dictionary["video_template"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         self.videoTemplate = tmpl.isEmpty ? nil : tmpl
         let cta = (dictionary["cta_label"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

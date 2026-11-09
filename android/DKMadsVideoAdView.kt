@@ -128,7 +128,9 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                 creativeId = ad.creativeId,
                 dspSource = ad.dsp,
                 reason = ad.reason,
-            )
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
+                    )
         }
         listener?.onAdLoaded(this, ad, responseInfo ?: DKMadsResponseInfo.from(ad, requestFormat = "video"))
         listener?.onAdImpression(this)
@@ -192,6 +194,8 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         creativeId = ad.creativeId,
                         dspSource = ad.dsp,
                         reason = ad.reason,
+                        requestId = ad.requestId,
+                        eventProof = ad.eventProof,
                     )
                     listener?.onAdLoaded(this@DKMadsVideoAdView, ad, info)
                     listener?.onAdImpression(this@DKMadsVideoAdView)
@@ -418,14 +422,19 @@ class DKMadsVideoAdView @JvmOverloads constructor(
                         request?.url,
                         request?.isForMainFrame == true,
                         webContentReady,
+                        ad.clickUrl,
                     )
                 ) {
                     return false
                 }
-                    recordClick()
-                context.startActivity(Intent(Intent.ACTION_VIEW, request?.url))
-                    return true
-                }
+                val destination = ClickThroughNavigation.resolveExternalUri(
+                    request?.url?.toString(),
+                    ad.clickUrl,
+                ) ?: return false
+                recordClick()
+                context.startActivity(Intent(Intent.ACTION_VIEW, destination))
+                return true
+            }
             }
         webContentReady = false
         val packagedChrome = DKMadsVideoChrome.admHasPackagedChrome(ad.adm)
@@ -808,7 +817,7 @@ class DKMadsVideoAdView @JvmOverloads constructor(
 
     private fun recordClick() {
         val ad = loadedAd ?: return
-        SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp)
+        SSPSDK.recordAdClick(adUnitId, ad.id, campaignId = ad.campaignId, creativeId = ad.creativeId, dspSource = ad.dsp, requestId = ad.requestId, eventProof = ad.eventProof)
         listener?.onAdClicked(this)
     }
 

@@ -1,6 +1,6 @@
 # iOS quickstart sample
 
-`DKMadsSSPExample` mirrors [60-minute quickstart](../../docs/integration/QUICKSTART.md):
+Pins native SDK **0.5.30** (`sdk-0.5.30`). `DKMadsSSPExample` mirrors [60-minute quickstart](../../docs/integration/QUICKSTART.md):
 
 1. Initialize SDK  
 2. Load banner (`DKMadsBannerAdView`)  

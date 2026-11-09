@@ -94,8 +94,10 @@ import SafariServices
                     adId: ad.id,
                     campaignId: ad.campaignId,
                     creativeId: ad.creativeId,
-                    dspSource: ad.dsp
-                )
+                    dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
+        )
                 ad.impressionRecorded = true
                 DispatchQueue.main.async {
                     self.delegate?.nativeAdViewDidReceiveAd?(self)
@@ -210,10 +212,12 @@ import SafariServices
             adUnitId: adUnitID,
             campaignId: ad.campaignId,
             creativeId: ad.creativeId,
-            dspSource: ad.dsp
+            dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
         )
         delegate?.nativeAdViewDidRecordClick?(self)
-        guard !ad.clickUrl.isEmpty, let url = URL(string: ad.clickUrl) else { return }
+        guard let url = ClickThroughNavigation.allowedExternalURL(candidate: nil, clickUrl: ad.clickUrl) else { return }
         rootViewController?.present(SFSafariViewController(url: url), animated: true)
     }
 }
@@ -232,15 +236,20 @@ extension DKMadsNativeAdView: WKNavigationDelegate {
 
 extension DKMadsNativeAdView: DKMadsMraidHost {
     func mraidOpen(url: String) {
-        guard let target = URL(string: url) else { return }
+        guard let target = ClickThroughNavigation.allowedExternalURL(
+            candidate: url,
+            clickUrl: loadedAd?.clickUrl
+        ) else { return }
         if let ad = loadedAd {
             SSPSDK.shared.recordAdClick(
                 adId: ad.id,
                 adUnitId: adUnitID,
                 campaignId: ad.campaignId,
                 creativeId: ad.creativeId,
-                dspSource: ad.dsp
-            )
+                dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
+        )
         }
         delegate?.nativeAdViewDidRecordClick?(self)
         rootViewController?.present(SFSafariViewController(url: target), animated: true)

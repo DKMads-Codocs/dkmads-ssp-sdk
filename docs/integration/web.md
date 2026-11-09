@@ -8,9 +8,11 @@ Integrate display, video, and audio ads on any modern website using a single hos
 
 **Hub:** [Implementation guide](../SDK_IMPLEMENTATION_GUIDE.md) · [SDK contract](../SDK_CONTRACT.md)
 
-**Version:** **0.5.22** — aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
+**Version:** **0.5.30** — aligned with all publisher SDKs via `sdk/VERSION` in the monorepo (same semver as iOS/Android). Web exposes `SDK_VERSION` in `SSP.diagnostics()` and event telemetry.
 
-**Render fork (0.5.22+):** the bid winner carries an explicit **`render_mode`** hint (`image` / `html5` / `video_native` / `video_web` / `native_assets` / `audio`). The SDK honors it first and falls back to creative-type heuristics when absent. HTML5/`adm` creatives run through the **MRAID 2.0** bridge automatically.
+**Render fork:** the bid winner carries an explicit **`render_mode`** hint (`image` / `html5` / `video_native` / `video_web` / `native_assets` / `audio`). The SDK honors it first and falls back to creative-type heuristics when absent. HTML5/`adm` creatives run through the **MRAID 2.0** bridge automatically.
+
+**Video (0.5.25–0.5.30):** `slot_fit` / `contain_blur`, packaged Skip/mute chrome, and `SSP.createInstreamLoader` for pause → ad → resume.
 
 **Bid vs render (0.5.17+):** `data-ssp-size` / `data-ssp-sizes` → IAB tokens sent to `/v1/bid`. Creative viewport / `object-fit: contain` uses **element `clientWidth` × `clientHeight`** after layout — not the bid token.
 
@@ -92,7 +94,7 @@ When `refresh_interval_sec` is set on the ad unit in the dashboard, the bid resp
 
 ## 3. Instream video (pause content → ad → resume)
 
-For players you control (not IMA-only VAST), use the instream coordinator:
+For players you control (HTML5 `<video>` / custom VAST), use the instream coordinator:
 
 ```js
 var loader = SSP.createInstreamLoader({

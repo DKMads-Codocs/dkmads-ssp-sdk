@@ -86,7 +86,7 @@ let req = DKMadsAdRequest()
 req.placementContext = "instream_preroll"
 videoView.load(req)
 
-// Option B — IMA-style coordinator (pause content → ad → resume)
+// Option B — Instream coordinator (pause content → ad → resume)
 let loader = DKMadsInstreamAdsLoader(contentPlayer: contentPlayer, adContainer: adOverlay)
 loader.delegate = self
 loader.pauseContentAutomatically = true

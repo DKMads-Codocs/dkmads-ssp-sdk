@@ -243,8 +243,10 @@ final class DKMadsInterstitialPresenter: UIViewController {
                 adId: ad.id,
                 campaignId: ad.campaignId,
                 creativeId: ad.creativeId,
-                dspSource: ad.dsp
-            )
+                dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
+        )
             ad.impressionRecorded = true
         }
         SSPSDK.shared.attachBannerViewability(
@@ -279,12 +281,14 @@ final class DKMadsInterstitialPresenter: UIViewController {
             adUnitId: adUnitID,
             campaignId: ad.campaignId,
             creativeId: ad.creativeId,
-            dspSource: ad.dsp
+            dspSource: ad.dsp,
+            requestId: ad.requestId,
+            eventProof: ad.eventProof
         )
     }
 
     private func openClickUrl() {
-        guard !ad.clickUrl.isEmpty, let url = URL(string: ad.clickUrl) else { return }
+        guard let url = ClickThroughNavigation.allowedExternalURL(candidate: nil, clickUrl: ad.clickUrl) else { return }
         present(SFSafariViewController(url: url), animated: true)
     }
 
@@ -401,15 +405,24 @@ extension DKMadsInterstitialPresenter: WKNavigationDelegate {
             decisionHandler(.allow)
             return
         }
+        guard let target = ClickThroughNavigation.allowedExternalURL(
+            candidate: url.absoluteString,
+            clickUrl: ad.clickUrl
+        ) else {
+            decisionHandler(.cancel)
+            return
+        }
         recordClick()
-        present(SFSafariViewController(url: url), animated: true)
+        present(SFSafariViewController(url: target), animated: true)
         decisionHandler(.cancel)
     }
 }
 
 extension DKMadsInterstitialPresenter: DKMadsMraidHost {
     func mraidOpen(url: String) {
-        guard let target = URL(string: url) else { return }
+        guard let target = ClickThroughNavigation.allowedExternalURL(candidate: url, clickUrl: ad.clickUrl) else {
+            return
+        }
         recordClick()
         present(SFSafariViewController(url: target), animated: true)
     }

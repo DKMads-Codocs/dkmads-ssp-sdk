@@ -44,7 +44,7 @@ Per IAB/VAST practice, **only intentional navigation to the advertiser landing p
 Native MP4/HTML players expose a **Learn more** button when `click_url` is set. House video `adm` uses a separate `.dkmads-cta` link (video + controls are not wrapped in `<a>`).
 Web SDK video rendering also uses an explicit **overlay CTA** inside the video slot so click-through remains accessible even when the slot has fixed dimensions.
 
-### VAST / IMA players
+### VAST / custom video players
 
 When `response_format=vast` on `POST /api/public/v1/bid`:
 
@@ -107,7 +107,7 @@ Aliases accepted on ingest: `html5_interaction`, `interaction`, `rich_media_inte
 ## Native integration entry points
 
 - iOS banner: `DKMadsBannerAdView`
-- iOS video: `DKMadsVideoAdController` + your `AVPlayer`
+- iOS video: `DKMadsVideoAdView` (recommended), `DKMadsInstreamAdsLoader`, or `DKMadsVideoAdController` + your `AVPlayer`
 - Android banner: `DKMadsBannerAdView`
-- Android video: `DKMadsVideoAdController` + position/duration providers
+- Android video: `DKMadsVideoAdView` (ExoPlayer), `DKMadsInstreamAdsLoader`, or `DKMadsVideoAdController` + position/duration providers
 - Web: `SSP.bind`, `SSP.bindVideo`, `SSP.bindAudio`

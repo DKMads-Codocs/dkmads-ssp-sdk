@@ -138,4 +138,35 @@ enum ClickThroughNavigation {
         if nav == click { return true }
         return nav.hasPrefix(click)
     }
+
+    static func isAllowedExternalScheme(_ url: URL, clickUrl: String?) -> Bool {
+        let scheme = (url.scheme ?? "").lowercased()
+        if scheme == "https" { return true }
+        if scheme == "http" {
+            let clickScheme = URL(string: clickUrl?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")?
+                .scheme?
+                .lowercased()
+            return clickScheme == "http"
+        }
+        return false
+    }
+
+    /// Prefer the declared bid `click_url`. Reject non-http(s) and SSP host loops.
+    static func allowedExternalURL(candidate: String?, clickUrl: String?) -> URL? {
+        let click = clickUrl?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let nav = candidate?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let preferred: String
+        if !click.isEmpty, !nav.isEmpty, matches(clickUrl: click, navigationUrl: nav) {
+            preferred = nav
+        } else if !click.isEmpty {
+            preferred = click
+        } else {
+            return nil
+        }
+        guard let url = URL(string: preferred), isAllowedExternalScheme(url, clickUrl: clickUrl) else {
+            return nil
+        }
+        if url.host?.lowercased() == "ssp.dkmads.com" { return nil }
+        return url
+    }
 }

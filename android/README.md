@@ -10,8 +10,8 @@ Kotlin sources in this folder are packaged via `sdk/android-module` as AAR `com.
 | `TargetingSignals.kt` | Structured demographics, geo, interests |
 | `DKMadsBannerAdView.kt` | Banner UI + auto viewability + `responseInfo` |
 | `DKMadsInterstitialAd.kt` | Fullscreen interstitial (video, image, HTML5) |
-| `DKMadsVideoAdView.kt` | Drop-in video / instream playback (VideoView + WebView) |
-| `DKMadsInstreamAdsLoader.kt` | IMA-style instream (pause content → ad → resume) |
+| `DKMadsVideoAdView.kt` | Drop-in video / instream (Media3 ExoPlayer + WebView fallback) |
+| `DKMadsInstreamAdsLoader.kt` | Instream coordinator (pause content → ad → resume) |
 | `DKMadsVideoAdController.kt` | Bring-your-own-player + quartiles |
 | `DKMadsNativeAdView.kt` | Native format image / HTML |
 | `DKMadsAudioAdView.kt` | Audio playback (`audio_url` / `adm`) |

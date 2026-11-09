@@ -123,9 +123,13 @@ Include Kotlin coroutines (`kotlinx-coroutines-android` or `core`) in your app.
 
 ```kotlin
 val cfg = Config(
-            integrationKey = "YOUR_INTEGRATION_KEY",
+  integrationKey = "YOUR_INTEGRATION_KEY",
   baseUrl = "https://ssp.dkmads.com",
-  debug = true
+  debug = true,
+  // Optional:
+  // propertyId = "YOUR_PROPERTY_UUID",
+  // useTestAds = true,
+  // dmpAppKey = "dmp_live_...",  // co-init DMP — see DMP guides
 )
 SSPSDK.initialize(applicationContext, cfg)
 ```
@@ -173,11 +177,12 @@ val result = SSPSDK.loadAd(
 )
 
 result.onSuccess { ad ->
-  if (ad.id.isBlank()) {
-    Log.d("DKMads", "No fill")
+  // Use hasFill — house wins may omit a creative id.
+  if (!ad.hasFill) {
+    Log.d("DKMads", "No fill reason=${ad.reason}")
   } else {
     Log.d("DKMads", "Winner: ${ad.id}, ${ad.width}x${ad.height}")
-    // ad.creativeUrl contains `adm` HTML payload from /bid winner.
+    // ad.creativeUrl / ad.adm from /bid winner; ad.renderMode for render fork
   }
 }.onFailure { err ->
   Log.e("DKMads", "loadAd failed", err)
@@ -186,7 +191,7 @@ result.onSuccess { ad ->
 
 ## Consent + user data (optional)
 
-The SDK **auto-reads IAB CMP / UMP SharedPreferences** on init and before each `loadAd`:
+The SDK **auto-reads IAB CMP / TCF SharedPreferences** on init and before each `loadAd`:
 
 - `IABTCF_TCString`, `IABTCF_gdprApplies`
 - `IABUSPrivacy_String`, `IABGPP_*`
@@ -197,8 +202,8 @@ The SDK **auto-reads IAB CMP / UMP SharedPreferences** on init and before each `
 SSPSDK.setConsent(
   gdpr = true,
   ccpa = true,
-  consentString = tcfFromUmp,
-  usPrivacyString = uspFromUmp,
+  consentString = tcfFromCmp,
+  usPrivacyString = uspFromCmp,
 )
 
 SSPSDK.setTargetingSignals(
@@ -265,11 +270,13 @@ interstitial.load(
 )
 ```
 
-**Interstitial behavior (0.5.12+):**
+**Interstitial behavior:**
 
-- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox areas use **90% opaque black** (`rgba(0,0,0,0.9)`) (0.5.16+).
-- Tap anywhere on the creative or embedded links opens the landing page in the browser.
+- Fullscreen HTML/image/video scales to fit the device (`contain`); letterbox uses **90% opaque black** (`rgba(0,0,0,0.9)`).
+- **HTML5 packages** (`html5_entry_url`) are centered and scaled to fit the screen (0.5.26).
+- Tap on the creative or embedded links opens the landing page in the browser.
 - SDK defaults `placementCode` → ad unit UUID and `placementContext` → `"interstitial"` when omitted.
+- **Video Skip** chrome (countdown → Skip) appears when the creative/template is skippable (0.5.28–0.5.30), separate from the system back/close path.
 
 Or one-shot:
 
@@ -346,11 +353,13 @@ lifecycleScope.launch {
 
 ## Video / instream (drop-in)
 
-**0.5.15+:** `DKMadsVideoAdView` and video interstitials use **Media3 ExoPlayer** for MP4 and HLS (`.m3u8`, `/hls/`). Use `ad.playableVideoUrl` (not raw `videoUrl` alone) when wiring a custom player. `load()` validates `hasFill` separately from `isVideo` — a winning bid with `reason: "won"` is no longer treated as failure.
+`DKMadsVideoAdView` and video interstitials use **Media3 ExoPlayer** for MP4 and HLS (`.m3u8`, `/hls/`). Use `ad.playableVideoUrl` (not raw `videoUrl` alone) when wiring a custom player. `load()` validates **`hasFill`** separately from `isVideo` — house wins may omit a creative `id`.
 
-**0.5.16+ — responsive fit:** Banner, video, and interstitial creatives use **`object-fit: contain`** inside the publisher ad unit size (measured view bounds or `setAdSize`). Raster banners are not cropped; HTML `adm` uses slot-sized viewport (not `device-width`).
+**Responsive fit:** Banner, video, and interstitial creatives use **`object-fit: contain`** inside the publisher slot. Bid `slot_fit` / **`contain_blur`** (0.5.25+) centers square creatives with a glass-blur backdrop.
 
-**Instream audio:** placements whose context contains `instream` (e.g. `instream_preroll` from `load(placementContext = …)` or the bid’s `placement_context`) start **unmuted**. Outstream / rewarded stay muted by default for autoplay policy.
+**Chrome (0.5.28–0.5.30):** Packaged ADM `.dkmads-chrome-*` is the single Skip/mute owner (no duplicate native Skip). Skip stays visible for the whole ad after companion/load.
+
+**Instream audio:** placements whose context contains `instream` (e.g. `instream_preroll`) start **unmuted**. Outstream / rewarded stay muted by default for autoplay policy.
 
 ### Option A — `DKMadsVideoAdView` (recommended)
 
@@ -479,4 +488,5 @@ When no provider is registered, OMID is a no-op and first-party viewability stil
 ## See also
 
 - [SDK contract](../SDK_CONTRACT.md) · [Targeting signals](../TARGETING_SIGNALS.md) · [Metrics](../SDK_METRICS_REFERENCE.md)
+- [DMP identity](./dmp-identity.md) · [DMP co-init](./dmp-co-init.md)
 - [sdk/android/README.md](../../sdk/android/README.md)

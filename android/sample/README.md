@@ -1,6 +1,6 @@
 # Android quickstart sample
 
-Single-activity reference matching [60-minute quickstart](../../docs/integration/QUICKSTART.md).
+Pins native SDK **0.5.30** (`com.dkmads.ssp:ssp-android:0.5.30`). Single-activity reference matching [60-minute quickstart](../../docs/integration/QUICKSTART.md).
 
 Copy `MainActivity.kt` into your app module (package `com.dkmads.ssp.sample` or rename), add AppCompat + SDK dependency, and set:
 

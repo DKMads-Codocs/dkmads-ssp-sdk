@@ -34,7 +34,7 @@ no GitHub PAT:
 
 ```kotlin
 dependencies {
-  implementation("com.dkmads.ssp:ssp-android:0.5.22")
+  implementation("com.dkmads.ssp:ssp-android:0.5.30")
 }
 ```
 
@@ -77,7 +77,7 @@ Published artifacts are written to:
 
 - Group: `com.dkmads.ssp`
 - Artifact: `ssp-android`
-- Version: `0.5.22` (see `sdk/VERSION` — run `scripts/sync-sdk-versions.sh` after bumps)
+- Version: `0.5.30` (see `sdk/VERSION` — run `scripts/sync-sdk-versions.sh` after bumps)
 
 ## Integration
 

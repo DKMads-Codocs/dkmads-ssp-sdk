@@ -126,4 +126,4 @@ DKMadsSdk.Initialize(
 ## Related
 
 - [DMP identity bridge](./dmp-identity.md)
-- [DMP FPD forward](./dmp-fpd-forward.md)
+- [iOS](./ios.md) · [Android](./android.md) · [Web](./web.md)
